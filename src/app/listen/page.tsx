@@ -1,19 +1,9 @@
 import type { Metadata } from "next";
-import { datasetById } from "@/data/datasets";
-import { ListenExplore } from "@/components/listen/ListenExplore";
+import { ListenWorkspace } from "@/components/listen/ListenWorkspace";
 
 export const metadata: Metadata = {
   title: "Listen — SonifySphere",
-  description: "A flat map of twelve Earth regions. Pick a place, a season, and the weather, then play it.",
+  description: "Upload or search NASA Earth media, explore data layers, and hear the image or video respond to your touch.",
 };
 
-export default async function ListenPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ sound?: string; data?: string }>;
-}) {
-  const params = await searchParams;
-  const initialSound = params.sound === "off" ? "off" : params.sound === "on" ? "on" : null;
-  const initialData = datasetById(params.data)?.id ?? null;
-  return <ListenExplore initialSound={initialSound} initialData={initialData} />;
-}
+export default function ListenPage() { return <ListenWorkspace />; }
