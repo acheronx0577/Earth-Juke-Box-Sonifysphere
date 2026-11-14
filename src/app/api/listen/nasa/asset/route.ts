@@ -7,8 +7,14 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`https://images-api.nasa.gov/asset/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(12000), next: { revalidate: 3600 } });
     if (!response.ok) return NextResponse.json({ error: "NASA media is unavailable." }, { status: 502 });
     const body = await response.json() as { collection?: { items?: Array<{ href?: string }> } };
-    const urls = (body.collection?.items ?? []).map((item) => item.href ?? "").filter((url) => {
-      try { const parsed = new URL(url); return parsed.protocol === "https:" && parsed.hostname === "images-assets.nasa.gov"; } catch { return false; }
+    const urls = (body.collection?.items ?? []).flatMap((item) => {
+      try {
+        const parsed = new URL(item.href ?? "");
+        if (parsed.hostname !== "images-assets.nasa.gov" || !["http:", "https:"].includes(parsed.protocol)) return [];
+        // NASA's manifest uses HTTP links; request the same trusted asset over HTTPS.
+        parsed.protocol = "https:";
+        return [parsed.toString()];
+      } catch { return []; }
     });
     const video = urls.find((url) => /~mobile\.mp4(?:$|\?)/i.test(url))
       ?? urls.find((url) => /~small\.mp4(?:$|\?)/i.test(url))
