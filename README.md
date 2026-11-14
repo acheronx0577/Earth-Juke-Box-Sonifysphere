@@ -46,7 +46,7 @@ The current implementation uses curated values, note tables and procedural mappi
 
 Regional example values are labeled where implemented. Some 2026 figures, counts and labels in the interface have not been independently validated. Do not describe all displayed figures as verified observations or all four selectable layers as complete regional datasets; unsupported regional layers show “No data.”
 
-The hero artwork is an AI-generated illustration, as disclosed in the product credits. Team photographs and Earth imagery remain separate assets.
+The home hero artwork is an AI-generated illustration with a visible `AI-GENERATED ART · CHATGPT` watermark. Team photographs and scientific Earth imagery remain separate assets. The About credits and page metadata identify ChatGPT's image use, OpenAI Codex's code/documentation assistance, and the project's non-AI data and audio generation. Downloaded WAV mixes carry matching RIFF INFO metadata; no AI-generated audio or video is included.
 
 ## Tech stack
 

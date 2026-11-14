@@ -4,6 +4,7 @@ import { MapHero } from "@/components/about/MapHero";
 import { RecordChart } from "@/components/about/RecordChart";
 import { RoutineStrip } from "@/components/about/RoutineStrip";
 import { FooterSection } from "@/components/landing/FooterSection";
+import { AboutCreditsSection } from "@/components/about/AboutCreditsSection";
 import "@/app/about-map.css";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function AboutPage() {
       <RoutineStrip />
       <RecordChart />
       <TeamRegistry />
+      <AboutCreditsSection />
       <FooterSection showChallenge />
     </main>
   );

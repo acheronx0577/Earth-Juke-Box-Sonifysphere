@@ -555,11 +555,11 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         const margin = Math.max(16, Math.min(view.width, view.height) * 0.04);
         const titleSpace = 50;
         const captionSpace = titleSpace + (item.description ? 46 : 0);
-        const maxHeight = view.height - margin * 2 - captionSpace;
+        const maxHeight = Math.max(1, view.height - margin * 2 - captionSpace);
         const maxWidth = Math.min(view.width - margin * 2, 980);
-        const width = Math.min(maxWidth, (maxHeight + 20) * aspect);
-        const height = Math.min(maxHeight, width / aspect);
-        const y = captionSpace / 2 + 14;
+        const width = Math.min(maxWidth, maxHeight * aspect);
+        const height = width / aspect;
+        const y = captionSpace / 2;
         return { width, height, y, titleSpace };
       };
       const activeFrame = openFrame(currentList[wrap(state.active, count)]);
@@ -977,6 +977,14 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       container.removeAttribute('data-dragging');
       if (container.hasPointerCapture?.(event.pointerId)) container.releasePointerCapture(event.pointerId);
       if (drag.moved) {
+        if (state.openTarget > 0 || state.open > 0.05) {
+          const distance = event.clientX - drag.x0;
+          const threshold = clamp(view.width * 0.1, 36, 80);
+          const startSlot = Math.round(drag.start / Math.max(state.spacing, 1));
+          const step = Math.abs(distance) >= threshold ? (distance < 0 ? 1 : -1) : 0;
+          setSlot(startSlot + step);
+          return;
+        }
         const samples = drag.samples;
         if (samples.length > 1) {
           const a = samples[0];
@@ -1081,13 +1089,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (event.button !== 0) return;
       if (performance.now() - openTimestamp < 150) return;
 
-      if (container.contains(event.target as Node)) {
-        const p = point(event);
-        const card = hit(p);
-        if (card && card.slot === state.active) {
-          return;
-        }
-      }
+      if (container.contains(event.target as Node)) return;
 
       close();
     };
