@@ -5,8 +5,8 @@ import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } f
 import './CircularGallery.css';
 
 const DEFAULT_FONT = 'bold 24px var(--font-geist-mono), monospace';
-const SEGMENTS_X = 32;
-const SEGMENTS_Y = 24;
+const SEGMENTS_X = 8;
+const SEGMENTS_Y = 6;
 const INTRO_SECONDS = 1.4;
 const WORLD_HEIGHT = 16.57;
 const CLASSES = {
@@ -458,6 +458,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     let pool: PoolEntry[] = [];
     let raf = 0;
     let last = 0;
+    let lastDraw = 0;
     let visible = true;
     let snapTimer: ReturnType<typeof setTimeout> | undefined;
     let lastItems: GalleryItem[] | null = null;
@@ -507,7 +508,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const measure = () => {
       const s = settingsRef.current;
-      const height = 0.65 * view.height * s.itemSize;
+      // Reserve room below each card for its visible title.
+      const height = 0.59 * view.height * s.itemSize;
       const width = height * s.itemAspect;
       const scale = Math.min(1, (view.width * 0.85) / width);
       return { w: width * scale, h: height * scale, spacing: width * scale * (1 + s.gap) };
@@ -701,7 +703,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
             entry.el.style.font = font;
           }
           const size = card.labelSize;
-          const closedOffset = card.h / 2 + Math.max(size * 2.3, 56);
+          const closedOffset = card.h / 2 + Math.max(size * 1.3, 34);
           const openOffset = card.h / 2 + 58;
           const offset = mix(closedOffset, openOffset, card.focus);
           const x = card.x + Math.sin(card.angle) * offset;
@@ -710,6 +712,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssY = view.height / 2 - y;
           const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
           entry.el.style.fontSize = `${size}px`;
+          entry.el.style.width = `${Math.max(120, Math.min(card.w * 0.94, metrics.spacing - 12))}px`;
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
           entry.el.style.opacity = String(card.alpha * card.labelAlpha * mix(edge, 1, card.focus));
@@ -787,6 +790,12 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       }
       if (!visible || document.hidden) return;
       const s = settingsRef.current;
+      const idleAuto = s.autoScroll && !reduce && !state.drag && state.open < 0.01 && state.hovered === null && !state.keyboard;
+      if (idleAuto && lastDraw && now - lastDraw < 1000 / 30) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
+      lastDraw = now;
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
 
@@ -870,7 +879,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       placeLabels(metrics);
 
       const moving =
-        (s.autoScroll && !reduce) ||
+        auto ||
         state.scroll !== state.target ||
         state.velocity !== 0 ||
         state.open !== state.openTarget ||

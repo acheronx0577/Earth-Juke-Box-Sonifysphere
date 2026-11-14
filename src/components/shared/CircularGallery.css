@@ -39,7 +39,10 @@
   top: 0;
   left: 0;
   line-height: 1.2;
-  white-space: nowrap;
+  max-width: calc(100% - 24px);
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
   will-change: transform, opacity;
   font-family: var(--font-geist-mono), monospace;
   font-weight: 600;
