@@ -20,7 +20,8 @@ The repository is currently private. Judges must be able to open the final proje
 | Page | Experience |
 |---|---|
 | `/` | Enter with or without sound; explore the visual introduction, datasets and story sections. |
-| `/listen` | Explore twelve regions on a satellite globe; choose a dataset, season and weather; adjust wind sound and year; hear a place, draw an area, customize voices and share a selection. |
+| `/listen` | Upload an image or video, search NASA media, probe its visual pattern, view matched Meteomatics readings, and choose a live sound profile. Optional ElevenLabs texture generation requires server credentials. |
+| `/listen/classic` | Explore the earlier twelve-region map, datasets, seasons, voices, and sharing controls. |
 | `/about` | Learn the intended sound mappings, inspect the record presentation, and meet the team. |
 | `/challenge`, `/story` | Browse five activity cards using the animated gallery. |
 | `/challenge/guess` | Guess the Signal: identify sound signatures in seeded rounds with explanatory feedback. |
@@ -124,7 +125,7 @@ Visual wind simulation is removed; wind remains a sound control. Globe hover use
 
 NASA and NOAA data/image references are listed above. The source credits the Orbit Matter template by [Codegrid](https://www.codegridweb.com/), [Planet Kosmos by Mads Rydahl](https://www.planet.dk/fonts/), and [Geist by Vercel](https://vercel.com/font). Third-party libraries retain their respective licenses. No blanket license or ownership claim over third-party assets is implied.
 
-Codex assisted with code changes, performance work, documentation and repository preparation in this project. Product credits identify the hero illustration as ChatGPT-generated. The team should review the detailed SI disclosure in the submission draft and add any other tools actually used. No runtime generative-AI service is required by the current main experience.
+Codex assisted with code changes, performance work, documentation and repository preparation in this project. Product credits identify the hero illustration as ChatGPT-generated. The team should review the detailed SI disclosure in the submission draft and add any other tools actually used. The live Listen probe is synthesized in the browser. An optional, user-triggered ElevenLabs loop is available only when the server has credentials and `ELEVENLABS_SOUND_GENERATION_ENABLED=true`.
 
 ## Submission status
 
