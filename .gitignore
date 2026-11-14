@@ -35,3 +35,5 @@ next-env.d.ts
 
 # runtime data cache (live wind field)
 /.cache/
+.vercel
+.env*
