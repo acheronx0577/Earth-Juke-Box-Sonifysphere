@@ -1,0 +1,16 @@
+.sonify-page-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.sonify-page-transition[hidden] {
+  display: none;
+}
+
+.sonify-page-transition > span {
+  position: absolute;
+  background: #202020;
+}

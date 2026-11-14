@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="115" height="24" viewBox="0 0 115 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="BG &#194;&#183; chamfer 3px">
+<path d="M4 0H111L115 4V20L111 24H4L0 20V4L4 0Z" fill="#f2f2f0" fill-opacity="0.06"/>
+<mask id="stroke0_0_304" fill="white">
+<path d="M4 0H111L115 4V20L111 24H4L0 20V4L4 0Z"/>
+</mask>
+<path d="M4 0H111L115 4V20L111 24H4L0 20V4L4 0Z" stroke-width="2" stroke="#f2f2f0" stroke-opacity="0.14" mask="url(#stroke0_0_304)"/>
+</g>
+</svg>

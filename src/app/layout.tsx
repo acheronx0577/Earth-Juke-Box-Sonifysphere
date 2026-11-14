@@ -1,0 +1,122 @@
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { SonifyPlayerProvider } from "@/context/SonifyPlayerContext";
+import { AudioLiveFlag } from "@/components/shared/AudioLiveFlag";
+import { MiniPlayerPill } from "@/components/shared/MiniPlayerPill";
+import { SiteNav } from "@/components/shared/SiteNav";
+import { SmoothScroll } from "@/components/shared/SmoothScroll";
+import { PageReady } from "@/components/shared/PageReady";
+import { PageTransitions } from "@/components/shared/PageTransitions";
+import { SkipLink } from "@/components/shared/SkipLink";
+import TargetCursor from "@/components/shared/TargetCursor";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+});
+
+export const viewport: Viewport = {
+  themeColor: "#141414",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+};
+
+export const metadata: Metadata = {
+  metadataBase: new URL("https://sonifysphere.org"),
+  title: "SonifySphere — The Earth Information Jukebox",
+  description: "Four real records of a changing planet, turned into music you can play.",
+  applicationName: "SonifySphere",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-48x48.png", sizes: "48x48", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    siteName: "SonifySphere",
+    title: "SonifySphere — The Earth Information Jukebox",
+    description: "Four real records of a changing planet, turned into music you can play.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SonifySphere" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SonifySphere — The Earth Information Jukebox",
+    description: "Four real records of a changing planet, turned into music you can play.",
+    images: ["/og-image.png"],
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+      <head>
+        <link
+          rel="preload"
+          href="/fonts/PlanetKosmos.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
+      </head>
+      <body className="bg-[#141414] text-[#f2f2f0] antialiased selection:bg-[#f2f2f0] selection:text-[#141414]">
+        <SmoothScroll />
+        <PageReady />
+        <PageTransitions />
+        <SkipLink />
+        <TargetCursor
+          spinDuration={2}
+          hoverDuration={0.11}
+          parallaxOn={true}
+          hideDefaultCursor={true}
+          showLabel={false}
+          cursorColor="#f2f2f0"
+          cursorColorOnTarget="#ffffff"
+          blendMode="difference"
+        />
+        <SonifyPlayerProvider>
+          <AudioLiveFlag />
+          <svg
+            style={{ visibility: "hidden", position: "absolute", width: 0, height: 0 }}
+            aria-hidden="true"
+          >
+            <defs>
+              <filter id="goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+                <feColorMatrix
+                  in="blur"
+                  mode="matrix"
+                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9"
+                  result="goo"
+                />
+                <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+              </filter>
+            </defs>
+          </svg>
+          <SiteNav />
+          {children}
+          <MiniPlayerPill />
+        </SonifyPlayerProvider>
+      </body>
+    </html>
+  );
+}

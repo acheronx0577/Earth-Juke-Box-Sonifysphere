@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="644" height="360" viewBox="0 0 644 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path id="Gradient &#194;&#183; transparent 40% &#226;&#134;&#146; rgba(0,0,0,.8) bottom (template .cta-card-gradient was .65)" d="M12 0H632L644 12V348L632 360H12L0 348V12L12 0Z" fill="url(#paint0_linear_0_242)"/>
+<defs>
+<linearGradient id="paint0_linear_0_242" x1="322" y1="0" x2="322" y2="360" gradientUnits="userSpaceOnUse">
+<stop offset="0.4" stop-opacity="0"/>
+<stop offset="1" stop-opacity="0.8"/>
+</linearGradient>
+</defs>
+</svg>

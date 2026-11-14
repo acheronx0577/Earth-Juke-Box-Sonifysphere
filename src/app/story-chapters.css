@@ -1,0 +1,97 @@
+/* Story Chapters Carousel Styling - Apple HIG & Fluid Motion */
+
+.story-chip-solid,
+.story-btn-round,
+.story-btn-pill {
+  clip-path: var(--clip-chamfer-8);
+}
+
+/* Precision chamfered HUD chip with continuous 1px vector border and seamless #141414 background */
+.story-chip-glass {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  isolation: isolate;
+}
+
+.story-chip-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(242, 242, 240, 0.18);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  pointer-events: none;
+  z-index: 0;
+  transition: background-color 0.2s ease;
+}
+
+.story-chip-glass::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  background: #141414;
+  clip-path: polygon(7.4px 0, calc(100% - 7.4px) 0, 100% 7.4px, 100% calc(100% - 7.4px), calc(100% - 7.4px) 100%, 7.4px 100%, 0 calc(100% - 7.4px), 0 7.4px);
+  pointer-events: none;
+  z-index: 0;
+  transition: background-color 0.2s ease;
+}
+
+.story-chip-glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+.story-chip-glass:hover::before {
+  background: rgba(242, 242, 240, 0.35);
+}
+
+.story-chip-glass:hover::after {
+  background: #262626;
+}
+
+.story-chip-solid {
+  background-color: #f2f2f0;
+  box-shadow: 0 2px 12px rgba(242, 242, 240, 0.15);
+}
+
+.story-btn-round {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              filter 0.25s ease,
+              opacity 0.2s ease;
+}
+
+.story-btn-round:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 12px rgba(242, 242, 240, 0.3));
+}
+
+.story-btn-round:active {
+  transform: scale(0.92);
+  transition-duration: 0.1s;
+}
+
+.story-btn-pill {
+  background-color: #f2f2f0;
+  cursor: pointer;
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background-color 0.2s ease,
+              box-shadow 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4),
+              0 0 12px rgba(242, 242, 240, 0.15);
+}
+
+.story-btn-pill:hover {
+  background-color: #ffffff;
+  transform: scale(1.04);
+  box-shadow: 0 6px 24px rgba(242, 242, 240, 0.35);
+}
+
+.story-btn-pill:active {
+  transform: scale(0.96);
+  transition-duration: 0.1s;
+}
