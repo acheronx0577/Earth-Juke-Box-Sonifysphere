@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Mini/Mute button">
+<mask id="stroke0_0_98" fill="white">
+<path d="M8 0H28L36 8V28L28 36H8L0 28V8L8 0Z"/>
+</mask>
+<path id="BG &#194;&#183; chamfer 8px (clip-path polygon)" d="M8 0H28L36 8V28L28 36H8L0 28V8L8 0Z" stroke-width="2" stroke="#f2f2f0" stroke-opacity="0.14" mask="url(#stroke0_0_98)"/>
+<path id="Speaker" d="M10 15H14L19 11V25L14 21H10V15Z" fill="#f2f2f0"/>
+<path id="Wave" d="M22 13C24.6667 16.3333 24.6667 19.6667 22 23" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" stroke="#f2f2f0"/>
+</g>
+</svg>

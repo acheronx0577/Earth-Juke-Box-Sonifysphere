@@ -1,0 +1,7 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Mini/Play button">
+<path id="BG &#194;&#183; chamfer 8px (clip-path polygon)" d="M8 0H36L44 8V36L36 44H8L0 36V8L8 0Z" fill="#f2f2f0"/>
+<rect id="Pause bar" x="16" y="14" width="4" height="16" fill="#141414"/>
+<rect id="Pause bar_2" x="24" y="14" width="4" height="16" fill="#141414"/>
+</g>
+</svg>
