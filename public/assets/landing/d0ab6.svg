@@ -1,0 +1,9 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="370" height="28" viewBox="0 0 370 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Chip BG &#194;&#183; #141414 80% &#194;&#183; 8px chamfer">
+<path d="M8 0H362L370 8V20L362 28H8L0 20V8L8 0Z" fill="#141414" fill-opacity="0.8"/>
+<mask id="stroke0_0_299" fill="white">
+<path d="M8 0H362L370 8V20L362 28H8L0 20V8L8 0Z"/>
+</mask>
+<path d="M8 0H362L370 8V20L362 28H8L0 20V8L8 0Z" stroke-width="2" stroke="#f2f2f0" stroke-opacity="0.16" mask="url(#stroke0_0_299)"/>
+</g>
+</svg>

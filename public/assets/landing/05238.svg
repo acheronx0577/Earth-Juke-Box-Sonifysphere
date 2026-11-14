@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="264" height="130" viewBox="0 0 264 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Sparkline &#194;&#183; real values from CSV" clip-path="url(#clip0_0_295)">
+<path id="BG &#194;&#183; chamfer 8px" d="M8 0H256L264 8V122L256 130H8L0 122V8L8 0Z" fill="#141414"/>
+<path id="Sea ice &#194;&#183; all 48 years" d="M6 25.24L11.36 8L16.72 22.74L22.09 18.29L27.45 15.79L32.81 31.91L38.17 34.97L43.53 15.23L48.89 18.84L54.26 16.34L59.62 26.35L64.98 50.54L70.34 41.37L75.7 13.56L81.06 43.31L86.43 22.74L91.79 52.21L97.15 10.5L102.51 35.25L107.87 39.42L113.23 51.1L118.6 47.48L123.96 34.14L129.32 59.16L134.68 51.1L140.04 54.99L145.4 68.34L150.77 58.33L156.13 102.54L161.49 90.86L166.85 75.01L172.21 85.85L177.57 94.47L182.94 122L188.3 76.4L193.66 76.12L199.02 92.8L204.38 95.31L209.74 87.24L215.11 88.08L220.47 100.03L225.83 110.04L231.19 83.63L236.55 85.02L241.91 99.48L247.28 100.31L252.64 89.19L258 87.52" stroke-linecap="round" stroke-linejoin="round" stroke="#f2f2f0"/>
+</g>
+<defs>
+<clipPath id="clip0_0_295">
+<rect width="264" height="130" fill="white"/>
+</clipPath>
+</defs>
+</svg>
