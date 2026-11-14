@@ -147,28 +147,37 @@ export function TeamRegistry() {
       </div>
 
       <div className="cards">
-        {TEAM.map((member, i) => (
-          <div
-            key={member.name}
-            className="card"
-            ref={(el) => {
-              cardsRef.current[i] = el;
-            }}
-          >
-            <div className="card-img">
-              <img
-                src={member.image || `/team/squad_img_${String(i + 1).padStart(2, "0")}.webp`}
-                alt={member.name}
-                loading="lazy"
-                draggable={false}
-              />
+        {TEAM.map((member, i) => {
+          const isGeneratedPlaceholder = member.name === "Irmuun Temuulel";
+
+          return (
+            <div
+              key={member.name}
+              className="card"
+              ref={(el) => {
+                cardsRef.current[i] = el;
+              }}
+            >
+              <div className="card-img">
+                <img
+                  src={member.image || `/team/squad_img_${String(i + 1).padStart(2, "0")}.webp`}
+                  alt={isGeneratedPlaceholder ? `AI-generated representative portrait for ${member.name}` : member.name}
+                  data-si-generated={isGeneratedPlaceholder ? "true" : undefined}
+                  data-si-media={isGeneratedPlaceholder ? "image" : undefined}
+                  loading="lazy"
+                  draggable={false}
+                />
+                {isGeneratedPlaceholder && (
+                  <span className="team-ai-label" aria-hidden="true">AI-GENERATED IMAGE</span>
+                )}
+              </div>
+              <div className="card-content">
+                <h3>{member.name}</h3>
+                <p>{member.role}</p>
+              </div>
             </div>
-            <div className="card-content">
-              <h3>{member.name}</h3>
-              <p>{member.role}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
