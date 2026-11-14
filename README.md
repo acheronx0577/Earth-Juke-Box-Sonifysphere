@@ -8,6 +8,7 @@ Built for [The Earth Information Jukebox — NASA Space Apps 2026](https://www.s
 
 - [Source repository](https://github.com/acheronx0577/earth-juke-box)
 - [Production website](https://earth-juke-box.vercel.app)
+- [Listen workspace design report](public/design/listen-redesign-report.html) (served at `/design/listen-redesign-report.html` when the app runs)
 - Project demo: pending — a public video of at most 30 seconds or an English deck of at most seven slides is required by the supplied submission guide.
 - [Submission draft and requirements](docs/SPACE-APPS-SUBMISSION.md)
 - [NASA Space Apps submission guide](https://www.spaceappschallenge.org/resources/project-submission-guide/)
