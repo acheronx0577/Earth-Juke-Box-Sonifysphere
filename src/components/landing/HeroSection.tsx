@@ -56,7 +56,7 @@ function HeroWordmark() {
 function HeroImages() {
   return (
     <div className="hero-img-container">
-      <div className="hero-img">
+      <div className="hero-img" data-si-generated="true" data-si-tool="ChatGPT" data-si-media="image">
         <img
           alt=""
           className="sonify-earth-breathe absolute inset-0 max-w-none object-cover object-top pointer-events-none size-full"
@@ -68,6 +68,7 @@ function HeroImages() {
           src={ASSETS.heroForegroundAstronaut}
         />
         <HeroPixelHover />
+        <span className="hero-si-watermark">AI-GENERATED ART · CHATGPT</span>
       </div>
       <div className="hero-img-overlay" />
       <div className="hero-img-gradient" />

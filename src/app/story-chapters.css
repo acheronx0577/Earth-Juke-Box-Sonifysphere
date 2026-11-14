@@ -1,5 +1,19 @@
 /* Story Chapters Carousel Styling - Apple HIG & Fluid Motion */
 
+.story-chapters-section {
+  min-height: calc(100svh - 4.5rem + 12px);
+  overflow-x: clip;
+}
+
+.story-chapters-gallery-frame {
+  height: clamp(320px, calc(100svh - 440px), 620px);
+  top: clamp(18px, 3svh, 30px);
+}
+
+.story-chapters-gallery-frame .circular-gallery {
+  min-height: 0;
+}
+
 .story-chip-solid,
 .story-btn-round,
 .story-btn-pill {
@@ -51,6 +65,19 @@
   background: #262626;
 }
 
+.story-listen-link {
+  color: rgba(242, 242, 240, 0.7);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.story-listen-link:hover { color: #f2f2f0; }
+
+.story-listen-link:focus-visible {
+  outline: 2px solid #f2f2f0;
+  outline-offset: 4px;
+}
+
 .story-chip-solid {
   background-color: #f2f2f0;
   box-shadow: 0 2px 12px rgba(242, 242, 240, 0.15);
@@ -94,4 +121,42 @@
 .story-btn-pill:active {
   transform: scale(0.96);
   transition-duration: 0.1s;
+}
+
+@media (max-width: 1000px) {
+  .story-chapters-top {
+    display: none;
+  }
+
+  .story-chapters-layout {
+    padding-top: 16px;
+  }
+
+  .story-chapters-gallery-frame {
+    height: clamp(360px, 52svh, 560px);
+    top: clamp(12px, 2svh, 18px);
+  }
+}
+
+@media (min-width: 1001px) and (max-height: 850px) {
+  .story-chapters-gallery-frame {
+    height: clamp(380px, calc(100svh - 360px), 560px);
+  }
+}
+
+@media (max-width: 480px) {
+  .story-chapters-gallery-frame {
+    height: clamp(300px, 45svh, 390px);
+  }
+
+  .story-chapters-bottom {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 360px) {
+  .story-chapters-gallery-frame {
+    height: clamp(280px, 42svh, 340px);
+  }
+
 }

@@ -39,7 +39,7 @@ Scientific scope must be stated accurately: the current prototype does not autom
 
 ## Use of Super Intelligence (SI) draft
 
-Codex assisted with implementation changes, performance investigation, optimization, documentation and repository preparation. The app's credits identify the hero illustration as ChatGPT-generated. The current main experience uses deterministic sound generation and does not depend on a runtime generative-AI service. The team must review this statement, describe human review/testing and add any additional AI tools actually used. Do not claim the team independently authored AI-generated or third-party material.
+ChatGPT generated the home hero illustration. The image carries a visible `AI-GENERATED ART · CHATGPT` watermark, and the About credits identify its source. OpenAI Codex assisted with software code, performance optimization, documentation and repository preparation. The page metadata and About credits record these uses. Project source data and authored sonification presets are not AI-generated. Audio is synthesized procedurally with Tone.js/Web Audio; downloadable WAV files include RIFF INFO provenance metadata and state that no AI audio model generated the mix. No AI-generated video is included; watermark any AI-generated video added later. The team must add any other SI tools actually used and review the final disclosure before submission.
 
 ## Team copied from About
 

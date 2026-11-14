@@ -4,9 +4,41 @@ import { useEffect, useRef } from "react";
 import { ASSETS } from "@/data/landingData";
 
 // Past Drop V1's nearest-filtered displacement grid, applied to the hero artwork.
-const GRID = 120;
-const RADIUS = GRID * 0.065;
 const RELAXATION = 0.9;
+
+type HeroQuality = {
+  grid: number;
+  maxPixelRatio: number;
+  activeFps: number;
+  idleFps: number;
+};
+
+function detectHeroQuality(gl: WebGL2RenderingContext): HeroQuality {
+  const device = navigator as Navigator & { deviceMemory?: number };
+  const cores = navigator.hardwareConcurrency;
+  const memory = device.deviceMemory;
+  const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
+  const rendererInfo = gl.getExtension("WEBGL_debug_renderer_info");
+  const renderer = rendererInfo
+    ? String(gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL)).toLowerCase()
+    : "";
+  const softwareRenderer = /swiftshader|llvmpipe|software rasterizer|basic render|warp/.test(renderer);
+  const olderIntegratedGpu = /intel.*(hd graphics|uhd graphics)/.test(renderer);
+  const veryLimitedDevice = (cores !== undefined && cores <= 2)
+    || (memory !== undefined && memory <= 2)
+    || maxTextureSize <= 2048;
+  const limitedDevice = (cores !== undefined && cores <= 4)
+    || (memory !== undefined && memory <= 4)
+    || maxTextureSize <= 4096;
+
+  if (softwareRenderer || veryLimitedDevice) {
+    return { grid: 48, maxPixelRatio: 1.15, activeFps: 30, idleFps: 20 };
+  }
+  if (olderIntegratedGpu || limitedDevice) {
+    return { grid: 72, maxPixelRatio: 1.5, activeFps: 45, idleFps: 24 };
+  }
+  return { grid: 120, maxPixelRatio: 2, activeFps: 60, idleFps: 30 };
+}
 
 const VERTEX_SHADER = `#version 300 es
 in vec2 position;
@@ -74,6 +106,9 @@ export function HeroPixelHover() {
       if (preference.matches) return;
       const gl = canvas.getContext("webgl2", { alpha: false, antialias: false });
       if (!gl) return;
+      const quality = detectHeroQuality(gl);
+      const grid = quality.grid;
+      const radius = grid * 0.065;
 
       let disposed = false;
       let ready = false;
@@ -84,7 +119,7 @@ export function HeroPixelHover() {
       let width = 1;
       let height = 1;
       const mouse = { x: 0.5, y: 0.5, prevX: 0.5, prevY: 0.5, vX: 0, vY: 0 };
-      const data = new Float32Array(GRID * GRID * 4);
+      const data = new Float32Array(grid * grid * 4);
       const textures: WebGLTexture[] = [];
       const shaders: WebGLShader[] = [];
       const images: HTMLImageElement[] = [];
@@ -99,7 +134,7 @@ export function HeroPixelHover() {
       const resize = () => {
         width = imageLayer.clientWidth;
         height = imageLayer.clientHeight;
-        const dpr = Math.min(window.devicePixelRatio, 2);
+        const dpr = Math.min(window.devicePixelRatio, quality.maxPixelRatio);
         canvas.width = Math.max(1, Math.round(width * dpr));
         canvas.height = Math.max(1, Math.round(height * dpr));
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -108,17 +143,17 @@ export function HeroPixelHover() {
 
       const updateGrid = (delta: number) => {
         const decay = Math.pow(RELAXATION, delta);
-        const gx = mouse.x * GRID;
-        const gy = mouse.y * GRID;
+        const gx = mouse.x * grid;
+        const gy = mouse.y * grid;
         energy = 0;
-        for (let y = 0; y < GRID; y++) {
-          for (let x = 0; x < GRID; x++) {
-            const i = (x + y * GRID) * 4;
+        for (let y = 0; y < grid; y++) {
+          for (let x = 0; x < grid; x++) {
+            const i = (x + y * grid) * 4;
             data[i] *= decay;
             data[i + 1] *= decay;
             const distance = (gx - x) ** 2 / (height / width) + (gy - y) ** 2;
-            if (distance < RADIUS * RADIUS) {
-              const power = Math.min(RADIUS / Math.sqrt(Math.max(distance, 0.0001)), 10);
+            if (distance < radius * radius) {
+              const power = Math.min(radius / Math.sqrt(Math.max(distance, 0.0001)), 10);
               data[i] += 100 * mouse.vX * power * delta;
               data[i + 1] -= 100 * mouse.vY * power * delta;
             }
@@ -135,14 +170,15 @@ export function HeroPixelHover() {
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, textures[2]);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, GRID, GRID, gl.RGBA, gl.FLOAT, data);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, grid, grid, gl.RGBA, gl.FLOAT, data);
       };
 
       const render = (time: number) => {
         frame = 0;
         if (disposed || !visible || document.hidden || !ready) return;
         // Keep pointer interaction fluid; the slow idle breath needs fewer GPU draws.
-        const interval = energy || mouse.vX || mouse.vY ? 1000 / 60 : 1000 / 30;
+        const isInteracting = energy || mouse.vX || mouse.vY;
+        const interval = 1000 / (isInteracting ? quality.activeFps : quality.idleFps);
         if (previousTime && time - previousTime < interval - 1) {
           frame = requestAnimationFrame(render);
           return;
@@ -213,6 +249,7 @@ export function HeroPixelHover() {
         gl.deleteProgram(program);
         delete imageLayer.dataset.pixelReady;
         delete canvas.dataset.pixelActive;
+        delete canvas.dataset.pixelQuality;
       };
 
       try {
@@ -239,7 +276,8 @@ export function HeroPixelHover() {
           gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
           gl.uniform1i(gl.getUniformLocation(program, name), unit);
         });
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, GRID, GRID, 0, gl.RGBA, gl.FLOAT, data);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, grid, grid, 0, gl.RGBA, gl.FLOAT, data);
+        canvas.dataset.pixelQuality = quality.grid === 120 ? "full" : quality.grid === 72 ? "reduced" : "minimal";
         let loaded = 0;
         [ASSETS.heroEarthSky, ASSETS.heroForegroundAstronaut].forEach((src, unit) => {
           const image = new Image();
