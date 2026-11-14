@@ -8,7 +8,7 @@
   pointer-events: none;
 }
 
-@media (pointer: coarse), (max-width: 999px) {
+@media (pointer: coarse) {
   .target-cursor {
     display: none !important;
   }
