@@ -832,19 +832,6 @@
   padding: 8px 12px;
 }
 
-body:has(.lv-page) .target-cursor {
-  display: none !important;
-}
-
-body:has(.lv-page),
-body:has(.lv-page) * {
-  cursor: auto !important;
-}
-
-.lv-page :is(button, a, input, label, [role="group"]) {
-  cursor: pointer !important;
-}
-
 .lv-skip:focus {
   transform: none;
 }
