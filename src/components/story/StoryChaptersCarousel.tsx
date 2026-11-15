@@ -92,10 +92,28 @@ const CHAPTERS: ChapterData[] = [
   },
 ];
 
+/**
+ * Card-widths per second is autoScroll * 0.25, so 0.8 crosses about one card every 5s.
+ * Positive flow advances the numbered row (01 then 02), matching the Next control:
+ * cards travel toward the left edge and the following card enters from the right.
+ */
+const FLOW_SPEED = 0.8;
+
 export function StoryChaptersCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [reduced, setReduced] = useState(false);
   const galleryRef = useRef<CircularGalleryRef>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduced(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   const handlePrev = useCallback(() => {
     setDirection(-1);
@@ -107,22 +125,40 @@ export function StoryChaptersCarousel() {
     galleryRef.current?.next();
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation. The gallery handles arrows while one of its cards is focused.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (target?.closest(".circular-gallery")) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
       if (e.key === "ArrowLeft") handlePrev();
-      if (e.key === "ArrowRight") handleNext();
+      else handleNext();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePrev, handleNext]);
 
   const activeChapter = CHAPTERS[activeIndex] || CHAPTERS[0];
+  const paused = reduced || hovered || focused;
 
   return (
     <section
       className="story-chapters-section relative w-full bg-[#141414]"
       aria-label="Story Chapters Carousel"
+      data-paused={paused ? "true" : "false"}
+      data-reduced-motion={reduced ? "true" : "false"}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") setHovered(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") setHovered(false);
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+      }}
       style={{
         backgroundImage: `
           linear-gradient(to right, rgba(242,242,240,0.04) 1px, transparent 1px),
@@ -167,14 +203,17 @@ export function StoryChaptersCarousel() {
             shadow={0}
             dpr={1.25}
             scrollSpeed={2}
-            scrollEase={0.05}
-            autoScroll={0}
-            snap={true}
+            scrollEase={0.08}
+            autoScroll={paused ? 0 : FLOW_SPEED}
+            snap={false}
             openOnClick={true}
             onActiveChange={(index) => {
               setActiveIndex((prev) => {
                 if (index !== prev) {
-                  setDirection(index > prev ? 1 : -1);
+                  const count = CHAPTERS.length;
+                  const forward = (index - prev + count) % count;
+                  const backward = (prev - index + count) % count;
+                  setDirection(forward <= backward ? 1 : -1);
                 }
                 return index;
               });
@@ -235,7 +274,7 @@ export function StoryChaptersCarousel() {
             </button>
           </div>
 
-          <p className="story-chapters-count">
+          <p className="story-chapters-count" data-challenge-count={activeChapter.num}>
             {activeChapter.num} / 05
           </p>
         </div>
