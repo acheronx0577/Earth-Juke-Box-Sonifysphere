@@ -19,8 +19,21 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.sonifysphere.earth";
+const shareImage = {
+  url: "/og-image.png",
+  secureUrl: new URL("/og-image.png", siteUrl).href,
+  width: 1200,
+  height: 630,
+  alt: "SonifySphere hero — Earth breathes, the Earth information jukebox",
+  type: "image/png",
+} as const;
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sonifysphere.org"),
+  metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: "./",
+  },
   title: "SonifySphere — The Earth Information Jukebox",
   description: "Four real records of a changing planet, turned into music you can play.",
   other: {
@@ -42,16 +55,17 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    url: "./",
     siteName: "SonifySphere",
     title: "SonifySphere — The Earth Information Jukebox",
     description: "Four real records of a changing planet, turned into music you can play.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SonifySphere" }],
+    images: [shareImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "SonifySphere — The Earth Information Jukebox",
     description: "Four real records of a changing planet, turned into music you can play.",
-    images: ["/og-image.png"],
+    images: [shareImage],
   },
 };
 
