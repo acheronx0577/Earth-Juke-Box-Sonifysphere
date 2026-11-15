@@ -766,7 +766,7 @@
 
 .team .cards {
   position: absolute;
-  top: max(57%, calc(3.2rem + 1.76 * min(7.5vw, 7.5rem) + var(--crew-h) / 2));
+  top: max(57%, calc(5.25rem + 1.76 * min(7.5vw, 7.5rem) + var(--crew-h) / 2));
   left: 50%;
   transform: translate(-50%, -50%);
   width: 150vw;
