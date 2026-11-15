@@ -7,6 +7,7 @@ import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import { CENTRAL_MERIDIAN, MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
 import { legendFromMetadata, legendFromPixels, legendGradient, type LegendModel } from "@/components/listen/v4/legend";
 import { legendMetaFor, type LayerId, type ListenSource } from "@/components/listen/v4/model";
+import type { ListeningFocus } from "@/components/listen/v4/proximityAudio";
 
 function landFill(layer: LayerId, anomaly: number, seaIce: boolean, id: string): string {
   if (layer === "sea-ice") return seaIce || id === "antarctica" ? "#d5e6ee" : "#2a2a2a";
@@ -94,6 +95,7 @@ interface ListenMapProps {
   readonly tip: string;
   readonly coord: string;
   readonly onPixel: (color: string | null) => void;
+  readonly onFocus: (focus: ListeningFocus) => void;
 }
 
 async function sampleImage(img: CanvasImageSource, width: number, height: number): Promise<ImageData | null> {
@@ -108,7 +110,7 @@ async function sampleImage(img: CanvasImageSource, width: number, height: number
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, tip, coord, onPixel }: ListenMapProps) {
+export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, tip, coord, onPixel, onFocus }: ListenMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -132,6 +134,26 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const mapWidth = MAP_VIEW.width / mapZoom;
   const mapHeight = MAP_VIEW.height / mapZoom;
   const mapViewBox = `${mapCenter.x - mapWidth / 2} ${mapCenter.y - mapHeight / 2} ${mapWidth} ${mapHeight}`;
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    const position = mapMode ? mapProbePosition : ring;
+    if (!stage) return;
+    const publish = () => {
+      const rect = stage.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      onFocus({
+        sourceId: source.id,
+        zoom: mapZoom,
+        x: position ? position.x / rect.width : 0.5,
+        y: position ? position.y / rect.height : 0.5,
+      });
+    };
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [mapMode, mapProbePosition, ring, mapZoom, source.id, onFocus]);
 
   const resizeProbe = (amount: number) => {
     setProbeRadius((size) => Math.min(30, Math.max(6, size + amount)));
@@ -600,6 +622,9 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
             >
               {Math.round(mapZoom * 100)}%
             </button>
+            <span className="lv-map-control-label" title="Zoom in for a closer, clearer sound. Zoom out for a wider, more distant sound.">
+              {mapZoom >= 2.5 ? "LOCAL" : mapZoom > 1 ? "REGIONAL" : "WIDE"}
+            </span>
           </div>
         </div>
       ) : null}
