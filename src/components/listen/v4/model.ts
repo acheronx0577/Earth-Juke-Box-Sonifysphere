@@ -105,11 +105,13 @@ export const MAP_SOURCE: ListenSource = {
   legend: TEMP_LEGEND,
 };
 
-const REEF_PREVIEW =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#12343a"/><circle cx="90" cy="110" r="46" fill="#e07a4a"/><circle cx="170" cy="80" r="34" fill="#f0d2a8"/><circle cx="230" cy="120" r="40" fill="#2f6f78"/></svg>`,
-  );
+export const CURATED_SOURCE_IDS = new Set<string>([
+  "eic-svs-5101",
+  MAP_SOURCE.id,
+  "oco2-example",
+  "currents-example",
+  "iss-lightning-5011",
+]);
 
 export const SEED_SOURCES: readonly ListenSource[] = [
   MAP_SOURCE,
@@ -146,15 +148,6 @@ export const SEED_SOURCES: readonly ListenSource[] = [
     video: "/api/listen/svs/video?id=5011",
     duration: "0:25",
     layer: "all",
-    legend: null,
-  },
-  {
-    id: "reef-example",
-    title: "reef-survey.jpg",
-    kind: "image",
-    eyebrow: "IMG",
-    meta: "Example upload · not your file",
-    preview: REEF_PREVIEW,
     legend: null,
   },
 ];

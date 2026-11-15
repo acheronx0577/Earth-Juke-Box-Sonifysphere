@@ -166,6 +166,41 @@
   --lv-stroke: #fff3ea;
 }
 
+.lv-history-desktop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lv-drawer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lv-clear-btn {
+  background: transparent;
+  border: 1px solid var(--lv-stroke-3);
+  color: var(--lv-muted);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.lv-clear-btn:hover {
+  color: var(--lv-cream);
+  border-color: var(--lv-stroke-2);
+}
+
+.lv-clear-btn:focus-visible {
+  outline: none;
+  border-color: #fff3ea;
+  color: #fff3ea;
+}
+
 .lv-section {
   margin: 8px 0 0;
 }

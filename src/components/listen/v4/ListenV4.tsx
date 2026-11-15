@@ -8,6 +8,7 @@ import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/component
 import { ListenMap } from "@/components/listen/v4/ListenMap";
 import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import {
+  CURATED_SOURCE_IDS,
   EXTRA_LAYERS,
   INSTRUMENTS,
   MAP_SOURCE,
@@ -142,6 +143,59 @@ function Chip({
   );
 }
 
+const LEGACY_SEARCH_IDS = new Set<string>([
+  "ocean-currents",
+  "carbon-dioxide",
+  "arctic-ice",
+  "hilary-2023",
+  "canada-smoke-2023",
+]);
+
+function sanitizeSavedSearches(raw: unknown): SearchRecord[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is SearchRecord => Boolean(item && !LEGACY_SEARCH_IDS.has(item.id)));
+}
+
+function sanitizeSavedSources(raw: unknown, current: readonly ListenSource[]): ListenSource[] {
+  if (!Array.isArray(raw)) return [...current];
+  const extras = raw.filter(
+    (item): item is ListenSource =>
+      Boolean(item && item.id !== "reef-example" && !CURATED_SOURCE_IDS.has(item.id) && !current.some((seed) => seed.id === item.id))
+  );
+  return [...extras, ...current].slice(0, 20);
+}
+
+function SourceItem({
+  item,
+  activeId,
+  onOpen,
+}: {
+  readonly item: ListenSource;
+  readonly activeId: string;
+  readonly onOpen: (source: ListenSource) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="lv-hist lv-cut"
+      aria-current={item.id === activeId ? "true" : undefined}
+      onClick={() => onOpen(item)}
+    >
+      <ChamferMark />
+      <span className="lv-hist-face">
+        <Thumb source={item} />
+        <span className="lv-hist-copy">
+          <strong>
+            <span className="lv-kind">{item.eyebrow}</span>
+            <span className="lv-hist-title">{item.title}</span>
+          </strong>
+          <small>{item.meta}</small>
+        </span>
+      </span>
+    </button>
+  );
+}
+
 function HistoryList({
   sources,
   searches,
@@ -149,6 +203,7 @@ function HistoryList({
   onOpen,
   onSearch,
   onNew,
+  onClearHistory,
   drawer,
   onClose,
   closeRef,
@@ -159,24 +214,55 @@ function HistoryList({
   readonly onOpen: (source: ListenSource) => void;
   readonly onSearch: (term: string) => void;
   readonly onNew: () => void;
+  readonly onClearHistory?: () => void;
   readonly drawer?: boolean;
   readonly onClose?: () => void;
   readonly closeRef?: RefObject<HTMLButtonElement | null>;
 }) {
+  const userSources = sources.filter((item) => !CURATED_SOURCE_IDS.has(item.id));
+  const nasaSources = sources.filter((item) => CURATED_SOURCE_IDS.has(item.id));
+  const userItemsCount = userSources.length + searches.length;
+
   return (
     <>
       {drawer ? (
         <div className="lv-drawer-head lv-drawer-only">
           <div>
-            <p className="lv-mono lv-eyebrow">HISTORY · {sources.length + searches.length} ITEMS</p>
-            <p className="lv-title">Your sources</p>
+            <p className="lv-mono lv-eyebrow">
+              HISTORY · {userItemsCount > 0 ? `${userItemsCount} RECENT` : "0 RECENT"}
+            </p>
+            <p className="lv-title">Data sources</p>
           </div>
-          <button ref={closeRef} type="button" className="lv-icon-btn lv-cut" aria-label="Close history" onClick={onClose}>
-            ×
-          </button>
+          <div className="lv-drawer-actions">
+            {userItemsCount > 0 && onClearHistory ? (
+              <button
+                type="button"
+                className="lv-clear-btn"
+                onClick={onClearHistory}
+                aria-label="Clear recent user history"
+              >
+                CLEAR
+              </button>
+            ) : null}
+            <button ref={closeRef} type="button" className="lv-icon-btn lv-cut" aria-label="Close history" onClick={onClose}>
+              ×
+            </button>
+          </div>
         </div>
       ) : (
-        <p className="lv-mono lv-eyebrow">HISTORY</p>
+        <div className="lv-history-desktop-head">
+          <p className="lv-mono lv-eyebrow">HISTORY</p>
+          {userItemsCount > 0 && onClearHistory ? (
+            <button
+              type="button"
+              className="lv-clear-btn"
+              onClick={onClearHistory}
+              aria-label="Clear recent user history"
+            >
+              CLEAR
+            </button>
+          ) : null}
+        </div>
       )}
       <button type="button" className="lv-new lv-cut" aria-describedby="lv-upload-note" onClick={onNew}>
         <ChamferMark />
@@ -185,51 +271,50 @@ function HistoryList({
       <p id="lv-upload-note" className="lv-upload-note">
         JPEG, PNG, or WebP up to 25 MB · MP4 or WebM up to 100 MB and 15 minutes
       </p>
-      <p className="lv-mono lv-eyebrow lv-section">RECENT SOURCES</p>
+
+      {userSources.length > 0 ? (
+        <>
+          <p className="lv-mono lv-eyebrow lv-section">YOUR UPLOADS & RECENT</p>
+          <div className="lv-list">
+            {userSources.map((item) => (
+              <SourceItem key={item.id} item={item} activeId={activeId} onOpen={onOpen} />
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      <p className="lv-mono lv-eyebrow lv-section">NASA SOURCES</p>
       <div className="lv-list">
-        {sources.map((item) => (
-          <button
-            type="button"
-            key={item.id}
-            className="lv-hist lv-cut"
-            aria-current={item.id === activeId ? "true" : undefined}
-            onClick={() => onOpen(item)}
-          >
-            <ChamferMark />
-            <span className="lv-hist-face">
-              <Thumb source={item} />
-              <span className="lv-hist-copy">
-                <strong>
-                  <span className="lv-kind">{item.eyebrow}</span>
-                  <span className="lv-hist-title">{item.title}</span>
-                </strong>
-                <small>{item.meta}</small>
-              </span>
-            </span>
-          </button>
+        {nasaSources.map((item) => (
+          <SourceItem key={item.id} item={item} activeId={activeId} onOpen={onOpen} />
         ))}
       </div>
-      <p className="lv-mono lv-eyebrow lv-section">RECENT SEARCHES</p>
-      <div className="lv-list">
-        {searches.map((item) => (
-          <button type="button" key={item.id} className="lv-hist lv-cut" onClick={() => onSearch(item.term)}>
-            <ChamferMark />
-            <span className="lv-hist-face">
-              <span className="lv-search-glyph lv-cut" aria-hidden="true">
+
+      {searches.length > 0 ? (
+        <>
+          <p className="lv-mono lv-eyebrow lv-section">RECENT SEARCHES</p>
+          <div className="lv-list">
+            {searches.map((item) => (
+              <button type="button" key={item.id} className="lv-hist lv-cut" onClick={() => onSearch(item.term)}>
                 <ChamferMark />
-                <SearchIcon />
-              </span>
-              <span className="lv-hist-copy">
-                <strong>
-                  <span className="lv-find">FIND </span>
-                  <span className="lv-hist-title">{item.term}</span>
-                </strong>
-                {item.detail ? <small>{item.detail}</small> : null}
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
+                <span className="lv-hist-face">
+                  <span className="lv-search-glyph lv-cut" aria-hidden="true">
+                    <ChamferMark />
+                    <SearchIcon />
+                  </span>
+                  <span className="lv-hist-copy">
+                    <strong>
+                      <span className="lv-find">FIND </span>
+                      <span className="lv-hist-title">{item.term}</span>
+                    </strong>
+                    {item.detail ? <small>{item.detail}</small> : null}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      ) : null}
     </>
   );
 }
@@ -557,14 +642,10 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "{}") as { searches?: SearchRecord[]; sources?: ListenSource[] };
-      if (Array.isArray(saved.searches) && saved.searches.length) setSearches(saved.searches);
-      if (Array.isArray(saved.sources) && saved.sources.length) {
-        setSources((current) => {
-          const extras = saved.sources?.filter((item) => item && !current.some((seed) => seed.id === item.id)) ?? [];
-          return [...extras, ...current].slice(0, 20);
-        });
-      }
+      const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "{}") as { searches?: unknown; sources?: unknown };
+      const cleanedSearches = sanitizeSavedSearches(saved.searches);
+      if (cleanedSearches.length) setSearches(cleanedSearches);
+      setSources((current) => sanitizeSavedSources(saved.sources, current));
       const storedProfiles = JSON.parse(localStorage.getItem(PROFILE_KEY) ?? "[]") as SavedProfile[];
       if (Array.isArray(storedProfiles)) setProfiles(storedProfiles.slice(0, 24));
     } catch {
@@ -576,12 +657,27 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   useEffect(() => {
     if (!ready.current) return;
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify({ searches, sources: sources.filter((item) => !item.preview.startsWith("blob:")).slice(0, 16) }));
+      const userSourcesToSave = sources
+        .filter((item) => item.id !== "reef-example" && !CURATED_SOURCE_IDS.has(item.id) && !item.preview.startsWith("blob:"))
+        .slice(0, 16);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify({ searches, sources: userSourcesToSave }));
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     } catch {
       // Ignore quota failures.
     }
   }, [searches, sources, profiles]);
+
+  const handleClearHistory = useCallback(() => {
+    setSearches([]);
+    setSources((current) => current.filter((item) => CURATED_SOURCE_IDS.has(item.id)));
+    setSource((current) => {
+      if (CURATED_SOURCE_IDS.has(current.id)) return current;
+      return DEFAULT_EIC_SOURCE;
+    });
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {}
+  }, []);
 
   const historyTabRef = useRef<HTMLButtonElement>(null);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -1243,6 +1339,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
             onOpen={openSource}
             onSearch={(term) => void searchNASA(term)}
             onNew={() => fileRef.current?.click()}
+            onClearHistory={handleClearHistory}
           />
         </div>
       </aside>

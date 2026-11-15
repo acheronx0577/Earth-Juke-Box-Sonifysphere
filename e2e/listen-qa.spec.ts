@@ -84,7 +84,7 @@ test("an image source samples the pixel under the pointer", async ({ page }) => 
   await page.getByRole("button", { name: /OCO-2/ }).click();
   await expect(page.getByText("MAP · EQUAL EARTH · NOAA CPC")).toHaveCount(0);
   await expect(page.getByText("MOVE OVER THE MAP TO HEAR LOCAL CHANGE")).toHaveCount(0);
-  const stage = page.locator(".lv-stage");
+  const stage = page.locator(".lv-stage").first();
   const box = await stage.boundingBox();
   if (!box) throw new Error("stage has no box");
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -137,7 +137,7 @@ test("a failed NASA open clears the previous media and shows the error", async (
   await page.route("**/api/listen/nasa/asset?**", (route) => route.fulfill({ status: 400, json: { error: "Invalid NASA ID." } }));
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: /Ocean currents animation/ }).click();
-  await expect(page.locator("video.lv-media, canvas.lv-media, img.lv-media")).toBeVisible();
+  await expect(page.locator("video.lv-media, canvas.lv-media, img.lv-media").first()).toBeVisible();
   await liveMain(page).locator("#nasa-search").locator("visible=true").fill("earth");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /Introducing NASA/ }).click();
@@ -257,14 +257,14 @@ test("starter searches do not invent result counts", async ({ page }) => {
   await page.goto("/listen?sound=off");
   await expect(page.getByText("3 NASA MEDIA RESULTS")).toHaveCount(0);
   await expect(page.getByText("12 RESULTS")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /ocean currents/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /ocean currents/i })).toBeVisible();
 });
 
 test("phone date attaches to the track and the sound sheet title is uppercase", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/listen?sound=off");
-  const track = await page.locator(".lv-timeline-track").boundingBox();
-  const date = await page.locator(".lv-date").boundingBox();
+  const track = await page.locator(".lv-timeline-track:visible").boundingBox();
+  const date = await page.locator(".lv-date:visible").boundingBox();
   if (!track || !date) throw new Error("timeline missing");
   expect(Math.abs(track.x + track.width - date.x)).toBeLessThan(2);
   await page.getByRole("button", { name: "SOUND PROFILE" }).click();

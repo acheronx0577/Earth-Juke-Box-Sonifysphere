@@ -86,12 +86,17 @@ test("volume, tempo, instrument, and play change the heard voice", async ({ page
 
 test("nasa search and a recent search reopen a source", async ({ page }) => {
   await page.goto("/listen?sound=off");
-  await page.getByRole("searchbox", { name: "Search NASA images, videos or a place" }).fill("coral reef");
+  const searchbox = page.getByRole("searchbox", { name: "Search NASA images, videos or a place" });
+  await searchbox.fill("ocean currents");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("region", { name: "NASA search results" })).toBeVisible();
+
+  await searchbox.fill("coral reef");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /Test coral reef/ }).click();
   await expect(page.getByRole("img", { name: "Test coral reef" })).toBeVisible();
   await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT")).toBeVisible();
-  await page.getByRole("button", { name: /ocean currents/ }).click();
+  await page.getByRole("button", { name: /FIND ocean currents/ }).click();
   await expect(page.getByRole("region", { name: "NASA search results" })).toBeVisible();
 });
 
