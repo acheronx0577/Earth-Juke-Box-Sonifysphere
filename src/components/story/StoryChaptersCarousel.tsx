@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import gsap from "gsap";
 import CircularGallery, { type CircularGalleryRef, type GalleryItem } from "@/components/shared/CircularGallery";
 import { RollingText } from "@/components/shared/RollingText";
 
@@ -165,10 +164,11 @@ export function StoryChaptersCarousel() {
             gap={0.22}
             wave={0}
             fadeEdges={0.12}
-            shadow={0.3}
+            shadow={0}
+            dpr={1.25}
             scrollSpeed={2}
             scrollEase={0.05}
-            autoScroll={0.45}
+            autoScroll={0}
             snap={true}
             openOnClick={true}
             onActiveChange={(index) => {
