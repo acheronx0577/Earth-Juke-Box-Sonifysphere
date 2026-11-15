@@ -463,11 +463,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       slot: number | null;
       font: string;
       text: string;
+      family: string;
+      fitKey: string;
+      fitSize: number;
+      color: string;
+      transform: string;
+      opacity: string;
     }
     let pool: PoolEntry[] = [];
     let raf = 0;
     let last = 0;
-    let lastDraw = 0;
     let visible = true;
     let snapTimer: ReturnType<typeof setTimeout> | undefined;
     let lastItems: GalleryItem[] | null = null;
@@ -571,7 +576,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         el.className = CLASSES.label;
         el.style.opacity = '0';
         labelLayer.appendChild(el);
-        return { el, slot: null, font: '', text: '' };
+        return { el, slot: null, font: '', text: '', family: '', fitKey: '', fitSize: 0, color: '', transform: '', opacity: '' };
       });
     };
 
@@ -742,19 +747,29 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           }
           if (entry.font !== font) {
             entry.font = font;
+            entry.family = '';
+            entry.fitKey = '';
             entry.el.style.font = font;
           }
-          const family = getComputedStyle(entry.el).fontFamily || 'monospace';
+          if (!entry.family) entry.family = getComputedStyle(entry.el).fontFamily || 'monospace';
           const maxWidth = Math.max(72, card.w);
-          let size = fitLabel(card.item.text || '', card.labelSize, family, maxWidth);
-          entry.el.style.whiteSpace = 'nowrap';
-          entry.el.style.width = 'max-content';
-          entry.el.style.maxWidth = 'none';
-          entry.el.style.fontSize = `${size}px`;
-          const rendered = entry.el.scrollWidth;
-          if (rendered > maxWidth) {
-            size = Math.max(9, size * (maxWidth / rendered));
+          const fitKey = `${card.item.text}|${Math.round(card.labelSize)}|${Math.round(maxWidth)}`;
+          let size = card.labelSize;
+          if (entry.fitKey !== fitKey) {
+            size = fitLabel(card.item.text || '', card.labelSize, entry.family, maxWidth);
+            entry.el.style.whiteSpace = 'nowrap';
+            entry.el.style.width = 'max-content';
+            entry.el.style.maxWidth = 'none';
             entry.el.style.fontSize = `${size}px`;
+            const rendered = entry.el.scrollWidth;
+            if (rendered > maxWidth) {
+              size = Math.max(9, size * (maxWidth / rendered));
+              entry.el.style.fontSize = `${size}px`;
+            }
+            entry.fitKey = fitKey;
+            entry.fitSize = size;
+          } else {
+            size = entry.fitSize || card.labelSize;
           }
           const closedOffset = card.h / 2 + Math.max(size * 1.3, 34);
           const openOffset = card.h / 2 + 58;
@@ -764,14 +779,28 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
           const titleOpacity = card.alpha * card.labelAlpha * positionFade(cssX, card.w);
-          entry.el.style.color = s.textColor;
-          entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
-          entry.el.style.opacity = String(titleOpacity);
+          const opacity = titleOpacity.toFixed(3);
+          const transform = `translate3d(${cssX}px, ${cssY}px, 0) translate(-50%, -50%) rotate(${-card.angle}rad)`;
+          if (entry.color !== s.textColor) {
+            entry.color = s.textColor;
+            entry.el.style.color = s.textColor;
+          }
+          if (entry.transform !== transform) {
+            entry.transform = transform;
+            entry.el.style.transform = transform;
+          }
+          if (entry.opacity !== opacity) {
+            entry.opacity = opacity;
+            entry.el.style.opacity = opacity;
+          }
         });
       }
       pool.forEach((entry) => {
         if (used.has(entry)) return;
-        if (entry.el.style.opacity !== '0') entry.el.style.opacity = '0';
+        if (entry.opacity !== '0') {
+          entry.opacity = '0';
+          entry.el.style.opacity = '0';
+        }
       });
       const openCardBottom = view.height / 2 - metrics.openY + metrics.openH / 2;
       const subtitleTop = openCardBottom + 58 + 28;
@@ -844,12 +873,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       }
       if (!visible || document.hidden) return;
       const s = settingsRef.current;
-      const idleAuto = s.autoScroll && !reduce && !state.drag && state.open < 0.01 && state.hovered === null && !state.keyboard;
-      if (idleAuto && lastDraw && now - lastDraw < 1000 / 30) {
-        raf = requestAnimationFrame(frame);
-        return;
-      }
-      lastDraw = now;
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
 
