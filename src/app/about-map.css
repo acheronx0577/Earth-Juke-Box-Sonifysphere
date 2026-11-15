@@ -703,20 +703,22 @@
 }
 
 .team .team-counter {
+  --count-line: 8.75rem;
   position: absolute;
   display: flex;
+  align-items: flex-start;
   width: 100%;
   gap: 1.5rem;
   justify-content: space-between;
   margin-top: 0;
-  padding: 1.5rem;
+  padding: 4.5rem 1.5rem 0;
   z-index: 10;
   pointer-events: none;
 }
 
 .team .team-counter .counter-title .team-heading {
   position: relative;
-  top: 0.75rem;
+  top: 0;
   line-height: 0.88 !important;
   font-family: var(--font-geist), sans-serif;
   font-weight: 800;
@@ -730,28 +732,27 @@
 .team .team-counter .count {
   position: relative;
   width: max-content;
-  height: 150px;
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+  height: var(--count-line);
   overflow: hidden;
+  line-height: var(--count-line);
 }
 
 .team .team-counter .count .count-container {
   position: relative;
-  transform: translateY(150px);
   will-change: transform;
 }
 
 .team .team-counter .count-number {
   display: block;
   width: 100%;
+  height: var(--count-line);
   position: relative;
   text-transform: uppercase;
-  font-size: 140px;
-  line-height: 1;
+  font-size: calc(var(--count-line) * 0.82);
+  line-height: var(--count-line);
   font-family: var(--font-geist-mono), monospace;
   font-weight: 700;
   color: #f2f2f0;
-  will-change: transform;
   margin: 0;
   text-align: right;
   letter-spacing: -0.06em;
@@ -945,17 +946,13 @@
     font-size: clamp(2.5rem, 8vw, 4.5rem);
   }
 
+  .team .team-counter {
+    --count-line: 6.25rem;
+  }
+
   .team .team-counter .count {
     padding-right: 1.5rem;
-    height: 100px;
-  }
-
-  .team .team-counter .count-number {
-    font-size: 100px;
-  }
-
-  .team .team-counter .count .count-container {
-    transform: translateY(100px);
+    height: var(--count-line);
   }
 
 }
