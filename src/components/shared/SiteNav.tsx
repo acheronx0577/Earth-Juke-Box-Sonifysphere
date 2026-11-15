@@ -4,30 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-function GooSvgFilter() {
-  return (
-    <svg
-      style={{ visibility: "hidden", position: "absolute" }}
-      width="0"
-      height="0"
-      aria-hidden="true"
-    >
-      <defs>
-        <filter id="goo">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-          <feColorMatrix
-            in="blur"
-            mode="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9"
-            result="goo"
-          />
-          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
-        </filter>
-      </defs>
-    </svg>
-  );
-}
-
 export function SiteNav() {
   const navRef = useRef<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -78,13 +54,11 @@ export function SiteNav() {
   ];
 
   return (
-    <>
-      <GooSvgFilter />
-      <nav
-        ref={navRef}
-        aria-label="Primary navigation"
-        className={`sonify-nav ${isOpen ? "nav-open" : ""}`}
-      >
+    <nav
+      ref={navRef}
+      aria-label="Primary navigation"
+      className={`sonify-nav ${isOpen ? "nav-open" : ""}`}
+    >
         <div className="nav-container">
           <div className="nav-bg" />
         </div>
@@ -119,6 +93,5 @@ export function SiteNav() {
           </div>
         </div>
       </nav>
-    </>
   );
 }
