@@ -988,15 +988,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 92px;
+  width: clamp(10.75rem, 46vw, 13.75rem);
   flex: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0.55rem;
+  white-space: nowrap;
   background: #101616;
   clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
   color: var(--lv-cream);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 12px;
+  font-size: clamp(10px, 2.6vw, 12px);
   font-weight: 500;
   letter-spacing: 0.06em;
 }
@@ -1491,7 +1492,6 @@
   }
   .lv-legend-title { white-space: normal; font-size: 9px; letter-spacing: 0.02em; }
   .lv-ticks > span > b { font-size: 9px; letter-spacing: 0; }
-  .lv-date { width: 72px; font-size: 10px; }
   .lv-chip { height: 44px; padding: 0 10px; font-size: 11px; letter-spacing: 0.03em; }
   .lv-more-icon { width: 44px; height: 44px; padding: 0; }
   .lv-card { min-height: 140px; padding: 10px; }

@@ -1,6 +1,9 @@
 import { MAP_REGIONS, regionById, type MapRegion } from "@/data/exploreMap";
 import { regionIdAt } from "@/components/listen/regionGeometry";
 import type { LegendMetadata } from "@/components/listen/v4/legend";
+import { dateLabel, noDataForDate } from "@/components/listen/v4/probeDate";
+
+export { dateLabel } from "@/components/listen/v4/probeDate";
 
 export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
 export type SoundStyle = "synth" | "orchestra";
@@ -182,10 +185,6 @@ export function hearTitle(layer: LayerId): string {
   return "Hear Wind as";
 }
 
-export function dateLabel(year: number): string {
-  return year >= YEAR_END ? "SEP 2026" : String(year);
-}
-
 export function formatCoord(lat: number, lng: number): string {
   const latAbs = Math.abs(lat);
   const lngAbs = Math.abs(lng);
@@ -362,7 +361,7 @@ export function readProbe(input: {
         detail: measured.detail,
       });
     } else {
-      extras.set(id, emptyCard(id, layerLabel(id), "NO MATCHED DATA FOR THIS POINT"));
+      extras.set(id, { ...emptyCard(id, layerLabel(id), when), value: "No data for this date" });
     }
   }
 
@@ -440,7 +439,7 @@ export function readProbe(input: {
     imageDerived,
     empty,
     pitch: layer === "all" ? "VISUAL PATTERN" : pitch,
-    dataAtProbe: active.state === "matched" ? "MATCHED · EXAMPLE" : active.state === "image" ? "IMAGE-DERIVED" : active.state === "loading" ? "LOADING" : "NO DATA",
+    dataAtProbe: active.state === "matched" ? "MATCHED · EXAMPLE" : active.state === "image" ? "IMAGE-DERIVED" : active.state === "loading" ? "LOADING" : noDataForDate(year).toUpperCase(),
     normalized: active.state === "empty" ? null : normalized,
     tip,
     tipTone: warmer < -0.15 ? "cool" : warmer > 0.15 ? "warm" : "flat",
