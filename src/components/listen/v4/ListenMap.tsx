@@ -418,7 +418,15 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     >
       <ChamferMark />
       {mapMode ? (
-        <svg ref={svgRef} className="lv-map" data-hide-target-cursor="true" viewBox={mapViewBox} preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Equal Earth map, NOAA CPC example, zoom ${mapZoom.toFixed(1)} times`}>
+        <svg
+          ref={svgRef}
+          className="lv-map"
+          data-hide-target-cursor="true"
+          viewBox={mapViewBox}
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          aria-label={`Equal Earth map, NOAA CPC example, zoom ${mapZoom.toFixed(1)} times`}
+        >
           <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="#100e0c" />
           <path d={OVAL} fill="none" stroke="rgba(255,243,234,0.16)" strokeWidth="1.25" />
           {GRID.map((d, index) => (
@@ -458,13 +466,45 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         <div className="lv-map-controls" role="group" aria-label="Map and probe controls">
           <div className="lv-map-control-group" role="group" aria-label="Probe circle size">
             <span className="lv-map-control-label" aria-hidden="true">CIRCLE</span>
-            <button type="button" className="lv-map-control-btn" aria-label="Make probe circle smaller" disabled={probeRadius <= 6} onClick={() => resizeProbe(-2)}>−</button>
-            <button type="button" className="lv-map-control-btn" aria-label="Make probe circle larger" disabled={probeRadius >= 30} onClick={() => resizeProbe(2)}>+</button>
+            <button
+              type="button"
+              className="lv-map-control-btn"
+              aria-label="Make probe circle smaller"
+              disabled={probeRadius <= 6}
+              onClick={() => resizeProbe(-2)}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="lv-map-control-btn"
+              aria-label="Make probe circle larger"
+              disabled={probeRadius >= 30}
+              onClick={() => resizeProbe(2)}
+            >
+              +
+            </button>
           </div>
           <div className="lv-map-control-group" role="group" aria-label="Map zoom">
             <span className="lv-map-control-label" aria-hidden="true">ZOOM {mapZoom.toFixed(1)}×</span>
-            <button type="button" className="lv-map-control-btn" aria-label="Zoom out map" disabled={mapZoom <= 1} onClick={() => changeZoom(-0.5)}>−</button>
-            <button type="button" className="lv-map-control-btn" aria-label="Zoom in map" disabled={mapZoom >= 4} onClick={() => changeZoom(0.5)}>+</button>
+            <button
+              type="button"
+              className="lv-map-control-btn"
+              aria-label="Zoom out map"
+              disabled={mapZoom <= 1}
+              onClick={() => changeZoom(-0.5)}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="lv-map-control-btn"
+              aria-label="Zoom in map"
+              disabled={mapZoom >= 4}
+              onClick={() => changeZoom(0.5)}
+            >
+              +
+            </button>
           </div>
         </div>
       ) : null}
