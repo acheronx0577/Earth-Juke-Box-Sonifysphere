@@ -239,6 +239,7 @@ export interface CircularGalleryProps {
   intro?: boolean;
   onItemClick?: (item: GalleryItem, index: number) => void;
   onActiveChange?: (index: number) => void;
+  onCardHover?: (over: boolean) => void;
   openAspect?: number;
   dpr?: number;
   className?: string;
@@ -267,6 +268,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
   intro = true,
   onItemClick,
   onActiveChange,
+  onCardHover,
   openAspect,
   dpr,
   className = '',
@@ -312,6 +314,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     intro,
     onItemClick,
     onActiveChange,
+    onCardHover,
     openAspect: openAspect ? clamp(openAspect, 0.5, 3) : undefined,
     dpr
   };
@@ -998,11 +1001,14 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const setPointer = (card: CardRender | null) => {
       const slot = card ? card.slot : null;
+      const wasOver = state.hovered !== null;
       if (slot !== state.hovered) {
         state.hovered = slot;
         if (slot !== null && !state.hover.has(slot)) state.hover.set(slot, 0);
         wake();
       }
+      const over = state.hovered !== null;
+      if (over !== wasOver) settingsRef.current.onCardHover?.(over);
       if (card) container.setAttribute('data-pointer', '');
       else container.removeAttribute('data-pointer');
     };

@@ -37,6 +37,31 @@ test("challenge carousel auto-advances, pauses, and loops", async ({ page }) => 
   await page.mouse.move(2, 2);
   await expect(liveMain(page).locator(".story-chapters-section")).toHaveAttribute("data-paused", "false");
 
+  await page.getByRole("button", { name: "Next Challenge" }).hover();
+  await expect(liveMain(page).locator(".story-chapters-section")).toHaveAttribute("data-paused", "false");
+  const centredX = () => page.evaluate(() => {
+    let best: number | null = null;
+    let bestMid = Number.POSITIVE_INFINITY;
+    for (const el of document.querySelectorAll(".circular-gallery-label")) {
+      const opacity = Number(getComputedStyle(el).opacity);
+      if (opacity < 0.9) continue;
+      const box = el.getBoundingClientRect();
+      const mid = Math.abs(box.left + box.width / 2 - window.innerWidth / 2);
+      if (mid < bestMid) {
+        bestMid = mid;
+        best = box.left;
+      }
+    }
+    return best;
+  });
+  await expect.poll(centredX).not.toBeNull();
+  const overButton = await centredX();
+  await page.waitForTimeout(700);
+  const movedPastButton = await centredX();
+  expect(overButton).not.toBeNull();
+  expect(movedPastButton).not.toBeNull();
+  expect(Math.abs((movedPastButton ?? 0) - (overButton ?? 0))).toBeGreaterThan(8);
+
   await page.getByRole("button", { name: "Next Challenge" }).focus();
   await expect(liveMain(page).locator(".story-chapters-section")).toHaveAttribute("data-paused", "true");
   await page.evaluate(() => {

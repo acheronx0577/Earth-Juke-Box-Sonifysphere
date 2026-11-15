@@ -166,6 +166,8 @@ export function StoryChaptersCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [hovered, setHovered] = useState(false);
+  const [cardHovered, setCardHovered] = useState(false);
+  const [wide, setWide] = useState(false);
   const [focused, setFocused] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
@@ -201,6 +203,14 @@ export function StoryChaptersCarousel() {
     return () => media.removeEventListener("change", apply);
   }, []);
 
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const apply = () => setWide(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+
   const handlePrev = useCallback(() => {
     setDirection(-1);
     galleryRef.current?.prev();
@@ -227,7 +237,7 @@ export function StoryChaptersCarousel() {
   }, [handlePrev, handleNext]);
 
   const activeChapter = CHAPTERS[activeIndex] || CHAPTERS[0];
-  const paused = reduced || hovered || focused;
+  const paused = reduced || focused || (wide ? cardHovered : hovered);
 
   return (
     <section
@@ -236,7 +246,7 @@ export function StoryChaptersCarousel() {
       data-paused={paused ? "true" : "false"}
       data-reduced-motion={reduced ? "true" : "false"}
       onPointerEnter={(event) => {
-        if (event.pointerType === "mouse") setHovered(true);
+        if (!wide && event.pointerType === "mouse") setHovered(true);
       }}
       onPointerLeave={(event) => {
         if (event.pointerType === "mouse") setHovered(false);
@@ -304,6 +314,7 @@ export function StoryChaptersCarousel() {
                 return index;
               });
             }}
+            onCardHover={setCardHovered}
             onItemClick={(_item, index) => {
               setActiveIndex(index);
             }}
