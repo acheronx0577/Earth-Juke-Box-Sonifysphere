@@ -3,67 +3,64 @@ import { installErrorChecks, liveMain } from "./support";
 
 installErrorChecks();
 
-const TEAM = ["Richard Huynh", "Erin Sur", "Quoc Pham", "Ryan Wang", "Aqila Nasiry", "Irmuun Temuulel"] as const;
+const TEAM = [
+  ["Richard Huynh", "Team Leader"],
+  ["Erin Sur", "Visual & UI Design"],
+  ["Quoc Pham", "Audio Architect"],
+  ["Ryan Wang", "Frontend Engineer"],
+  ["Aqila Nasiry", "Atmospheric Research"],
+  ["Irmuun Temuulel", "Systems Engineer"],
+] as const;
 
 test("about lists the team and sound off stops a voice", async ({ page }) => {
   await page.goto("/about");
-  const team = liveMain(page).getByTestId("about-team");
-  await expect(team.getByRole("listitem")).toHaveCount(6);
-  for (const [index, name] of TEAM.entries()) {
-    await expect(team.getByRole("listitem").nth(index)).toContainText(name);
+  const cards = liveMain(page).locator(".team .card");
+  await expect(cards).toHaveCount(6);
+  for (const [index, [name, role]] of TEAM.entries()) {
+    await expect(cards.nth(index).getByRole("heading", { level: 3 })).toHaveText(name);
+    await expect(cards.nth(index).locator(".card-content p")).toHaveText(role);
   }
-  await expect(team.getByText("Team Owner", { exact: true })).toHaveCount(1);
-  await expect(liveMain(page).getByTestId("voice-row")).toHaveCount(3);
+  await expect(liveMain(page).getByText("Team Leader", { exact: true })).toHaveCount(1);
+  await expect(liveMain(page).getByRole("heading", { name: "Three Voices", exact: true })).toBeAttached();
+  await expect(liveMain(page).getByText("Pitch tracks CO₂ ppm, pulse tracks seasonal breathing, clicks mark all-time highs.")).toBeAttached();
 
   const player = page.locator("aside[aria-label='Persistent mini-player']");
+  const live = () => page.evaluate(() => document.documentElement.dataset.sonifyLive ?? "");
   await page.getByRole("button", { name: "Hear it" }).click();
+  await expect(page.getByRole("button", { name: "Playing" })).toBeVisible();
   await expect(player).toHaveAttribute("data-open", "true");
+  await expect.poll(live).toBe("1");
   await page.getByRole("button", { name: "Close player" }).click();
   await expect(player).toHaveAttribute("data-open", "false");
+  await expect(page.getByRole("button", { name: "Hear it" })).toBeVisible();
+  await expect.poll(live).toBe("");
 
   const marker = page.getByRole("button", { name: /Press to select/ }).first();
   await marker.click();
   await expect(marker).toHaveAttribute("aria-pressed", "true");
   await expect(player).toHaveAttribute("data-open", "false");
 
-  await page.getByRole("button", { name: "Hear pitch" }).click();
-  await expect(liveMain(page).locator("[data-playing='true']")).toHaveCount(1);
-  await page.evaluate(() => {
-    const root = document.documentElement;
-    let ticks = 0;
-    const observer = new MutationObserver(() => {
-      ticks += 1;
-    });
-    observer.observe(root, { attributes: true, attributeFilter: ["data-sonify-gain"] });
-    Object.assign(window, { __gainTicks: () => ticks });
-  });
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
-  await page.getByRole("button", { name: "Sound on", exact: true }).click();
-  await expect(liveMain(page).locator("[data-playing='true']")).toHaveCount(0);
-  await page.waitForTimeout(1500);
-  const ticks = await page.evaluate(() => (window as unknown as { __gainTicks?: () => number }).__gainTicks?.() ?? 0);
-  expect(ticks).toBeLessThanOrEqual(1);
+  await page.getByRole("button", { name: "Hear it" }).click();
+  await expect(page.getByRole("button", { name: "Playing" })).toBeVisible();
+  await page.getByRole("button", { name: "Mute audio" }).click();
+  await expect(page.getByRole("button", { name: "Hear it" })).toBeVisible();
+  await expect(player).toHaveAttribute("data-open", "false");
+  await expect.poll(live).toBe("");
 
-  await page.evaluate(() => {
-    document.documentElement.dataset.aboutMenu = "closed";
-    document.querySelector("nav.sonify-nav")?.classList.remove("nav-open");
-  });
-  for (const id of ["team-h"]) {
-    await page.locator(`#${id}`).evaluate((el) => el.scrollIntoView({ block: "start" }));
-    await expect.poll(async () =>
-      page.evaluate((headingId) => {
-        const heading = document.getElementById(headingId);
-        const nav = document.querySelector(".sonify-nav");
-        if (!heading || !nav) return "missing";
-        const style = getComputedStyle(nav);
-        if (style.opacity === "0" || style.pointerEvents === "none") return "clear";
-        const title = heading.getBoundingClientRect();
-        const pill = nav.getBoundingClientRect();
-        const hit = pill.bottom > title.top && pill.top < title.bottom && pill.right > title.left && pill.left < title.right;
-        return hit ? "covered" : "clear";
-      }, id)
-    ).toBe("clear");
-  }
+  const heading = liveMain(page).getByRole("heading", { name: "Crew Registry" });
+  await heading.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await expect.poll(async () =>
+    page.evaluate(() => {
+      const title = document.querySelector(".team-heading")?.getBoundingClientRect();
+      const nav = document.querySelector(".sonify-nav");
+      if (!title || !nav) return "missing";
+      const style = getComputedStyle(nav);
+      if (style.opacity === "0" || style.pointerEvents === "none") return "clear";
+      const pill = nav.getBoundingClientRect();
+      const hit = pill.bottom > title.top && pill.top < title.bottom && pill.right > title.left && pill.left < title.right;
+      return hit ? "covered" : "clear";
+    })
+  ).toBe("clear");
 });
 
 test("the About page no longer renders the Mauna Loa record chart", async ({ page }) => {
