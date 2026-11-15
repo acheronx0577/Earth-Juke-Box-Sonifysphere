@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.4.0",
