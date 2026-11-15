@@ -24,7 +24,7 @@ export function proximityMix(focus: ListeningFocus | null): ProximityMix {
   const visibility = Math.max(0, 1 - outside * 4);
   return {
     detail,
-    gain: visibility * (0.78 + detail * 0.22) / (1 + distance * distance * (0.1 + detail * 0.65)),
+    gain: visibility * (0.5 + detail * 0.5) / (1 + distance * distance * (0.1 + detail * 2.2)),
     pan: Math.min(1, Math.max(-1, (x - 0.5) * 2)),
   };
 }

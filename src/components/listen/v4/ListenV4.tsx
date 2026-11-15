@@ -6,7 +6,7 @@ import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
 import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/components/listen/v4/eicSource";
 import { ListenMap } from "@/components/listen/v4/ListenMap";
-import { frequencyForValue, intervalForTempo, layerTimbreFor, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
+import { frequencyForValue, layerTimbreFor, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import { MAP_REGIONS } from "@/data/exploreMap";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import {
@@ -423,12 +423,12 @@ function SoundFields({
             <ChamferMark />
             {scanning ? "STOP SCAN" : "SCAN WEST → EAST"}
           </button>
-          <small className="lv-scan-note">12 regional example points · stereo follows longitude</small>
+          <small className="lv-scan-note">12 regional example points · stereo follows the visible map</small>
         </div>
       ) : null}
       <WakeSlider label="VOLUME" min={0} max={100} step={1} value={volume} text={`${Math.round(volume)}%`} compact={compact} onChange={onVolume} />
       <WakeSlider
-        label="TEMPO"
+        label="MOTION"
         min={0.5}
         max={2}
         step={0.1}
@@ -471,26 +471,22 @@ function AudioKey({
   const toneLabel = (value: number) => {
     const frequency = frequencyForValue(value, variation, pitchMode);
     if (frequency === null) return "Silent";
-    if (styleId === "orchestra" && pitchMode === "continuous") return `${noteNameForFrequency(frequency)} · nearest semitone`;
-    return pitchMode === "pentatonic" || styleId === "orchestra"
+    return pitchMode === "pentatonic"
       ? `${noteNameForFrequency(frequency)} · ${Math.round(frequency)} Hz`
       : `${Math.round(frequency)} Hz`;
   };
   const currentFrequency = frequencyForValue(reading.normalized, variation, pitchMode);
   const currentTone = currentFrequency === null
     ? "Silent · no matched data"
-    : styleId === "orchestra" && pitchMode === "continuous"
-      ? `${noteNameForFrequency(currentFrequency)} · nearest semitone`
-    : pitchMode === "pentatonic" || styleId === "orchestra"
+    : pitchMode === "pentatonic"
       ? `${noteNameForFrequency(currentFrequency)} · ${Math.round(currentFrequency)} Hz`
       : `${Math.round(currentFrequency)} Hz`;
-  const interval = intervalForTempo(tempo);
   const timbre = styleId === "orchestra" || instrument === "strings"
-    ? "sampled string orchestra"
+    ? "sustained synthesized string ensemble"
     : instrument === "marimba"
-      ? "FM marimba mallet tone"
+      ? "sustained mallet resonance"
       : instrument === "woodblock"
-        ? "short membrane percussion strike"
+        ? "sustained woody resonance"
         : layerTimbreFor(layer).label;
   const panPosition = Math.abs(pan) < 0.01 ? "center" : `${pan < 0 ? "left" : "right"} ${Math.round(Math.abs(pan) * 100)}%`;
 
@@ -509,8 +505,8 @@ function AudioKey({
             </p>
           ))}
         </div>
-        <p>Higher normalized values raise pitch. Current sound: {currentTone}. Mapping: {pitchMode === "pentatonic" ? "C-major pentatonic" : "continuous"}.</p>
-        <p>One note every {interval} ms. Timbre: {timbre}. {ambience ? "A quiet two-octave pad and longer reverb are on." : "A short room reverb is on; the ambient pad is off."}</p>
+        <p>Higher normalized values raise pitch and gently increase intensity. Current sound: {currentTone}. Mapping: {pitchMode === "pentatonic" ? "C-major pentatonic" : "continuous"}.</p>
+        <p>Continuous, sustained sound with smooth pitch changes. Timbre: {timbre}. Motion: {Number(tempo.toFixed(1))}×. {ambience ? "The lower-octave bed and spacious reverb are on." : "The lower-octave bed is quiet and reverb is reduced."}</p>
         <p>Stereo position follows the probe within the visible area · {panPosition}. Zooming in brings nearby sound forward with clearer detail and less reverb; distant and offscreen points fade. Zooming out restores a wider, softer sound. Pitch continues to follow the selected data.</p>
         {source.kind === "map" ? <p>The regional scan uses example data, not live measurements.</p> : null}
       </div>
