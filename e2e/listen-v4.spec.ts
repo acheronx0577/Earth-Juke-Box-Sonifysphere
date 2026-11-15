@@ -61,7 +61,7 @@ test("the probe and timeline change the reading", async ({ page }) => {
 test("volume, tempo, instrument, and play change the heard voice", async ({ page }) => {
   await page.goto("/listen?sound=off");
   const volume = page.getByRole("slider", { name: /VOLUME/ });
-  const tempo = page.getByRole("slider", { name: /TEMPO/ });
+  const tempo = page.getByRole("slider", { name: /MOTION|TEMPO/ });
   await volume.focus();
   await page.keyboard.press("Home");
   await expect(volume).toHaveAttribute("aria-valuenow", "0");

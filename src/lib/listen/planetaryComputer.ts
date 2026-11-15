@@ -13,11 +13,86 @@ export const PC_ATTRIBUTION =
 export const PC_LICENSE = "https://planetarycomputer.microsoft.com/dataset/modis-11A1-061";
 export const PC_QUALITY = "measured" as const;
 
+export interface PcCollectionSpec {
+  readonly id: string;
+  readonly defaultAsset: string;
+  readonly layer: string;
+  readonly attribution: string;
+  readonly license: string;
+  readonly startDate: string;
+  readonly documentedFills: readonly number[];
+  readonly unitFallback: string;
+}
+
+export const PC_COLLECTIONS: Record<string, PcCollectionSpec> = {
+  "modis-11A1-061": {
+    id: "modis-11A1-061",
+    defaultAsset: "LST_Day_1km",
+    layer: "land-surface-temperature",
+    attribution: "MODIS Land Surface Temperature/Emissivity Daily (MOD11A1/MYD11A1) via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/modis-11A1-061",
+    startDate: "2000-02-24",
+    documentedFills: [0],
+    unitFallback: "Kelvin",
+  },
+  "modis-14A1-061": {
+    id: "modis-14A1-061",
+    defaultAsset: "FireMask",
+    layer: "thermal-anomalies",
+    attribution: "MODIS Thermal Anomalies/Fire Daily (MOD14A1/MYD14A1) via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/modis-14A1-061",
+    startDate: "2000-02-24",
+    documentedFills: [0],
+    unitFallback: "class",
+  },
+  "sentinel-2-l2a": {
+    id: "sentinel-2-l2a",
+    defaultAsset: "B04",
+    layer: "surface-reflectance",
+    attribution: "Sentinel-2 Level-2A via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a",
+    startDate: "2015-06-27",
+    documentedFills: [0],
+    unitFallback: "reflectance",
+  },
+  "landsat-c2-l2": {
+    id: "landsat-c2-l2",
+    defaultAsset: "red",
+    layer: "surface-reflectance",
+    attribution: "Landsat Collection 2 Level-2 via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2",
+    startDate: "1982-08-22",
+    documentedFills: [0],
+    unitFallback: "reflectance",
+  },
+  "era5-pds": {
+    id: "era5-pds",
+    defaultAsset: "air_temperature",
+    layer: "air-temperature",
+    attribution: "ECMWF ERA5 Reanalysis via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/era5-pds",
+    startDate: "1979-01-01",
+    documentedFills: [-999],
+    unitFallback: "Kelvin",
+  },
+  "noaa-cdr-sea-surface-temperature": {
+    id: "noaa-cdr-sea-surface-temperature",
+    defaultAsset: "sea_surface_temperature",
+    layer: "sea-surface-temperature",
+    attribution: "NOAA CDR Sea Surface Temperature via Microsoft Planetary Computer",
+    license: "https://planetarycomputer.microsoft.com/dataset/noaa-cdr-sea-surface-temperature",
+    startDate: "1981-09-01",
+    documentedFills: [-999],
+    unitFallback: "Celsius",
+  },
+};
+
 const STAC_SEARCH = "https://planetarycomputer.microsoft.com/api/stac/v1/search";
-const STAC_ITEMS = "https://planetarycomputer.microsoft.com/api/stac/v1/collections/modis-11A1-061/items";
+function stacItemsUrl(collection: string): string {
+  return `https://planetarycomputer.microsoft.com/api/stac/v1/collections/${encodeURIComponent(collection)}/items`;
+}
 const DATA_POINT = "https://planetarycomputer.microsoft.com/api/data/v1/item/point";
 const TIMEOUT_MS = 12_000;
-const MODIS_START = "2000-02-24";
 const SEARCH_REVALIDATE_SECONDS = 6 * 60 * 60;
 const POINT_REVALIDATE_SECONDS = 30 * 24 * 60 * 60;
 
@@ -56,7 +131,8 @@ export interface SceneSummary {
   readonly sceneId: string;
   readonly date: string;
   readonly time: string;
-  readonly asset: typeof PC_ASSET;
+  readonly collection?: string;
+  readonly asset: string;
   readonly scale: number;
   readonly offset: number;
   readonly nodata: number | null;
@@ -66,7 +142,7 @@ export interface SceneSummary {
 
 export interface PointReading {
   readonly source: typeof PC_SOURCE;
-  readonly layer: typeof PC_LAYER;
+  readonly layer: string;
   readonly value: number;
   readonly unit: string;
   readonly time: string;
@@ -76,11 +152,11 @@ export interface PointReading {
   readonly resolution: string | null;
   readonly quality: typeof PC_QUALITY;
   readonly cached: false;
-  readonly attribution: typeof PC_ATTRIBUTION;
-  readonly license: typeof PC_LICENSE;
+  readonly attribution: string;
+  readonly license: string;
   readonly sceneId: string;
-  readonly collection: typeof PC_COLLECTION;
-  readonly asset: typeof PC_ASSET;
+  readonly collection: string;
+  readonly asset: string;
 }
 
 interface ResolvedScene {
@@ -98,11 +174,11 @@ export function roundCoord(value: number): number {
 }
 
 /** Apply raster scale and offset. Fill, nodata, -999, and non-finite samples become null. */
-export function scaleReading(raw: unknown, band: BandMeta): number | null {
+export function scaleReading(raw: unknown, band: BandMeta, documentedFills: readonly number[] = DOCUMENTED_FILLS): number | null {
   if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
   if (raw === -999) return null;
   if (band.nodata !== null && Object.is(raw, band.nodata)) return null;
-  if ((DOCUMENTED_FILLS as readonly number[]).includes(raw)) return null;
+  if (documentedFills.includes(raw)) return null;
   const scaled = raw * band.scale + band.offset;
   if (!Number.isFinite(scaled)) return null;
   return Math.round(scaled * 10_000) / 10_000;
@@ -130,6 +206,7 @@ export interface ParsedQuery {
   readonly day: string | null;
   readonly limit: number;
   readonly item: string | null;
+  readonly collection: string;
 }
 
 export function parseQuery(
@@ -141,15 +218,17 @@ export function parseQuery(
   const lat = Number(params.get("lat"));
   const lon = Number(params.get("lon"));
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
-  const collection = params.get("collection");
-  if (collection !== null && collection !== PC_COLLECTION) return null;
+  const collectionRaw = params.get("collection");
+  const collection = collectionRaw === null || collectionRaw === "" ? PC_COLLECTION : collectionRaw;
+  if (!Object.hasOwn(PC_COLLECTIONS, collection)) return null;
+  const spec = PC_COLLECTIONS[collection];
   const itemRaw = params.get("item");
   const item = itemRaw === null || itemRaw === "" ? null : itemRaw;
   if (item !== null && !isSafeItemId(item)) return null;
   const timeRaw = params.get("time");
   const day = timeRaw === null || timeRaw === "" ? null : parseDay(timeRaw);
   if (timeRaw !== null && timeRaw !== "" && day === null) return null;
-  if (day !== null && (day < MODIS_START || Date.parse(`${day}T00:00:00Z`) > now + 86_400_000)) return null;
+  if (day !== null && (day < spec.startDate || Date.parse(`${day}T00:00:00Z`) > now + 86_400_000)) return null;
   if (kind === "search" && day === null) return null;
   if (kind === "point" && day === null && item === null) return null;
   const limitRaw = params.get("limit");
@@ -158,10 +237,10 @@ export function parseQuery(
     if (!/^[1-5]$/.test(limitRaw)) return null;
     limit = Number(limitRaw);
   }
-  return { lat: roundCoord(lat), lon: roundCoord(lon), day, limit, item };
+  return { lat: roundCoord(lat), lon: roundCoord(lon), day, limit, item, collection };
 }
 
-export function sceneFromFeature(feature: unknown): ResolvedScene | null {
+export function sceneFromFeature(feature: unknown, collection = PC_COLLECTION): ResolvedScene | null {
   if (!feature || typeof feature !== "object") return null;
   const record = feature as Record<string, unknown>;
   const sceneId = record.id;
@@ -172,8 +251,11 @@ export function sceneFromFeature(feature: unknown): ResolvedScene | null {
   if (!time) return null;
   const assets = record.assets;
   if (!assets || typeof assets !== "object") return null;
-  const asset = (assets as Record<string, unknown>)[PC_ASSET];
-  const band = bandFromAsset(asset);
+  const spec = PC_COLLECTIONS[collection] ?? PC_COLLECTIONS[PC_COLLECTION];
+  const assetRecord = assets as Record<string, unknown>;
+  const assetKey = Object.hasOwn(assetRecord, spec.defaultAsset) ? spec.defaultAsset : Object.keys(assetRecord)[0] ?? PC_ASSET;
+  const asset = assetRecord[assetKey];
+  const band = bandFromAsset(asset, spec.unitFallback);
   if (!band) return null;
   return {
     band,
@@ -181,10 +263,11 @@ export function sceneFromFeature(feature: unknown): ResolvedScene | null {
       sceneId,
       date: time.slice(0, 10),
       time,
-      asset: PC_ASSET,
+      collection: spec.id,
+      asset: assetKey,
       scale: band.scale,
       offset: band.offset,
-      nodata: band.nodata ?? DOCUMENTED_FILLS[0],
+      nodata: band.nodata ?? spec.documentedFills[0] ?? 0,
       unit: band.unit,
       resolution: band.resolutionMeters === null ? null : `${band.resolutionMeters} m`,
     },
@@ -206,7 +289,7 @@ export async function searchScenes(query: ParsedQuery, fetchImpl: typeof fetch =
   const features = featureList(body);
   return features
     .flatMap((feature) => {
-      const scene = sceneFromFeature(feature);
+      const scene = sceneFromFeature(feature, query.collection);
       return scene && scene.summary.date === query.day ? [scene.summary] : [];
     })
     .sort(compareScenes)
@@ -214,19 +297,20 @@ export async function searchScenes(query: ParsedQuery, fetchImpl: typeof fetch =
 }
 
 export async function readPoint(query: ParsedQuery, fetchImpl: typeof fetch = fetch): Promise<PointReading> {
-  const scene = query.item ? await loadItem(query.item, fetchImpl) : await firstScene(query, fetchImpl);
+  const spec = PC_COLLECTIONS[query.collection] ?? PC_COLLECTIONS[PC_COLLECTION];
+  const scene = query.item ? await loadItem(query.item, query.collection, fetchImpl) : await firstScene(query, fetchImpl);
   if (!scene) throw new ProviderError(404, NO_READING);
   if (query.day && scene.summary.date !== query.day) throw new ProviderError(404, NO_READING, scene.summary.sceneId, scene.summary.date);
   const point = await fetchJson(
-    pointUrl(query.lon, query.lat, scene.summary.sceneId),
+    pointUrl(query.lon, query.lat, scene.summary.sceneId, spec.id, scene.summary.asset),
     { method: "GET", next: { revalidate: POINT_REVALIDATE_SECONDS } },
     fetchImpl,
   );
-  const value = scaleReading(rawFromPoint(point), scene.band);
+  const value = scaleReading(rawFromPoint(point), scene.band, spec.documentedFills);
   if (value === null) throw new ProviderError(404, NO_READING, scene.summary.sceneId, scene.summary.date);
   return {
     source: PC_SOURCE,
-    layer: PC_LAYER,
+    layer: spec.layer,
     value,
     unit: scene.summary.unit,
     time: scene.summary.time,
@@ -236,11 +320,11 @@ export async function readPoint(query: ParsedQuery, fetchImpl: typeof fetch = fe
     resolution: scene.summary.resolution,
     quality: PC_QUALITY,
     cached: false,
-    attribution: PC_ATTRIBUTION,
-    license: PC_LICENSE,
+    attribution: spec.attribution,
+    license: spec.license,
     sceneId: scene.summary.sceneId,
-    collection: PC_COLLECTION,
-    asset: PC_ASSET,
+    collection: spec.id,
+    asset: scene.summary.asset,
   };
 }
 
@@ -264,8 +348,10 @@ export function errorResult(error: unknown, kind: "search" | "point"): {
 }
 
 function searchBody(query: ParsedQuery, day: string) {
+  const spec = PC_COLLECTIONS[query.collection] ?? PC_COLLECTIONS[PC_COLLECTION];
+  const assetName = spec.defaultAsset;
   return {
-    collections: [PC_COLLECTION],
+    collections: [query.collection],
     intersects: { type: "Point", coordinates: [query.lon, query.lat] },
     datetime: `${day}T00:00:00Z/${day}T23:59:59Z`,
     limit: 5,
@@ -274,10 +360,10 @@ function searchBody(query: ParsedQuery, day: string) {
         "id",
         "properties.datetime",
         "properties.start_datetime",
-        "assets.LST_Day_1km.raster:bands",
-        "assets.LST_Day_1km.title",
+        `assets.${assetName}.raster:bands`,
+        `assets.${assetName}.title`,
       ],
-      exclude: ["links", "geometry", "bbox", "assets.LST_Day_1km.href"],
+      exclude: ["links", "geometry", "bbox", `assets.${assetName}.href`],
     },
   };
 }
@@ -296,27 +382,27 @@ async function firstScene(query: ParsedQuery, fetchImpl: typeof fetch): Promise<
   );
   const scenes = featureList(body)
     .flatMap((feature) => {
-      const scene = sceneFromFeature(feature);
+      const scene = sceneFromFeature(feature, query.collection);
       return scene && scene.summary.date === query.day ? [scene] : [];
     })
     .sort((a, b) => compareScenes(a.summary, b.summary));
   return scenes[0] ?? null;
 }
 
-async function loadItem(itemId: string, fetchImpl: typeof fetch): Promise<ResolvedScene | null> {
+async function loadItem(itemId: string, collection = PC_COLLECTION, fetchImpl: typeof fetch = fetch): Promise<ResolvedScene | null> {
   const body = await fetchJson(
-    `${STAC_ITEMS}/${encodeURIComponent(itemId)}`,
+    `${stacItemsUrl(collection)}/${encodeURIComponent(itemId)}`,
     { method: "GET", next: { revalidate: POINT_REVALIDATE_SECONDS } },
     fetchImpl,
   );
-  return sceneFromFeature(body);
+  return sceneFromFeature(body, collection);
 }
 
-function pointUrl(lon: number, lat: number, itemId: string): string {
+function pointUrl(lon: number, lat: number, itemId: string, collection: string = PC_COLLECTION, asset: string = PC_ASSET): string {
   const params = new URLSearchParams({
-    collection: PC_COLLECTION,
+    collection,
     item: itemId,
-    assets: PC_ASSET,
+    assets: asset,
   });
   return `${DATA_POINT}/${lon.toFixed(2)},${lat.toFixed(2)}?${params.toString()}`;
 }
@@ -335,16 +421,15 @@ function rawFromPoint(body: unknown): unknown {
   return values[0];
 }
 
-function bandFromAsset(asset: unknown): BandMeta | null {
+function bandFromAsset(asset: unknown, unitFallback = "Kelvin"): BandMeta | null {
   if (!asset || typeof asset !== "object") return null;
   const bands = (asset as { "raster:bands"?: unknown })["raster:bands"];
   if (!Array.isArray(bands) || !bands[0] || typeof bands[0] !== "object") return null;
   const band = bands[0] as Record<string, unknown>;
-  const scale = finiteNumber(band.scale);
-  const offset = band.offset === undefined ? 0 : finiteNumber(band.offset);
-  if (scale === null || scale === 0 || offset === null) return null;
-  const unit = typeof band.unit === "string" ? band.unit.trim() : "";
-  if (!unit) return null;
+  const scale = finiteNumber(band.scale) ?? 1;
+  const offset = band.offset === undefined ? 0 : (finiteNumber(band.offset) ?? 0);
+  if (scale === 0) return null;
+  const unit = typeof band.unit === "string" && band.unit.trim() ? band.unit.trim() : unitFallback;
   const resolution = finiteNumber(band.spatial_resolution);
   return {
     scale,

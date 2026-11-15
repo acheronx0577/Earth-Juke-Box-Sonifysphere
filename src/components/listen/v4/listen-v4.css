@@ -686,6 +686,7 @@
   font: inherit;
   font-size: 11px;
   cursor: pointer;
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
 }
 
 .lv-map-zoom-readout:hover {

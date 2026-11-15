@@ -611,7 +611,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
             <span className="lv-map-control-label" aria-hidden="true">ZOOM</span>
             <button
               type="button"
-              className="lv-map-zoom-readout"
+              className="lv-map-zoom-readout sonify-cut"
               aria-label={`Zoom ${Math.round(mapZoom * 100)} percent. Reset zoom to 100 percent.`}
               title="Click to reset zoom"
               onClick={resetZoom}

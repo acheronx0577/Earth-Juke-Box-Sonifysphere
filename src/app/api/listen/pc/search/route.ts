@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cacheControl, errorResult, INVALID_QUERY, noReadingBody, parseQuery, PC_COLLECTION, PC_SOURCE, searchScenes } from "@/lib/listen/planetaryComputer";
+import { cacheControl, errorResult, INVALID_QUERY, noReadingBody, parseQuery, PC_SOURCE, searchScenes } from "@/lib/listen/planetaryComputer";
 
 export const runtime = "nodejs";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(noReadingBody(), { status: 404, headers: { "Cache-Control": cacheControl("search") } });
     }
     return NextResponse.json(
-      { source: PC_SOURCE, collection: PC_COLLECTION, items },
+      { source: PC_SOURCE, collection: query.collection, items },
       { headers: { "Cache-Control": cacheControl("search") } },
     );
   } catch (error) {

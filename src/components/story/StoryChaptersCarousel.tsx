@@ -58,8 +58,8 @@ const CHAPTERS: ChapterData[] = [
     year: "Seasons",
     title: "Waveform Ribbons",
     subtitle: "Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps",
-    challengePath: "/listen",
-    challengeAction: "Listen Pulses ↗",
+    challengePath: "/challenge/ribbons",
+    challengeAction: "Play Ribbons ↗",
     image: "/assets/about/routine/routine_04_voices.webp",
     text: "03 · Waveform Ribbons",
     description: "Atmospheric pulse: sonify global seasonal breathing",
@@ -181,7 +181,7 @@ export function StoryChaptersCarousel() {
     if (isNavigating) return;
     setIsNavigating(true);
     if (!badgeRef.current) {
-      router.push("/listen?source=map");
+      router.push("/listen");
       return;
     }
     gsap.to(badgeRef.current, {
@@ -190,7 +190,7 @@ export function StoryChaptersCarousel() {
       duration: 0.5,
       ease: "power2.inOut",
       onComplete: () => {
-        router.push("/listen?source=map");
+        router.push("/listen");
       },
     });
   }, [isNavigating, router]);
@@ -378,7 +378,7 @@ export function StoryChaptersCarousel() {
           </div>
 
           <Link
-            href="/listen?source=map"
+            href="/listen"
             className="story-chip-glass story-listen-pill"
             aria-label="Listen to the map"
           >
@@ -393,7 +393,7 @@ export function StoryChaptersCarousel() {
           </Link>
 
           <Link
-            href="/listen?source=map"
+            href="/listen"
             onClick={handleBadgeClick}
             className="story-listen-badge story-bottom-wide group"
             aria-label="823 months loaded - Listen to sonifications"

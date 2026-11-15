@@ -94,7 +94,9 @@ assert.equal(pc.parseQuery(new URLSearchParams("lat=91&lon=0&time=2023-07-16"), 
 assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-02-31"), "search"), null);
 assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2099-01-01"), "search"), null);
 assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=1999-01-01"), "search"), null);
-assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-07-16&collection=landsat-c2-l2"), "point"), null);
+assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-07-16&collection=invalid-collection-xyz"), "point"), null);
+assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-07-16&collection=landsat-c2-l2"), "point")?.collection, "landsat-c2-l2");
+assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-07-16&collection=sentinel-2-l2a"), "search")?.collection, "sentinel-2-l2a");
 assert.equal(pc.parseQuery(new URLSearchParams("lat=40&lon=0&time=2023-07-16&item=../secret"), "point"), null);
 assert.equal(pc.parseDay("2023-07-16T12:00:00.000Z"), "2023-07-16");
 
@@ -177,7 +179,7 @@ const blocked = installFetch(async () => {
 });
 for (const url of [
   "http://localhost/api/listen/pc/point?lat=91&lon=0&time=2023-07-16",
-  "http://localhost/api/listen/pc/search?lat=10&lon=10&time=2023-07-16&collection=sentinel-2-l2a",
+  "http://localhost/api/listen/pc/search?lat=10&lon=10&time=2023-07-16&collection=unsupported-satellite-xyz",
   "http://localhost/api/listen/pc/point?lat=10&lon=10&item=a/b",
   "http://localhost/api/listen/pc/search?lat=10&lon=10",
 ]) {

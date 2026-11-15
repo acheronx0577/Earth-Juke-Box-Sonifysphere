@@ -66,10 +66,12 @@ export interface SatelliteJobQuery {
   readonly day: string;
   readonly collection?: string;
   readonly sceneId?: string;
+  readonly guestSessionId?: string;
 }
 
 export interface SatelliteJob {
   readonly id: string;
+  readonly guestSessionId?: string;
   status: JobStatus;
   progress: number;
   readonly createdAt: string;
@@ -78,6 +80,17 @@ export interface SatelliteJob {
   result?: SatelliteSceneResult;
   error?: string;
   message?: string;
+}
+
+export function issueGuestSessionId(): string {
+  const bytes = new Uint8Array(16);
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `guest_${hex}`;
 }
 
 export const MAX_JOBS = 1000;
@@ -115,6 +128,7 @@ export function parseJobQuery(raw: {
   time?: unknown;
   collection?: unknown;
   sceneId?: unknown;
+  guestSessionId?: unknown;
 }): SatelliteJobQuery | null {
   const lat = typeof raw.lat === "number" ? raw.lat : Number(raw.lat);
   const lon = typeof raw.lon === "number" ? raw.lon : Number(raw.lon);
@@ -135,12 +149,18 @@ export function parseJobQuery(raw: {
       ? raw.sceneId.trim()
       : undefined;
 
+  const guestSessionId =
+    typeof raw.guestSessionId === "string" && raw.guestSessionId.trim()
+      ? raw.guestSessionId.trim()
+      : undefined;
+
   return {
     lat: roundCoord(lat),
     lon: roundCoord(lon),
     day,
     collection,
     sceneId,
+    guestSessionId,
   };
 }
 
@@ -170,6 +190,7 @@ export async function enqueueSatelliteJob(
     };
     const completedJob: SatelliteJob = {
       id: `job_cache_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      guestSessionId: query.guestSessionId,
       status: "completed",
       progress: 100,
       createdAt: new Date().toISOString(),
@@ -187,6 +208,7 @@ export async function enqueueSatelliteJob(
   const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const job: SatelliteJob = {
     id: jobId,
+    guestSessionId: query.guestSessionId,
     status: "queued",
     progress: 0,
     createdAt: new Date().toISOString(),
@@ -220,6 +242,7 @@ export async function executeSatelliteJob(
       day: job.query.day,
       limit: 1,
       item: job.query.sceneId || null,
+      collection: job.query.collection || PC_COLLECTION,
     };
 
     job.progress = 40;
@@ -270,6 +293,7 @@ export async function executeSatelliteJob(
           day: job.query.day,
           limit: 1,
           item: primaryReading.sceneId,
+          collection: job.query.collection || PC_COLLECTION,
         };
         const sample = await readPoint(offsetQuery, fetchImpl);
         if (Number.isFinite(sample.value)) surroundingSamples.push(sample.value);

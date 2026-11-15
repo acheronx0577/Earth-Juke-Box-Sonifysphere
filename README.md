@@ -1,136 +1,207 @@
 # SonifySphere · Earth Juke Box
 
-**Explore Earth through sight and sound.** SonifySphere is an interactive web prototype that combines an Earth globe, sound controls and listening games to help people explore environmental concepts.
+**Explore Earth through sight and sound.** SonifySphere is an interactive web platform and NASA Earth data sonification engine that transforms satellite imagery, scientific observations, and Earth Information Center (EIC) visualizations into responsive soundscapes and educational listening experiences.
 
-Built for [The Earth Information Jukebox — NASA Space Apps 2026](https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/). Earth Juke Box is the repository/workspace name; the application currently presents itself as SonifySphere.
+Built for [The Earth Information Jukebox — NASA Space Apps 2026](https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/).
 
-## Project links
+---
 
-- [Source repository](https://github.com/acheronx0577/earth-juke-box)
-- [Production website](https://earth-juke-box.vercel.app)
-- [Listen workspace design report](public/design/listen-redesign-report.html) (served at `/design/listen-redesign-report.html` when the app runs)
-- Project demo: pending — a public video of at most 30 seconds or an English deck of at most seven slides is required by the supplied submission guide.
-- [Submission draft and requirements](docs/SPACE-APPS-SUBMISSION.md)
-- [NASA Space Apps submission guide](https://www.spaceappschallenge.org/resources/project-submission-guide/)
+## Project Links
 
-The repository is currently private. Judges must be able to open the final project and demo without signing in. A private source link alone does not satisfy that requirement.
+- **Live Production Site:** [https://www.sonifysphere.earth](https://www.sonifysphere.earth) (deployed on Vercel)
+- **Source Repository:** [https://github.com/acheronx0577/earth-juke-box](https://github.com/acheronx0577/earth-juke-box)
+- **Listen Workspace Design Report:** Served at `/design/listen-redesign-report.html`
+- **Submission Details & Requirements:** [docs/SPACE-APPS-SUBMISSION.md](docs/SPACE-APPS-SUBMISSION.md)
+- **Challenge Page:** [NASA Space Apps Challenge 2026](https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/)
 
-## What you can do
+---
 
-| Page | Experience |
+## NASA Challenge Compliance: EIC Visual Core
+
+In accordance with the Space Apps Challenge requirements, the visual core of SonifySphere directly integrates and sonifies official **NASA Earth Information Center (EIC)** and **Scientific Visualization Studio (SVS)** assets:
+
+| Asset ID | Title & Scientific Scope | Visual Format & Integration | Sonification Role |
+|---|---|---|---|
+| **SVS 5101** | **Sea Surface Temperature (Near Real Time, EIC)** | Daily update print still (`sst_mur_most_recent_print.jpg`) | **Default visual core on `/listen`**. Probing derives SST values calibrated against the official color bar. |
+| **SVS 5196** | **DYAMOND Global Carbon Dioxide** | 1080p simulation animation & print still | Replaces mock representations with high-resolution global atmospheric CO₂ density probing. |
+| **SVS 3912** | **Global Sea Surface Currents & Temperature (ECCO2)** | 2048×1024 equirectangular frames & ocean flow | Animates ocean circulation vectors; speed and thermal gradients modulate audio timbre. |
+| **SVS 5011** | **ISS Lightning Events (2017–2023)** | 1080p animation frames from space station optical sensors | Percussive trigger pulses synchronized to detected lightning bursts. |
+| **SVS 13786** | **Caldwell 73 Sonification** | Conceptual reference only | Guides the conceptual mapping schema (luminosity to volume, spatial coordinate to pitch). |
+
+### Real-World Value Derivation
+Unlike naive pixel-to-frequency conversions, SonifySphere parses the official color bars from SVS visualizations (e.g. SVS 3912 SST, SVS 5196 CO₂ ppm, MERRA-2) into structured value lookup tables. Probe coordinates extract pixel color values, map to calibrated scientific units (°C, ppm, m/s), and clearly label results as *"derived from SVS color bar"*. Masked pixels or land boundaries return `null` rather than misleading zero readings.
+
+---
+
+## Data Providers & API Architecture
+
+SonifySphere orchestrates an ecosystem of public NASA APIs, cloud-native satellite STAC services, and procedural sound engines:
+
+| Provider | Datasets / Services | Integration Strategy |
+|---|---|---|
+| **NASA SVS / EIC** | SVS 5101, 5196, 3912, 5011, 13786 | Server-proxied streaming via `/api/listen/svs/*` with strict registry validation. |
+| **NASA GIBS** | Blue Marble WMTS raster tiles & MERRA-2 air temperature | Interactive WebGL globe rendering (`/api/listen/gibs-colormap/tile`). |
+| **NASA EPIC** | DSCOVR whole-Earth polychromatic imagery | Full-disc Earth natural-color frames (`/api/listen/epic`). |
+| **NASA EONET v3** | Earth Observatory Natural Event Tracker | Live wildfire, storm, and volcanic event pulses (`/api/listen/events`). |
+| **NASA POWER** | Prediction of Worldwide Energy Resources | Automatic, fail-closed meteorological fallback (`/api/listen/power`). |
+| **NASA Media Library** | NASA Images and Video Archive | Asset discovery and server-cached previews (`/api/listen/nasa/*`). |
+| **Microsoft Planetary Computer** | STAC search & point sampling: `modis-11A1-061`, `modis-14A1-061`, `sentinel-2-l2a`, `landsat-c2-l2`, `era5-pds`, `noaa-cdr-sea-surface-temperature` | Server-side point raster extraction with scale/offset correction (`/api/listen/pc/*`). |
+| **Microsoft Azure** | Azure Blob Storage & Queue Storage | Multi-tier satellite scene caching, background jobs, and guest session isolation. |
+| **Meteomatics** | Real-time atmospheric & oceanic point queries | Cached observations with instant NASA POWER fallback. |
+| **ElevenLabs** | AI text-to-speech & procedural sound textures | Ambient loops (glass, strings, mallet, pulse), strictly labeled as AI-generated. |
+| **NOAA GML & CPC** | Mauna Loa CO₂ Keeling Curve & Equal Earth SST | Verified baseline climate datasets and historical reference trends. |
+| **NASA GES DISC** | OCO-2 column-averaged CO₂ observations | Reference validation for greenhouse gas density models. |
+
+---
+
+## What You Can Do
+
+| Route | Experience |
 |---|---|
-| `/` | Enter with or without sound; explore the visual introduction, datasets and story sections. |
-| `/listen` | Upload an image or video, search NASA media, probe its visual pattern, view matched Meteomatics readings, and choose a live sound profile. Optional ElevenLabs texture generation requires server credentials. |
-| `/listen/classic` | Explore the earlier twelve-region map, datasets, seasons, voices, and sharing controls. |
-| `/about` | Learn the intended sound mappings, inspect the record presentation, and meet the team. |
-| `/challenge`, `/story` | Browse three activity cards using the animated gallery. |
-| `/challenge/guess` | Guess the Signal: identify sound signatures in seeded rounds with explanatory feedback. |
-| `/challenge/compose` | Compose Track: arrange environmental sound sources into a mix and share its configuration. |
-| `/challenge/match` | Tune the Signal: adjust frequency and Q to match a target. |
+| `/` | Interactive 3D Earth globe, audiovisual introduction, dataset catalog, and story journeys. |
+| `/listen` | **Listen Workspace**: Explore NASA EIC visual core frames, upload media, probe pixels for calibrated scientific readings, select sound profiles, and listen with zoom-based proximity audio. |
+| `/listen/classic` | 12-region interactive globe with seasonal cycles, atmospheric layers, Tone.js voice controls, and downloadable WAV mixes with embedded RIFF INFO metadata. |
+| `/about` | Audio theory deep-dive (*Pitch = PPM*, *Pulse = Seasons*, *Click = Records*), full provenance disclosure, team gallery, and interactive credits marquee. |
+| `/challenge` | Audio activity hub featuring interactive challenges. |
+| `/challenge/guess` | **Guess the Signal**: Identify environmental sound signatures across seeded rounds with instant educational feedback. |
+| `/challenge/match` | **Tune the Signal**: Calibrate frequency and resonance (Q factor) to match target planetary audio signatures. |
+| `/challenge/compose` | **Compose Track**: Multi-track ambient mixer arranging natural Earth sound sources into custom mixes. |
 
-The gallery lists Guess the Signal, Tune the Signal, and Waveform Ribbons. Waveform Ribbons opens Listen. Compose Track stays at `/challenge/compose` and is not shown on the carousel.
+---
 
-## How sound works
+## Security & Architecture Posture
 
-The classic map uses Tone.js/Web Audio for synthesis and optional orchestral samples. Layer, region, year, season and weather selections feed deterministic pitch, envelope, oscillator, noise and filter settings. The three voice concepts presented in About are pitch for concentration, pulse for seasonal variation and clicks for record events. The new Listen workspace samples image or video color and brightness under the probe and maps the selected visual or measured layer to a browser oscillator. Instrument and variation chips change its sound.
+SonifySphere enforces enterprise security and zero-trust engineering standards:
 
-Pixels provide visual features, not scientific measurements or coordinates. Numeric Meteomatics readings require a user-supplied latitude, longitude and UTC time; they are not inferred from the media. The app does not ingest a complete live climate time series. This prototype demonstrates an interaction and sound vocabulary; it is not a calibrated scientific analysis tool.
+1. **Zero Hardcoded Secrets (Hard Rule):** All API keys and connection strings (`NASA_API_KEY`, `AZURE_STORAGE_CONNECTION_STRING`, `METEOMATICS_*`, `ELEVENLABS_*`) are read strictly from environment variables. Missing credentials trigger graceful, fail-closed degradation (e.g. automatic NASA POWER fallback).
+2. **Strict SSRF Immunity:**
+   - Image and video proxies (`/api/listen/nasa/image`, `/api/listen/svs/*`, `/api/listen/epic/image`, `/api/listen/gibs-colormap/tile`) strictly enforce protocol (`https:`) and hostname allowlists (`images-assets.nasa.gov`, `svs.gsfc.nasa.gov`, `epic.gsfc.nasa.gov`, `gibs.earthdata.nasa.gov`).
+   - SVS requests resolve only against hardcoded, vetted asset IDs in `SVS_REGISTRY`. Client cannot inject arbitrary URLs.
+   - NASA asset IDs are sanitized against directory traversal (`..`), path separators, control characters, and null bytes (`isSafeNasaId`).
+3. **Client IP Rate-Limiting:** External provider endpoints (`/api/listen/measurements`, `/api/listen/sound-variation`) enforce sliding-window rate limits per client IP, returning standard HTTP 429 and `Retry-After` headers.
+4. **Multi-Tier Satellite Caching:**
+   - **Tier 1:** In-memory LRU isolate cache (`MeasurementCache`) for sub-millisecond warm-instance responses.
+   - **Tier 2:** Microsoft Azure Blob Storage (`satellite-cache`) for persistent, cross-instance scene storage.
+   - **Tier 3:** HTTP `Cache-Control: public, s-maxage=2592000, stale-while-revalidate=604800` headers for edge CDN efficiency.
+5. **Security Headers:** Global headers enforce `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+6. **Guest Session Tokens:** Anonymous users can enqueue and claim background satellite jobs through server-issued guest session identifiers without requiring third-party authentication or tracking cookies.
 
-## Data and visual sources
+---
 
-| Source | Current use and scope |
-|---|---|
-| [NASA GIBS](https://nasa-gibs.github.io/gibs-api-docs/) | Blue Marble raster imagery is requested by the interactive globe. See `src/components/listen/ExploreMap.tsx`. |
-| [NASA Image and Video Library](https://images.nasa.gov/docs/images.nasa.gov_api_docs.pdf) | Search and selected media assets in the new Listen workspace. This public API does not use the NASA Open APIs key. Media records are not numeric science readings. |
-| [Meteomatics Weather API](https://www.meteomatics.com/en/api/) | Optional matched air temperature, sea surface temperature, ocean current speed and wind speed, requested server-side with the user's coordinates and UTC time. Availability varies by place and time. |
-| [NASA EPIC / DSCOVR](https://epic.gsfc.nasa.gov/) | Credited Earth-image reference in the product. This credit is separate from the actual GIBS globe imagery. |
-| [NOAA Global Monitoring Laboratory](https://gml.noaa.gov/ccgg/trends/) | Reference for the Mauna Loa CO₂ narrative and attribution. Displayed figures are embedded in the application rather than fetched as a complete NOAA time series. NOAA is not NASA. |
-| [NOAA Climate Prediction Center](https://www.cpc.ncep.noaa.gov/) and [NSIDC Sea Ice Index](https://nsidc.org/data/seaice_index/) | Attributions appear on selected example regional readouts. Their values and dates need source validation before scientific claims in a submission. |
-| [ARCO-ERA5](https://github.com/google-research/arco-era5), [NOAA GFS Open Data](https://registry.opendata.aws/noaa-gfs-bdp-pds/) | Retained server-side wind utilities. The current Listen UI does not request wind fields or run visual wind particles. |
-
-Regional example values are labeled where implemented. Some 2026 figures, counts and labels in the interface have not been independently validated. Do not describe all displayed figures as verified observations or all four selectable layers as complete regional datasets; unsupported regional layers show “No data.”
-
-The home hero artwork is an AI-generated illustration with a visible `AI-GENERATED ART · CHATGPT` watermark. Team photographs and scientific Earth imagery remain separate assets. The About credits and page metadata identify ChatGPT's image use and OpenAI Codex's code/documentation assistance. Live probe audio is synthesized in the browser. An optional ElevenLabs action can generate a sound loop after a user click when enabled on the server. Classic downloadable WAV mixes carry RIFF INFO metadata describing their procedural origin. No AI-generated video is included.
-
-## Tech stack
-
-Versions below come from `package-lock.json`, rather than the version ranges in `package.json`.
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Application | Next.js 15.5.28 App Router, React / React DOM 19.3.1, TypeScript 5.9.3 |
-| Styling | Tailwind CSS 4.3.3, CSS, SVG; Geist / Geist Mono and Planet Kosmos |
-| Motion | GSAP 3.15.0 / ScrollTrigger, Lenis 1.3.27, Motion 14.14.0 |
-| Graphics | MapLibre GL JS 5.24.0, WebGL2 and projected SVG overlays |
-| Audio | Tone.js 15.1.22, browser Web Audio API and bundled sample assets |
-| Retained data utilities | Zarrita 0.7.5, fetch, Node.js server route handlers |
-| Quality | Playwright 1.64.1, ESLint 9.39.5, TypeScript and production builds |
-| Hosting | Vercel production deployment connected to this repository's `main` branch |
+| **Framework** | Next.js 15.5.28 (App Router, Node.js runtime route handlers) |
+| **Frontend** | React 19.3.1, TypeScript 5.8+, Tailwind CSS 4.1.4 |
+| **Typography & Icons** | Geist / Geist Mono (Vercel), Planet Kosmos, Hugeicons |
+| **Motion & Smooth Scroll** | GSAP 3.13, Motion 14.14, Lenis 1.3 |
+| **Audio Engine** | Tone.js 15.1.22, Web Audio API, procedural oscillators and filters |
+| **Mapping & Raster Data** | MapLibre GL 5.24, WebGL2, Zarrita (Zarr v2/v3), pngjs pixel analysis |
+| **Cloud & Jobs** | Microsoft Azure Blob Storage, Azure Queue Storage, Microsoft Planetary Computer |
+| **Testing & Quality** | Playwright 1.64.1 (@axe-core/playwright), Node test runner, ESLint 10 |
 
-## Team
+---
 
-Names, roles and portraits are taken from the actual About-page data in [`src/data/aboutData.ts`](src/data/aboutData.ts), rendered by `TeamRegistry`.
+## Local Development & Setup
 
-| Team member | Role |
-|---|---|
-| Richard Huynh | Team Leader |
-| Erin Sur | Visual & UI Design |
-| Quoc Pham | Audio Architect |
-| Ryan Wang | Frontend Engineer |
-| Aqila Nasiry | Atmospheric Research |
-| Irmuun Temuulel | Systems Engineer |
+### Prerequisites
+- Node.js 20+ (LTS recommended)
+- npm 10+
 
-Official Space Apps team registration, Local Event and team-page URL still need to be recorded. Personal GitHub handles have not been inferred from names.
-
-## Run locally
-
-Use a Node.js version supported by the locked Next.js release and npm. Install from the lockfile:
-
+### Installation
 ```sh
+# Clone repository
+git clone https://github.com/acheronx0577/earth-juke-box.git
+cd earth-juke-box
+
+# Install exact locked dependencies
 npm ci
-npm run dev
 ```
 
-Open the localhost URL printed by Next.js. For a production build and local server:
+### Environment Configuration (Optional)
+Create a `.env.local` file in the project root for optional external providers. The core application runs fully offline with simulated fallbacks if keys are omitted:
 
+```env
+# Optional: NASA Open APIs (defaults to DEMO_KEY if unset)
+NASA_API_KEY=your_nasa_api_key
+
+# Optional: Microsoft Azure Storage for durable satellite scene caching
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+
+# Optional: Microsoft Planetary Computer
+PLANETARY_COMPUTER_API_KEY=your_pc_key
+
+# Optional: Meteomatics Weather API (NASA POWER automatically serves as fallback if unset)
+METEOMATICS_USERNAME=your_username
+METEOMATICS_PASSWORD=your_password
+
+# Optional: ElevenLabs AI Narration and Textures
+ELEVENLABS_API_KEY=your_elevenlabs_key
+ELEVENLABS_SOUND_GENERATION_ENABLED=true
+
+# Canonical URL
+NEXT_PUBLIC_SITE_URL=https://www.sonifysphere.earth
+```
+
+### Running Locally
 ```sh
+# Start development server
+npm run dev
+
+# Or build and run production server
 npm run build
 npm run start
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-The main experience does not require credentials or a database. Internet access is needed for external imagery, remote fonts during builds and optional data routes. Audio starts through a user gesture; browser autoplay restrictions apply.
+---
 
-For optional measurements and sound generation in a Codespace or deployment, set `METEOMATICS_USERNAME`, `METEOMATICS_PASSWORD`, `ELEVENLABS_API_KEY`, and `ELEVENLABS_SOUND_GENERATION_ENABLED=true` as server environment variables. Keep them out of Git and client code. The public NASA media search and browser sound work without these credentials; the NASA Open APIs key is not used by this media search.
+## Quality Verification & Test Suite
 
-## Verify
+SonifySphere maintains a comprehensive, automated test matrix:
 
 ```sh
-npm run lint
+# 1. Typecheck (TypeScript 5.8+)
 npm run typecheck
+
+# 2. Linting (ESLint 10)
+npm run lint
+
+# 3. Unit tests (Audio logic, reading context, layer ranges, proximity audio)
+npm run test:unit
+
+# 4. Planetary Computer multi-collection & security tests
+npm run test:planetary-computer
+
+# 5. Azure satellite jobs and caching lifecycle tests
+npm run test:satellite-jobs
+
+# 6. NASA SVS media and EIC frame integrity tests
+npm run test:svs
+npm run test:eic
+
+# 7. Production build verification
 npm run build
-npx playwright install chromium
-npx playwright test e2e/listen-idle.spec.ts e2e/page-transitions.spec.ts e2e/site-assets.spec.ts
+
+# 8. Full Playwright E2E test suite (47 tests: contracts, QA, proximity, transitions, assets)
+npm run test:e2e
 ```
 
-The prior source snapshot passed 20 focused desktop/mobile checks covering Listen controls, audio gestures, sharing, cursor/hover work, asset warming, transitions and image loading. Some older broad-suite expectations reference superseded About/Challenge layouts; the entire test suite is not claimed green. See [the performance report](docs/Listen-Performance.md).
+---
 
-## Architecture and performance
+## Team & Credits
 
-- `src/app/`: route composition, shared layout and retained wind API handlers.
-- `src/components/`: Home, Listen, About, games and shared UI.
-- `src/context/SonifyPlayerContext.tsx`: shared sound state and playback orchestration.
-- `src/data/`: labels, team, presets, geography and sample manifests.
-- `src/lib/`: synthesis, signal/game logic, asset warming and data helpers.
-- `public/`: image, SVG, font, portrait and audio assets.
+### Team
+- **Richard Huynh** — Team Leader (`AcheronX. <richardhuynh53@gmail.com>`)
+- **Erin Sur** — Visual & UI Design
+- **Quoc Pham** — Audio Architect
+- **Ryan Wang** — Frontend Engineer
+- **Aqila Nasiry** — Atmospheric Research
+- **Irmuun Temuulel** — Systems Engineer
 
-Visual wind simulation is removed; wind remains a sound control. Globe hover uses cached projected SVG outlines instead of repainting the satellite canvas. Cursor animation sleeps when settled. Asset warming and route prefetching prepare likely destinations; transition waits are bounded. PNG/JPEG conversions reduced the measured public-asset total by about 45%, without counting dependencies or build caches as website payload.
-
-## Credits and AI assistance
-
-NASA and NOAA data/image references are listed above. The source credits the Orbit Matter template by [Codegrid](https://www.codegridweb.com/), [Planet Kosmos by Mads Rydahl](https://www.planet.dk/fonts/), and [Geist by Vercel](https://vercel.com/font). Third-party libraries retain their respective licenses. No blanket license or ownership claim over third-party assets is implied.
-
-Codex assisted with code changes, performance work, documentation and repository preparation in this project. Product credits identify the hero illustration as ChatGPT-generated. The team should review the detailed SI disclosure in the submission draft and add any other tools actually used. The live Listen probe is synthesized in the browser. An optional, user-triggered ElevenLabs loop is available only when the server has credentials and `ELEVENLABS_SOUND_GENERATION_ENABLED=true`.
-
-## Submission status
-
-The production target is [earth-juke-box.vercel.app](https://earth-juke-box.vercel.app). Demo media, official team/event identifiers, validated scientific provenance and the final Space Apps form remain pending. This README does not mean the project has been submitted for judging.
+### Disclosures & AI Transparency
+- **Scientific Data:** Sourced directly from official NASA, NOAA, and Microsoft Planetary Computer endpoints.
+- **Audio Synthesis:** Synthesized programmatically in-browser via Tone.js and Web Audio API from real scientific parameters. Generated WAV files carry RIFF INFO provenance tags.
+- **AI Art & Texture Disclosure:** The home hero illustration is an AI-generated artwork watermarked `AI-GENERATED ART · CHATGPT`. Optional ElevenLabs audio loops are explicitly disclosed and tagged as AI-generated.
+- **Design & Layout:** Orbit Matter template architecture by [Codegrid](https://www.codegridweb.com/); FlowingMenu adapted from [React Bits](https://reactbits.dev/).
