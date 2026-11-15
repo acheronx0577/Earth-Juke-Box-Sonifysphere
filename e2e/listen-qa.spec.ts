@@ -177,8 +177,18 @@ test("chips are a single shape", async ({ page }) => {
   await page.goto("/listen?sound=off");
   const chip = page.getByRole("button", { name: "TEMPERATURE", exact: true });
   await expect(chip.locator("span")).toHaveCount(0);
-  const nested = await chip.evaluate((el) => el.querySelector("*") !== null);
-  expect(nested).toBe(false);
+  const shape = await chip.evaluate((el) => {
+    const kids = [...el.children].map((child) => child.getAttribute("class"));
+    const polygon = el.querySelector(".lv-chamfer-svg polygon");
+    return {
+      kids,
+      fill: polygon ? getComputedStyle(polygon).fill : "",
+      stroke: polygon ? getComputedStyle(polygon).stroke : "",
+    };
+  });
+  expect(shape.kids).toEqual(["lv-chamfer-svg"]);
+  expect(shape.fill).toBe("none");
+  expect(shape.stroke).toBe("rgb(85, 85, 85)");
 });
 
 test("the probe tooltip stays inside the stage at the east edge", async ({ page }) => {
