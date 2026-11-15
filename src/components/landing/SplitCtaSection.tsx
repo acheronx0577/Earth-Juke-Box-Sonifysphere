@@ -47,7 +47,7 @@ function SplitCtaCentreBlock() {
       </h2>
       <div className="h-[24px] relative shrink-0 w-px" />
       <p className="sonify-cta-copy font-sans font-normal leading-[normal] relative shrink-0 text-[18px] text-[rgba(242,242,240,0.75)] text-center w-full max-w-[440px]">
-        Four real records of a changing planet, turned into music you can play.
+        Four Earth records you can play. The figures shown are examples, not a live feed.
       </p>
       <div className="h-[48px] relative shrink-0 w-px" />
       <div
