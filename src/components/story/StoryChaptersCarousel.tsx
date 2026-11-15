@@ -40,60 +40,34 @@ const CHAPTERS: ChapterData[] = [
   {
     id: "challenge-02",
     num: "02",
-    headerTag: "Challenge 02 · Sound Studio",
-    year: "Mixtape",
-    title: "Compose Track",
-    subtitle: "Layer 4 planetary signals into a custom atmospheric soundscape",
-    challengePath: "/challenge/compose",
-    challengeAction: "Open Studio ↗",
-    image: "/assets/landing/chapters/chapter-02.webp",
-    text: "02 · Compose Track",
-    description: "Sound studio: compile an ambient climate mixtape",
-    audioVoice: "pulse",
-  },
-  {
-    id: "challenge-03",
-    num: "03",
-    headerTag: "Challenge 03 · Wave Match",
+    headerTag: "Challenge 02 · Wave Match",
     year: "Tuning",
     title: "Tune the Signal",
     subtitle: "Align frequency dials to detect the climate anomaly spike",
     challengePath: "/challenge/match",
     challengeAction: "Tune Signal ↗",
     image: "/assets/landing/chapters/chapter-03.webp",
-    text: "03 · Tune the Signal",
+    text: "02 · Tune the Signal",
     description: "Wave match: tune oscillators to match warming anomaly spikes",
     audioVoice: "click",
   },
   {
-    id: "challenge-04",
-    num: "04",
-    headerTag: "Challenge 04 · Waveform Ribbons",
+    id: "challenge-03",
+    num: "03",
+    headerTag: "Challenge 03 · Waveform Ribbons",
     year: "Seasons",
     title: "Waveform Ribbons",
     subtitle: "Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps",
     challengePath: "/listen",
     challengeAction: "Listen Pulses ↗",
     image: "/assets/about/routine/routine_04_voices.webp",
-    text: "04 · Waveform Ribbons",
+    text: "03 · Waveform Ribbons",
     description: "Atmospheric pulse: sonify global seasonal breathing",
     audioVoice: "pulse",
   },
-  {
-    id: "challenge-05",
-    num: "05",
-    headerTag: "Challenge 05 · Climate Console",
-    year: "Archive",
-    title: "Climate Console",
-    subtitle: "Explore the historical 1958–2026 sonification synthesizer archive",
-    challengePath: "/jukebox",
-    challengeAction: "Open Console ↗",
-    image: "/assets/about/routine/routine_03_challenges.webp",
-    text: "05 · Climate Console",
-    description: "Jukebox archive: trigger historical planetary acoustic sweeps",
-    audioVoice: "pitch",
-  },
 ];
+
+const GAME_COUNT = String(CHAPTERS.length).padStart(2, "0");
 
 /**
  * Card-widths per second is autoScroll * 0.25, so 0.8 crosses about one card every 5s.
@@ -284,7 +258,7 @@ export function StoryChaptersCarousel() {
         <div className="story-chapters-top">
           <div className="story-chip-glass story-hud-chip inline-flex items-center">
             <span className="story-hud-type font-mono uppercase text-[#f2f2f0]/80">
-              Challenges · 5 games
+              Challenges · {CHAPTERS.length} games
             </span>
           </div>
 
@@ -380,7 +354,7 @@ export function StoryChaptersCarousel() {
           </div>
 
           <p className="story-chapters-count" data-challenge-count={activeChapter.num}>
-            {activeChapter.num} / 05
+            {activeChapter.num} / {GAME_COUNT}
           </p>
         </div>
 
