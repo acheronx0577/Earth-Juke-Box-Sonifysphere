@@ -307,10 +307,11 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
             {ticks.map((tick) => {
               const major = tick % 10 === 0;
               const left = `${((tick - YEAR_START) / span) * 100}%`;
+              const edge = tick === 1960 ? "is-start" : tick === 2020 ? "is-end" : "";
               return (
                 <span key={tick} aria-hidden="true">
                   <i style={{ left, height: major ? 9 : 4 }} />
-                  {major ? <b style={{ left }}>{tick}</b> : null}
+                  {major ? <b className={edge} style={{ left }}>{tick}</b> : null}
                 </span>
               );
             })}
@@ -774,8 +775,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               <div className="lv-sheet-face lv-cut">
                 <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => setSheet(false)}>
                   <i />
+                  <span>SOUND PROFILE</span>
                   <Chevron />
-                  <span className="sr-only">Collapse sound profile</span>
                 </button>
                 <SoundFields
                   compact

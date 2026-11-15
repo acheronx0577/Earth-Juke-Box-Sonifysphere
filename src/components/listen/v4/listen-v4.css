@@ -230,6 +230,7 @@
 }
 
 .lv-find {
+  margin-right: 6px;
   color: #e08a3c;
 }
 
@@ -398,11 +399,14 @@
 
 @media (max-width: 699px) {
   .lv-map {
-    width: 168%;
-    height: 176%;
-    margin-left: -58%;
-    margin-top: -32%;
+    width: 155%;
+    height: 162%;
+    margin-left: -46%;
+    margin-top: -8%;
   }
+  .lv-legend { width: 168px; }
+  .lv-legend-title,
+  .lv-legend .lv-glass-face { font-size: 9px; letter-spacing: 0.03em; }
 }
 
 .lv-media {
@@ -454,6 +458,7 @@
 }
 
 .lv-legend-title { white-space: nowrap; }
+.lv-field .lv-eyebrow { white-space: nowrap; }
 
 .lv-tag { top: 16px; left: 16px; }
 .lv-hint { left: 16px; bottom: 16px; max-width: min(348px, calc(100% - 32px)); }
@@ -747,6 +752,12 @@
   position: absolute;
   top: 6px;
   transform: translateX(-50%);
+}
+
+.lv-ticks > span > b.is-start { transform: none; }
+.lv-ticks > span > b.is-end { transform: translateX(-100%); }
+
+.lv-ticks > span > b {
   color: var(--lv-muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
@@ -974,18 +985,22 @@
 
   .lv-sheet-face { padding: 8px 14px 14px; }
   .lv-grab {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
     margin: 0 0 8px;
-    padding: 6px 0 4px;
+    padding: 4px 0 8px;
     border: 0;
     background: transparent;
     color: var(--lv-cream);
     cursor: pointer;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
   }
+  .lv-grab i { grid-column: 1 / -1; justify-self: center; }
   .lv-grab i {
     width: 36px;
     height: 4px;
