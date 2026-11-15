@@ -181,10 +181,12 @@ export function RoutineStrip() {
             </div>
 
             <div className="routine-slider">
-              <div className="routine-slider-wrapper" ref={sliderWrapperRef}>
-                {BLOCKS.map((block) => (
-                  <RoutineCard key={block.num} block={block} />
-                ))}
+              <div className="routine-slider-window">
+                <div className="routine-slider-wrapper" ref={sliderWrapperRef}>
+                  {BLOCKS.map((block) => (
+                    <RoutineCard key={block.num} block={block} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
