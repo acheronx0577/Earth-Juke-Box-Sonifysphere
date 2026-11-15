@@ -995,7 +995,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           </svg>
           SAVED
         </button>
-        <span className="lv-home-indicator" aria-hidden="true" />
+        {false && <span className="lv-home-indicator" aria-hidden="true" />}
       </div>
       <input
         ref={fileRef}
