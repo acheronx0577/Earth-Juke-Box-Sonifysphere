@@ -33,7 +33,7 @@ const BLOCKS = [
     tag: "Play",
     hud: "SYNTH & INTERVAL LAB",
     title: "Challenges",
-    desc: "Guess an atmospheric signal, or compose a custom planetary soundscape.",
+    desc: "Guess the Signal, tune the spike, or follow the waveform ribbons.",
     image: "/assets/about/routine/routine_03_challenges.webp",
     action: "Open Challenges →",
     href: "/challenge",
