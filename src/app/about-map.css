@@ -881,6 +881,13 @@
   }
 }
 
+/* Portrait: 36vw binds and shrinks the card. Follow 64svh instead, still 425:575, never under 320×440. */
+@media (min-width: 769px) and (aspect-ratio < 1) {
+  .team .cards .card {
+    --crew-h: clamp(440px, 64svh, min(1100px, calc(100vw * 575 / 425)));
+  }
+}
+
 @media (max-width: 1000px) {
   .hm-stage {
     transform: translate(-50%, -53%);
