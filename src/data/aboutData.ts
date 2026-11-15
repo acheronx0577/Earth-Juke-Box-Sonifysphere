@@ -120,6 +120,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     linkLabel: "codegrid ↗",
     linkHref: "https://www.codegridweb.com/",
   },
+  {
+    id: "react-bits",
+    label: "Component",
+    text: "FlowingMenu adapted from React Bits",
+    linkLabel: "reactbits.dev ↗",
+    linkHref: "https://reactbits.dev/",
+  },
 ];
 
 export interface TeamMember {
