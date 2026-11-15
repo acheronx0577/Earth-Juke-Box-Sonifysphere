@@ -101,6 +101,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     linkHref: "https://epic.gsfc.nasa.gov/",
   },
   {
+    id: "eic",
+    label: "EIC",
+    text: "One NASA Earth Information Center frame from the Scientific Visualization Studio. Image-derived, not a measurement.",
+    linkLabel: "NASA SVS ↗",
+    linkHref: "https://svs.gsfc.nasa.gov/5101/",
+  },
+  {
     id: "eonet",
     label: "Events",
     text: "Open natural events come from NASA EONET v3. Each event in the chosen view is a pulse, and the same events are listed in text.",
