@@ -1,0 +1,17 @@
+---
+description: Bordered UI uses one shared chamfer whose stroke follows the cut
+globs: src/**/*.{tsx,ts,css}
+alwaysApply: true
+---
+
+# Chamfer frames
+
+Every bordered container, card, chip, button, popup, icon box, and input is a chamfered frame. Use the shared helpers only:
+
+- `ChamferMark` (`src/components/listen/ChamferMark.tsx`) draws the 1.5px `#555` stroke with `vector-effect: non-scaling-stroke`.
+- `chamferPoints` / `chamferClip` (`src/components/listen/chamfer.ts`) are the only corner geometry.
+- The element also gets the `lv-cut` class so its fill is clipped to the same polygon.
+
+Do not put `border-radius` on a frame, do not paint a square `border` or inset `box-shadow` and then clip it, and do not stack two filled shapes to fake a border. A rectangular stroke is sliced off at the diagonal, so the line never turns the corner.
+
+The Playwright guard is `e2e/chamfer-frames.spec.ts`. It checks `/`, `/about`, and `/listen`.

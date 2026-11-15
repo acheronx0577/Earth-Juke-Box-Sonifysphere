@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MAP_REGIONS } from "@/data/exploreMap";
+import { ChamferMark } from "@/components/listen/ChamferMark";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import { CENTRAL_MERIDIAN, MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
 import { legendFromMetadata, legendFromPixels, legendGradient, type LegendModel } from "@/components/listen/v4/legend";
@@ -127,16 +128,98 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const tip = tipRef.current;
     const stage = stageRef.current;
     if (!tip || !stage || !tipAnchor) return;
-    const width = tip.offsetWidth;
-    const height = tip.offsetHeight;
-    let nextX = 26;
-    let nextY = -Math.round(height * 0.42);
-    if (tipAnchor.x + nextX + width > stage.clientWidth - 8) nextX = -width - 12;
-    if (tipAnchor.x + nextX < 8) nextX = 8 - tipAnchor.x;
-    if (tipAnchor.y + nextY < 8) nextY = 8 - tipAnchor.y;
-    if (tipAnchor.y + nextY + height > stage.clientHeight - 8) nextY = stage.clientHeight - 8 - height - tipAnchor.y;
-    setTipShift({ x: nextX, y: nextY });
-  }, [tipAnchor, tip]);
+
+    const place = () => {
+      const width = tip.offsetWidth;
+      const height = tip.offsetHeight;
+      const stageWidth = stage.clientWidth;
+      const stageHeight = stage.clientHeight;
+      if (width < 8 || height < 8 || stageWidth < 16 || stageHeight < 16) return;
+      const gap = 16;
+      const edge = 8;
+      const stageBox = stage.getBoundingClientRect();
+      const obstacles = [".lv-tag", ".lv-legend", ".lv-hint", ".lv-nino-label", ".lv-nino-box", ".lv-probe-dot"]
+        .map((selector) => stage.querySelector(selector))
+        .filter((node): node is Element => node instanceof Element)
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          return {
+            left: rect.left - stageBox.left,
+            top: rect.top - stageBox.top,
+            right: rect.right - stageBox.left,
+            bottom: rect.bottom - stageBox.top,
+          };
+        });
+
+      const clearance = (x: number, y: number) => {
+        const rect = {
+          left: tipAnchor.x + x,
+          top: tipAnchor.y + y,
+          right: tipAnchor.x + x + width,
+          bottom: tipAnchor.y + y + height,
+        };
+        const inside = Math.min(rect.left - edge, rect.top - edge, stageWidth - edge - rect.right, stageHeight - edge - rect.bottom);
+        if (inside < 0) return inside;
+        let room = Number.POSITIVE_INFINITY;
+        for (const obstacle of obstacles) {
+          const dx = Math.max(obstacle.left - rect.right, rect.left - obstacle.right);
+          const dy = Math.max(obstacle.top - rect.bottom, rect.top - obstacle.bottom);
+          const apart = dx > 0 && dy > 0 ? Math.min(dx, dy) : Math.max(dx, dy);
+          room = Math.min(room, apart);
+        }
+        return room;
+      };
+
+      const candidates = [
+        { x: 14, y: 12 },
+        { x: 14, y: -height - gap },
+        { x: -width - 14, y: 12 },
+        { x: -width - 14, y: -height - gap },
+      ];
+      const topBand = obstacles.reduce((bottom, obstacle) => obstacle.top < stageHeight / 2 ? Math.max(bottom, obstacle.bottom) : bottom, 0);
+      const bottomBand = obstacles.reduce((top, obstacle) => obstacle.bottom > stageHeight / 2 ? Math.min(top, obstacle.top) : top, stageHeight);
+      if (bottomBand - topBand >= height + gap * 2) {
+        candidates.unshift({ x: edge - tipAnchor.x, y: topBand + gap - tipAnchor.y });
+      }
+      for (const obstacle of obstacles) {
+        candidates.push(
+          { x: obstacle.left - gap - width - tipAnchor.x, y: obstacle.top - tipAnchor.y },
+          { x: obstacle.right + gap - tipAnchor.x, y: obstacle.top - tipAnchor.y },
+          { x: obstacle.left - tipAnchor.x, y: obstacle.top - gap - height - tipAnchor.y },
+          { x: obstacle.left - tipAnchor.x, y: obstacle.bottom + gap - tipAnchor.y },
+        );
+      }
+      for (const left of [gap, Math.round((stageWidth - width) / 2), stageWidth - width - gap]) {
+        for (const top of [gap, Math.round((stageHeight - height) / 2), stageHeight - height - gap]) {
+          candidates.push({ x: left - tipAnchor.x, y: top - tipAnchor.y });
+        }
+      }
+
+      let best = candidates[0] ?? { x: gap - tipAnchor.x, y: gap - tipAnchor.y };
+      let bestRoom = Number.NEGATIVE_INFINITY;
+      for (const candidate of candidates) {
+        const room = clearance(candidate.x, candidate.y);
+        if (room > bestRoom) {
+          best = candidate;
+          bestRoom = room;
+        }
+      }
+
+      const minX = edge - tipAnchor.x;
+      const maxX = stageWidth - edge - width - tipAnchor.x;
+      const minY = edge - tipAnchor.y;
+      const maxY = stageHeight - edge - height - tipAnchor.y;
+      const x = minX <= maxX ? Math.min(Math.max(best.x, minX), maxX) : best.x;
+      const y = minY <= maxY ? Math.min(Math.max(best.y, minY), maxY) : best.y;
+      setTipShift((previous) => (previous.x === x && previous.y === y ? previous : { x, y }));
+    };
+
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(stage);
+    stage.querySelectorAll(".lv-tag, .lv-legend, .lv-hint, .lv-nino-label, .lv-nino-box, .lv-probe-dot").forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [tipAnchor, tip, legend]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -295,7 +378,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
 
   return (
     <div
-      className="lv-stage"
+      className="lv-stage lv-cut"
       data-kind={source.kind}
       ref={stageRef}
       tabIndex={0}
@@ -313,6 +396,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       }}
       onPointerUp={(event) => move(event.clientX, event.clientY, true)}
     >
+      <ChamferMark />
       {mapMode ? (
         <svg ref={svgRef} className="lv-map" viewBox={`0 0 ${MAP_VIEW.width} ${MAP_VIEW.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Equal Earth map, NOAA CPC example">
           <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="#100e0c" />
@@ -326,6 +410,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           {(layer === "temperature" || layer === "all") && (
             <g aria-hidden="true">
               <text
+                className="lv-nino-label"
                 x={(NINO_WEST + NINO_EAST) / 2}
                 y={NINO_LABEL_Y}
                 textAnchor="middle"
@@ -335,10 +420,10 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
               >
                 NIÑO 3.4 · 5°N–5°S · 170°W–120°W
               </text>
-              <rect x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
+              <rect className="lv-nino-box" x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
             </g>
           )}
-          <g transform={`translate(${px} ${py})`} aria-hidden="true">
+          <g className="lv-probe-dot" transform={`translate(${px} ${py})`} aria-hidden="true">
             <circle r="22" fill="#e08a3c" opacity="0.28" />
             <circle r="14" fill="none" stroke="#fff3ea" strokeWidth="1.75" />
             <circle r="4.5" fill="#e08a3c" />
@@ -356,28 +441,39 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           onSample={(pixels) => onLegend(legendFromPixels(pixels.data, pixels.width, pixels.height, "FRAME COLORS"))}
         />
       ) : null}
-      {mapMode ? <div className="lv-glass lv-cut lv-tag">
-        <div className="lv-glass-face lv-cut">
+      {false && mapMode ? <div className="lv-glass lv-cut lv-tag">
+        <ChamferMark />
+        <div className="lv-glass-face">
           <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
           <span className="lv-tag-short">MAP · NOAA CPC</span>
         </div>
       </div> : null}
-      {mapMode ? <div className="lv-glass lv-cut lv-hint">
-        <div className="lv-glass-face lv-cut">
+      {false && mapMode ? <div className="lv-glass lv-cut lv-hint">
+        <ChamferMark />
+        <div className="lv-glass-face">
           <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
           <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
         </div>
       </div> : null}
-      {mapMode ? (
+      {false && mapMode ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
-          <div className="lv-glass-face lv-cut">
+          <ChamferMark />
+          <div className="lv-glass-face">
             <p>PROBE · {coord}</p>
             <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
           </div>
         </div>
+      ) : null}
+      {mapMode ? (
+        <div className="lv-glass lv-tip lv-plain">
+          <p>
+            {coord} · <span className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{probePhrase(tip)}</span>
+          </p>
+        </div>
       ) : ring ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
-          <div className="lv-glass-face lv-cut">
+          <ChamferMark />
+          <div className="lv-glass-face">
             <p>{tip}</p>
           </div>
         </div>
@@ -409,29 +505,65 @@ function ExampleClip({ frame, onSample }: { readonly frame: number; readonly onS
   return <canvas ref={ref} className="lv-media" width={320} height={180} aria-label="Ocean currents animation" />;
 }
 
+function probePhrase(tip: string): string {
+  return tip
+    .replace(/[↑↓]/g, "")
+    .replace(/\s*·\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace("niño", "Niño");
+}
+
 function LegendPanel({ legend }: { readonly legend: LegendModel }) {
   const ends = legend.stops.filter((stop) => stop.label);
+  const noData = legend.noData;
   return (
-    <div className="lv-glass lv-cut lv-legend">
-      <div className="lv-glass-face lv-cut">
-        <p className="lv-legend-title">{legend.title}</p>
+    <>
+      {false && (
+        <div className="lv-glass lv-cut lv-legend">
+          <ChamferMark />
+          <div className="lv-glass-face">
+            <p className="lv-legend-title">{legend.title}</p>
+            {legend.stops.length > 0 ? (
+              <div className="lv-legend-scale">
+                <span>{ends[0]?.label ?? ""}</span>
+                <i style={{ background: legendGradient(legend.stops) }} />
+                <span>{ends.at(-1)?.label ?? ""}</span>
+              </div>
+            ) : (
+              <p className="lv-legend-missing">NO SCALE DETECTED</p>
+            )}
+            {noData ? (
+              <p className="lv-legend-none">
+                <i style={{ background: noData?.color }} />
+                {noData?.label}
+              </p>
+            ) : null}
+            <p className="lv-legend-source lv-cut">
+              <ChamferMark />
+              {legend.source.toUpperCase()}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="lv-glass lv-legend lv-plain">
         {legend.stops.length > 0 ? (
           <div className="lv-legend-scale">
-            <span>{ends[0]?.label ?? ""}</span>
+            <span>{(ends[0]?.label ?? "colder").toLowerCase()}</span>
             <i style={{ background: legendGradient(legend.stops) }} />
-            <span>{ends.at(-1)?.label ?? ""}</span>
+            <span>{(ends.at(-1)?.label ?? "warmer").toLowerCase()}</span>
           </div>
         ) : (
-          <p className="lv-legend-missing">NO SCALE DETECTED</p>
+          <p className="lv-legend-missing">no scale</p>
         )}
-        {legend.noData ? (
+        {noData ? (
           <p className="lv-legend-none">
-            <i style={{ background: legend.noData.color }} />
-            {legend.noData.label}
+            <i style={{ background: noData.color }} />
+            no data
           </p>
         ) : null}
-        <p className="lv-legend-source">{legend.source.toUpperCase()}</p>
       </div>
-    </div>
+    </>
   );
 }
