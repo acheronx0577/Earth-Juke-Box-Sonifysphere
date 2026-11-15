@@ -144,8 +144,7 @@ function OctagonPlate() {
       <polygon
         points={points}
         fill="#262626"
-        stroke="#f2f2f0"
-        strokeOpacity={0.72}
+        stroke="#555555"
         strokeWidth={stroke}
         strokeLinejoin="miter"
         vectorEffect="non-scaling-stroke"
