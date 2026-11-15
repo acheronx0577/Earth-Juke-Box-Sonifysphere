@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       cached,
       attribution: "NASA GIBS / MERRA-2",
       license: "Public domain (US government work)",
-    }, { headers: { "Cache-Control": cached ? PUBLIC : PUBLIC } });
+    }, { headers: { "Cache-Control": PUBLIC } });
   } catch (error) {
     if (error instanceof GibsError) {
       return NextResponse.json({ error: error.message }, { status: error.status, headers: PRIVATE });
