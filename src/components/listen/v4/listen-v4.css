@@ -1059,12 +1059,14 @@
     letter-spacing: 0.08em;
   }
   .lv-grab i { grid-column: 1 / -1; justify-self: center; }
+  .lv-grab span { justify-self: start; text-align: left; text-transform: uppercase; }
   .lv-grab small {
     display: block;
     margin-top: 2px;
     color: var(--lv-muted);
     font-size: 10px;
     letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
   .lv-grab i {
     width: 36px;
@@ -1141,6 +1143,16 @@
   .lv-page { padding: var(--lv-nav-space) 24px 106px; }
   .lv-stage { height: 420px; }
   .lv-collapse { flex: 1; }
+  .lv-cards {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    overflow: visible;
+    mask-image: none;
+    padding-bottom: 0;
+    scroll-snap-type: none;
+  }
+  .lv-card { min-width: 0; }
 }
 
 @media (min-width: 1100px) {
@@ -1192,6 +1204,14 @@
 @media (max-width: 699px) {
   .lv-legend { top: 12px; right: 10px; bottom: auto; width: 168px; }
   .lv-timeline { gap: 0; }
+  .lv-timeline-track,
+  .lv-timeline-face {
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  }
+  .lv-date,
+  .lv-date > span {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  }
   .lv-legend-title { white-space: normal; font-size: 9px; letter-spacing: 0.02em; }
   .lv-ticks > span > b { font-size: 9px; letter-spacing: 0; }
   .lv-date { width: 72px; font-size: 10px; }
