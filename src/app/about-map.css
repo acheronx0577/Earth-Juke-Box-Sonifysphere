@@ -364,13 +364,20 @@
    Chamfer, padding, and type share one vw/svh ramp and land on Orbit's
    4rem / 6rem / 10rem values once the frame is wide enough. */
 .routine {
-  --routine-pad-x: clamp(1rem, 6.67vw, 6rem);
+  /* --port is 0 on a tall phone or tablet and 1 once the frame is landscape,
+     so 1024 and wider keep the current side padding exactly. */
+  --port: clamp(0, (100vw - 95svh) / 25svh, 1);
+  --routine-pad-x-base: clamp(1rem, 6.67vw, 6rem);
+  --routine-pad-x: calc(clamp(8px, 2.2vw, 10px) * (1 - var(--port)) + var(--routine-pad-x-base) * var(--port));
   --routine-pad-top: clamp(4.5rem, 1.2rem + 4.2vw + 2svh, 6rem);
-  --routine-pad-bottom: var(--routine-pad-x);
+  --routine-pad-bottom: var(--routine-pad-x-base);
   --routine-gap: 1.5rem;
   --routine-block-pad: clamp(0.85rem, 0.45rem + 0.55vw, 1.5rem);
+  --routine-block-pad-x: calc(10px * (1 - var(--port)) + var(--routine-block-pad) * var(--port));
   position: relative;
-  width: 100%;
+  /* Portrait: content width plus the 1rem frame padding equals the screen.
+     Landscape stays width 100%, the same box as before. */
+  width: calc(100% * var(--port) + (100vw - 2rem) * (1 - var(--port)));
   height: 100svh;
   padding: 1rem;
   display: flex;
@@ -491,7 +498,7 @@
      Portrait cards take 94% of the slider, leaving a thin peek of the next card.
      Landscape keeps Orbit's ~58%, about one card and a half. */
   --land: clamp(0, (100vw - 85svh) / 50vw, 1);
-  --frac: calc(0.94 - 0.36 * var(--land));
+  --frac: calc((1 - 12px / (100vw - 52px)) * (1 - var(--port)) + (0.94 - 0.36 * var(--land)) * var(--port));
   position: relative;
   width: calc(400% * var(--frac) + 3 * var(--routine-gap));
   height: 100%;
@@ -513,7 +520,7 @@
   border: 0;
   border-radius: 0.75rem;
   box-sizing: border-box;
-  padding: var(--routine-block-pad);
+  padding: var(--routine-block-pad) var(--routine-block-pad-x);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
