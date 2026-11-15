@@ -75,7 +75,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "gibs",
     label: "Imagery",
-    text: "Classic globe requests NASA GIBS Blue Marble tiles.",
+    text: "Classic globe requests NASA GIBS Blue Marble tiles. A MERRA-2 air-temperature colour map can be read back to kelvin and is labeled image-derived.",
     linkLabel: "GIBS ↗",
     linkHref: "https://nasa-gibs.github.io/gibs-api-docs/",
   },
