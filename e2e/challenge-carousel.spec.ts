@@ -50,7 +50,7 @@ test("challenge carousel auto-advances, pauses, and loops", async ({ page }) => 
     const value = await count.getAttribute("data-challenge-count");
     if (value) seen.add(value);
     return [...seen].sort().join(",");
-  }, { timeout: 45_000 }).toBe("01,02,03,04,05");
+  }, { timeout: 45_000 }).toBe("01,02,03");
   await expect.poll(async () => count.getAttribute("data-challenge-count"), { timeout: 20_000 }).toBe("01");
 });
 
@@ -70,7 +70,7 @@ test("challenge card titles stay on one line", async ({ page }) => {
   await page.goto("/challenge");
   for (const width of [2560, 1920, 1440, 390]) {
     await page.setViewportSize({ width, height: width < 500 ? 844 : 1000 });
-    const titles = width >= 1200 ? ["GUESS THE SIGNAL", "CLIMATE CONSOLE"] : ["GUESS THE SIGNAL"];
+    const titles = width >= 1200 ? ["GUESS THE SIGNAL", "WAVEFORM RIBBONS"] : ["GUESS THE SIGNAL"];
     for (const title of titles) {
       const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title, visible: true }).first();
       await expect(label).toBeVisible();
@@ -95,7 +95,7 @@ test("challenge card titles stay on one line", async ({ page }) => {
           if (text) texts.add(text);
         }
         return texts.size;
-      }), { message: `fully visible titles at ${width}px` }).toBe(5);
+      }), { message: `fully visible titles at ${width}px` }).toBe(3);
     }
   }
 });
@@ -152,7 +152,7 @@ test("challenge arrows keep the play link on the centred game", async ({ page })
   await expect(play).toHaveAttribute("href", "/challenge/guess");
   await liveMain(page).getByRole("button", { name: "Next Challenge" }).click();
   await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "02");
-  await expect(liveMain(page).getByRole("link", { name: "Play Compose Track" })).toHaveAttribute("href", "/challenge/compose");
+  await expect(liveMain(page).getByRole("link", { name: "Play Tune the Signal" })).toHaveAttribute("href", "/challenge/match");
   await page.keyboard.press("ArrowLeft");
   await expect(liveMain(page).getByRole("link", { name: "Play Guess the Signal" })).toHaveAttribute("href", "/challenge/guess");
   await page.keyboard.press("ArrowRight");

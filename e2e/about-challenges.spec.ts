@@ -76,15 +76,17 @@ test("the CO2 chart plots only the three published readings", async ({ page }) =
   await expect(chart).not.toContainText("1990");
 });
 
-test("challenge carousel offers the five games", async ({ page }) => {
+test("challenge carousel offers the three games", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/challenge");
   const gallery = liveMain(page).locator(".circular-gallery");
   await expect(gallery).toBeVisible();
   await expect(liveMain(page).getByRole("link", { name: "Play Guess the Signal" })).toHaveAttribute("href", "/challenge/guess");
-  for (const name of ["Compose Track", "Tune the Signal", "Waveform Ribbons", "Climate Console"]) {
+  for (const name of ["Tune the Signal", "Waveform Ribbons"]) {
     await expect(gallery.getByRole("button", { name: new RegExp(name), includeHidden: true })).toHaveCount(1);
   }
+  await expect(gallery.getByRole("button", { name: /Compose Track|Climate Console/, includeHidden: true })).toHaveCount(0);
+  await expect(page.getByText(/Challenges · 3 games/i)).toBeVisible();
   await expect(page.locator("aside[aria-label='Persistent mini-player']")).toHaveAttribute("data-open", "false");
 });
 

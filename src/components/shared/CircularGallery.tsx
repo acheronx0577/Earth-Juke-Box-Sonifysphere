@@ -32,10 +32,8 @@ export interface GalleryItem {
 
 const DEFAULT_ITEMS: GalleryItem[] = [
   { image: '/assets/landing/chapters/chapter-01.webp', text: '01 · Guess the Signal', description: 'Listen to sonified planetary records and identify the vital sign' },
-  { image: '/assets/landing/chapters/chapter-02.webp', text: '02 · Compose Track', description: 'Layer 4 planetary signals into a custom atmospheric soundscape' },
-  { image: '/assets/landing/chapters/chapter-03.webp', text: '03 · Tune the Signal', description: 'Align frequency dials to detect the climate anomaly spike' },
-  { image: '/assets/about/routine/routine_04_voices.webp', text: '04 · Waveform Ribbons', description: 'Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps' },
-  { image: '/assets/about/routine/routine_03_challenges.webp', text: '05 · Climate Console', description: 'Explore the historical 1958–2026 sonification synthesizer archive' },
+  { image: '/assets/landing/chapters/chapter-03.webp', text: '02 · Tune the Signal', description: 'Align frequency dials to detect the climate anomaly spike' },
+  { image: '/assets/about/routine/routine_04_voices.webp', text: '03 · Waveform Ribbons', description: 'Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps' },
 ];
 
 const VERTEX = `#version 300 es
@@ -521,13 +519,12 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const s = settingsRef.current;
       const gap = 1 + s.gap;
       const maxH = Math.max(120, view.height * 0.66);
-      // Wide screens show all five cards at once, centred, with their titles fully
+      // Wide screens show every listed card at once, centred, with titles fully
       // inside. The side pad keeps the outer titles clear of the edge fade.
       if (view.width >= 1280) {
-        // Largest card that keeps five fully inside a 20px margin, which also
-        // parks the looping sixth card completely off-screen while one is centred.
+        const count = Math.max(1, s.items.length);
         const pad = 20;
-        const w = (view.width - pad * 2) / (4 * gap + 1);
+        const w = (view.width - pad * 2) / (Math.max(0, count - 1) * gap + 1);
         const h = Math.min(maxH, w / Math.max(s.itemAspect, 0.2));
         return { w, h, spacing: Math.max(w * gap, w + 8) };
       }
