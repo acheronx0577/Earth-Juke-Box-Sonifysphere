@@ -299,7 +299,7 @@ export function readProbe(input: {
     swatch: "#7f66cc",
     state: "image",
     value: bandName(color),
-    detail: "FROM MAP PIXELS · NOT A MEASUREMENT",
+    detail: source.kind === "map" ? "FROM MAP PIXELS · NOT A MEASUREMENT" : "FROM PIXELS · NOT A MEASUREMENT",
   };
 
   let temperature: ReadingCard;
@@ -401,7 +401,24 @@ export function readProbe(input: {
   }
 
   const warmer = region ? scaleAnomaly(region.anomaly, year) : 0;
-  const tip = region ? `${region.id === "nino34" ? "NIÑO 3.4" : region.name.toUpperCase()} · ${warmer > 0.15 ? "WARMER ↑" : warmer < -0.15 ? "COOLER ↓" : "STEADY"}` : "NO REGION FIELD";
+  const placeName = region ? (region.id === "nino34" ? "NIÑO 3.4" : region.name.toUpperCase()) : "THIS POINT";
+  const tip = source.kind !== "map"
+    ? bandName(color).toUpperCase()
+    : layer === "sea-ice"
+      ? region?.seaIce ? `${placeName} · ICE` : "NO SEA ICE HERE"
+      : layer === "co2"
+        ? "NO CO₂ FIELD"
+        : layer === "methane"
+          ? "NO METHANE FIELD"
+          : layer === "wind"
+            ? "NO WIND FIELD"
+            : layer === "air"
+              ? "NO AIR TEMP FIELD"
+              : layer === "currents"
+                ? "NO CURRENT FIELD"
+                : region
+                  ? `${placeName} · ${warmer > 0.15 ? "WARMER ↑" : warmer < -0.15 ? "COOLER ↓" : "STEADY"}`
+                  : "NO REGION FIELD";
   const pitch =
     layer === "temperature" || layer === "all"
       ? "SST ANOMALY °C"
