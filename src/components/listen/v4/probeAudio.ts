@@ -23,6 +23,8 @@ let voice: Voice | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
 let latest: HearingParams | null = null;
 let playing = false;
+let toneNow: (() => number) | null = null;
+let lastStart = 0;
 
 function frequency(params: HearingParams): number {
   const base = params.variation === "deep" ? 98 : params.variation === "bright" ? 294 : 196;
@@ -45,7 +47,9 @@ function decibels(volume: number): number {
 
 async function buildVoice(params: HearingParams): Promise<Voice | null> {
   const Tone = await import("tone");
+  toneNow = () => Tone.now();
   await Tone.start();
+  await Tone.context.resume();
   if (!playbackAllowed()) return null;
   if (params.style === "orchestra" || params.instrument === "strings") {
     const sampler = new Tone.Sampler({
@@ -106,7 +110,9 @@ function strike() {
   if (!params || !voice || !playbackAllowed()) return;
   voice.volume.value = decibels(params.volume);
   const note = frequency(params);
-  voice.triggerAttackRelease(params.style === "orchestra" || params.instrument === "strings" ? ToneNote(note) : note, duration(params));
+  const now = Math.max(toneNow?.() ?? 0, lastStart + 0.05);
+  lastStart = now;
+  voice.triggerAttackRelease(params.style === "orchestra" || params.instrument === "strings" ? ToneNote(note) : note, duration(params), now);
   publish(params);
 }
 
