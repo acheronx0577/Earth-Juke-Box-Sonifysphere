@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
@@ -101,6 +101,82 @@ const CHAPTERS: ChapterData[] = [
  * cards travel toward the left edge and the following card enters from the right.
  */
 const FLOW_SPEED = 0.8;
+
+function OctagonPlate() {
+  const ref = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ w: 48, h: 48 });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width * 100) / 100);
+      const h = Math.max(1, Math.round(rect.height * 100) / 100);
+      setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const cut = 8;
+  const stroke = 1.5;
+  const half = stroke / 2;
+  const join = cut + half * (Math.SQRT2 - 1);
+  const { w, h } = size;
+  const points = [
+    [join, half],
+    [w - join, half],
+    [w - half, join],
+    [w - half, h - join],
+    [w - join, h - half],
+    [join, h - half],
+    [half, h - join],
+    [half, join],
+  ]
+    .map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)
+    .join(" ");
+
+  return (
+    <svg ref={ref} className="story-btn-frame" aria-hidden="true" viewBox={`0 0 ${w} ${h}`}>
+      <polygon
+        points={points}
+        fill="#262626"
+        stroke="#f2f2f0"
+        strokeOpacity={0.72}
+        strokeWidth={stroke}
+        strokeLinejoin="miter"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function StepArrow({ direction }: { readonly direction: "prev" | "next" }) {
+  const left = direction === "prev";
+  return (
+    <svg className="story-btn-glyph" viewBox="4 5 16 14" aria-hidden="true" fill="none">
+      <line
+        x1={left ? 18 : 6}
+        y1="12"
+        x2={left ? 7 : 17}
+        y2="12"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <polyline
+        points={left ? "11 7.5 7 12 11 16.5" : "13 7.5 17 12 13 16.5"}
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function UpRightArrow({ className }: { readonly className?: string }) {
   return (
@@ -293,12 +369,8 @@ export function StoryChaptersCarousel() {
               className="story-btn-round"
               aria-label="Previous Challenge"
             >
-              <img
-                src="/assets/story/16f81.svg"
-                alt=""
-                className="absolute inset-0 size-full pointer-events-none"
-              />
-              <span className="story-btn-glyph">←</span>
+              <OctagonPlate />
+              <StepArrow direction="prev" />
             </button>
 
             <Link
@@ -327,12 +399,8 @@ export function StoryChaptersCarousel() {
               className="story-btn-round"
               aria-label="Next Challenge"
             >
-              <img
-                src="/assets/story/16f81.svg"
-                alt=""
-                className="absolute inset-0 size-full pointer-events-none"
-              />
-              <span className="story-btn-glyph">→</span>
+              <OctagonPlate />
+              <StepArrow direction="next" />
             </button>
           </div>
 
