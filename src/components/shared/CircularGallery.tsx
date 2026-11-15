@@ -239,6 +239,7 @@ export interface CircularGalleryProps {
   intro?: boolean;
   onItemClick?: (item: GalleryItem, index: number) => void;
   onActiveChange?: (index: number) => void;
+  onCardHover?: (over: boolean) => void;
   openAspect?: number;
   dpr?: number;
   className?: string;
@@ -267,6 +268,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
   intro = true,
   onItemClick,
   onActiveChange,
+  onCardHover,
   openAspect,
   dpr,
   className = '',
@@ -312,6 +314,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     intro,
     onItemClick,
     onActiveChange,
+    onCardHover,
     openAspect: openAspect ? clamp(openAspect, 0.5, 3) : undefined,
     dpr
   };
@@ -463,15 +466,22 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       slot: number | null;
       font: string;
       text: string;
+      family: string;
+      fitKey: string;
+      fitSize: number;
+      color: string;
+      transform: string;
+      opacity: string;
     }
     let pool: PoolEntry[] = [];
     let raf = 0;
     let last = 0;
-    let lastDraw = 0;
     let visible = true;
     let snapTimer: ReturnType<typeof setTimeout> | undefined;
     let lastItems: GalleryItem[] | null = null;
     let typing = false;
+    let pointerPoint: { x: number; y: number } | null = null;
+    let inFrame = false;
 
     const textureFor = (url: string): TextureEntry => {
       const existing = textures.get(url);
@@ -571,7 +581,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         el.className = CLASSES.label;
         el.style.opacity = '0';
         labelLayer.appendChild(el);
-        return { el, slot: null, font: '', text: '' };
+        return { el, slot: null, font: '', text: '', family: '', fitKey: '', fitSize: 0, color: '', transform: '', opacity: '' };
       });
     };
 
@@ -742,19 +752,29 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           }
           if (entry.font !== font) {
             entry.font = font;
+            entry.family = '';
+            entry.fitKey = '';
             entry.el.style.font = font;
           }
-          const family = getComputedStyle(entry.el).fontFamily || 'monospace';
+          if (!entry.family) entry.family = getComputedStyle(entry.el).fontFamily || 'monospace';
           const maxWidth = Math.max(72, card.w);
-          let size = fitLabel(card.item.text || '', card.labelSize, family, maxWidth);
-          entry.el.style.whiteSpace = 'nowrap';
-          entry.el.style.width = 'max-content';
-          entry.el.style.maxWidth = 'none';
-          entry.el.style.fontSize = `${size}px`;
-          const rendered = entry.el.scrollWidth;
-          if (rendered > maxWidth) {
-            size = Math.max(9, size * (maxWidth / rendered));
+          const fitKey = `${card.item.text}|${Math.round(card.labelSize)}|${Math.round(maxWidth)}`;
+          let size = card.labelSize;
+          if (entry.fitKey !== fitKey) {
+            size = fitLabel(card.item.text || '', card.labelSize, entry.family, maxWidth);
+            entry.el.style.whiteSpace = 'nowrap';
+            entry.el.style.width = 'max-content';
+            entry.el.style.maxWidth = 'none';
             entry.el.style.fontSize = `${size}px`;
+            const rendered = entry.el.scrollWidth;
+            if (rendered > maxWidth) {
+              size = Math.max(9, size * (maxWidth / rendered));
+              entry.el.style.fontSize = `${size}px`;
+            }
+            entry.fitKey = fitKey;
+            entry.fitSize = size;
+          } else {
+            size = entry.fitSize || card.labelSize;
           }
           const closedOffset = card.h / 2 + Math.max(size * 1.3, 34);
           const openOffset = card.h / 2 + 58;
@@ -764,14 +784,28 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
           const titleOpacity = card.alpha * card.labelAlpha * positionFade(cssX, card.w);
-          entry.el.style.color = s.textColor;
-          entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
-          entry.el.style.opacity = String(titleOpacity);
+          const opacity = titleOpacity.toFixed(3);
+          const transform = `translate3d(${cssX}px, ${cssY}px, 0) translate(-50%, -50%) rotate(${-card.angle}rad)`;
+          if (entry.color !== s.textColor) {
+            entry.color = s.textColor;
+            entry.el.style.color = s.textColor;
+          }
+          if (entry.transform !== transform) {
+            entry.transform = transform;
+            entry.el.style.transform = transform;
+          }
+          if (entry.opacity !== opacity) {
+            entry.opacity = opacity;
+            entry.el.style.opacity = opacity;
+          }
         });
       }
       pool.forEach((entry) => {
         if (used.has(entry)) return;
-        if (entry.el.style.opacity !== '0') entry.el.style.opacity = '0';
+        if (entry.opacity !== '0') {
+          entry.opacity = '0';
+          entry.el.style.opacity = '0';
+        }
       });
       const openCardBottom = view.height / 2 - metrics.openY + metrics.openH / 2;
       const subtitleTop = openCardBottom + 58 + 28;
@@ -838,18 +872,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const frame = (now: number) => {
       raf = 0;
+      inFrame = true;
       if (resizePending) {
         resizePending = false;
         applyResize();
       }
-      if (!visible || document.hidden) return;
-      const s = settingsRef.current;
-      const idleAuto = s.autoScroll && !reduce && !state.drag && state.open < 0.01 && state.hovered === null && !state.keyboard;
-      if (idleAuto && lastDraw && now - lastDraw < 1000 / 30) {
-        raf = requestAnimationFrame(frame);
+      if (!visible || document.hidden) {
+        inFrame = false;
         return;
       }
-      lastDraw = now;
+      const s = settingsRef.current;
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
 
@@ -929,11 +961,13 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       }
 
       const metrics = layout();
+      if (pointerPoint) setPointer(hit(pointerPoint));
       draw(metrics);
       placeLabels(metrics);
 
       const moving =
         auto ||
+        pointerPoint !== null ||
         state.scroll !== state.target ||
         state.velocity !== 0 ||
         state.open !== state.openTarget ||
@@ -942,6 +976,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         settling;
       if (moving) raf = requestAnimationFrame(frame);
       else last = 0;
+      inFrame = false;
     };
 
     function wake() {
@@ -975,11 +1010,14 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const setPointer = (card: CardRender | null) => {
       const slot = card ? card.slot : null;
+      const wasOver = state.hovered !== null;
       if (slot !== state.hovered) {
         state.hovered = slot;
         if (slot !== null && !state.hover.has(slot)) state.hover.set(slot, 0);
-        wake();
+        if (!inFrame) wake();
       }
+      const over = state.hovered !== null;
+      if (over !== wasOver) settingsRef.current.onCardHover?.(over);
       if (card) container.setAttribute('data-pointer', '');
       else container.removeAttribute('data-pointer');
     };
@@ -1030,7 +1068,10 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         }
         return;
       }
-      if (event.pointerType === 'mouse') setPointer(hit(point(event)));
+      if (event.pointerType === 'mouse') {
+        pointerPoint = point(event);
+        setPointer(hit(pointerPoint));
+      }
     };
 
     const onPointerUp = (event: PointerEvent) => {
@@ -1070,8 +1111,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         setSlot(card.slot);
         return;
       }
-      if ((state.openTarget > 0 || state.open > 0.1) && card.slot === state.active) close();
-      else openSlot(card.slot);
+      if ((state.openTarget > 0 || state.open > 0.1) && card.slot === state.active) return;
+      openSlot(card.slot);
     };
 
     const onPointerCancel = (event: PointerEvent) => {
@@ -1083,6 +1124,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     };
 
     const onPointerLeave = () => {
+      pointerPoint = null;
       setPointer(null);
     };
 
@@ -1152,7 +1194,9 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (event.button !== 0) return;
       if (performance.now() - openTimestamp < 150) return;
 
-      if (container.contains(event.target as Node)) return;
+      const target = event.target;
+      if (target instanceof Node && container.contains(target)) return;
+      if (target instanceof Element && target.closest(".story-chapters-controls")) return;
 
       close();
     };
