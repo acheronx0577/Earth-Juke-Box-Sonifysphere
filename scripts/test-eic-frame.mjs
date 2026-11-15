@@ -30,27 +30,28 @@ const source = loadTs("src/components/listen/v4/eicSource.ts");
 const metaRoute = loadTs("src/app/api/listen/eic/route.ts");
 const imageRoute = loadTs("src/app/api/listen/eic/image/route.ts");
 
-const PRINT = "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005101/sst_mur_print.jpg";
+const PRINT = "https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005101/sst_mur_most_recent_print.jpg";
 const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
 
 function still(url, filename, width, height, alt) {
   return { url, filename, media_type: "Image", width, height, alt_text: alt };
 }
 
-function page() {
+function page(withUpdate = true) {
   return {
     title: "Sea Surface Temperature (SST) - Near Real Time",
     release_date: "2023-05-08T00:00:00-04:00",
+    ...(withUpdate ? { update_date: "2026-11-15T00:00:00Z" } : {}),
     keywords: ["Earth Information Center"],
     secret: "SECRETTOKEN",
     main_image: still("https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005101/sst_mur_colorbar_print.jpg", "sst_mur_colorbar_print.jpg", 1024, 576, "colorbar"),
     media_groups: [{
       items: [
-        { media: still("https://evil.test/vis/a/sst_mur_print.jpg", "sst_mur_print.jpg", 1024, 512, "off host") },
-        { media: still("https://svs.gsfc.nasa.gov/steal/sst_mur_print.jpg", "sst_mur_print.jpg", 1024, 512, "wrong path") },
+        { media: still("https://evil.test/vis/a/sst_mur_most_recent_print.jpg", "sst_mur_most_recent_print.jpg", 1024, 512, "off host") },
+        { media: still("https://svs.gsfc.nasa.gov/steal/sst_mur_most_recent_print.jpg", "sst_mur_most_recent_print.jpg", 1024, 512, "wrong path") },
         { media: still("https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005101/sst_mur.exr", "sst_mur.exr", 4096, 2048, "exr") },
-        { media: still(PRINT, "sst_mur_print.jpg", 4096, 2048, "too large") },
-        { media: still(PRINT, "frames/sst_mur_print.jpg", 1024, 512, "An equirectangular view of sea surface temperature.") },
+        { media: still(PRINT, "sst_mur_most_recent_print.jpg", 4096, 2048, "too large") },
+        { media: still(PRINT, "frames/sst_mur_most_recent_print.jpg", 1024, 512, "An equirectangular view of sea surface temperature.") },
       ],
     }],
   };
@@ -71,10 +72,11 @@ assert.equal(eic.allowedFrameUrl(PRINT)?.hostname, "svs.gsfc.nasa.gov");
 const selected = eic.selectPrintFrame(page());
 assert.equal(selected.url, PRINT);
 const httpOnly = page();
-httpOnly.media_groups = [{ items: [{ media: still(PRINT.replace("https://", "http://"), "sst_mur_print.jpg", 1024, 512, "http link") }] }];
+httpOnly.media_groups = [{ items: [{ media: still(PRINT.replace("https://", "http://"), "sst_mur_most_recent_print.jpg", 1024, 512, "http link") }] }];
 assert.equal(eic.selectPrintFrame(httpOnly).url, PRINT);
 assert.equal(selected.width, 1024);
-assert.equal(selected.date, "2023-05-08");
+assert.equal(selected.date, "2026-11-15");
+assert.equal(eic.selectPrintFrame(page(false)).date, "2023-05-08");
 assert.equal(eic.selectPrintFrame({ title: "", release_date: "2023-05-08T00:00:00Z" }), null);
 
 assert.equal(source.EIC_FRAME_SOURCE.kind, "image");
@@ -105,7 +107,7 @@ assert.equal(metaBody.quality, "image-derived");
 assert.equal(metaBody.label, "image-derived");
 assert.equal(metaBody.image, "/api/listen/eic/image");
 assert.equal(metaBody.page, "https://svs.gsfc.nasa.gov/5101/");
-assert.equal(metaBody.date, "2023-05-08");
+assert.equal(metaBody.date, "2026-11-15");
 assert.equal(metaBody.id, "5101");
 assert.equal(meta.headers.get("Cache-Control"), "public, s-maxage=86400, stale-while-revalidate=604800");
 assert.equal(metaCalls.length, 1);

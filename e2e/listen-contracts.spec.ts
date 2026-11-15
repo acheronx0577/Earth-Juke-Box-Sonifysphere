@@ -35,8 +35,20 @@ async function reach(page: Page, locator: Locator) {
 }
 
 async function selectAir(page: Page) {
-  await page.getByRole("button", { name: "MORE +", exact: true }).click();
-  await page.getByRole("button", { name: "AIR", exact: true }).click();
+  const more = page.getByRole("button", { name: "MORE +", exact: true });
+  await expect(more).toBeVisible();
+  const air = page.getByRole("button", { name: "AIR", exact: true });
+  if (await air.isVisible()) {
+    await air.click();
+    return;
+  }
+  await more.click();
+  try {
+    await expect(air).toBeVisible({ timeout: 1500 });
+  } catch {
+    await more.click();
+  }
+  await air.click();
 }
 
 test.beforeEach(async ({ page }) => {

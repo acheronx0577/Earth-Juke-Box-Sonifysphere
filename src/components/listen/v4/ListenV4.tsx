@@ -396,12 +396,24 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
   );
 }
 
-export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
+const DEFAULT_EIC_SOURCE: ListenSource = {
+  ...EIC_FRAME_SOURCE,
+  preview: EIC_FRAME_IMAGE,
+};
+
+export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLayer: LayerId; readonly initialSourceId?: string }) {
   const { setSoundEnabled } = useSonifyPlayer();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [sources, setSources] = useState<ListenSource[]>([EIC_FRAME_SOURCE, ...SEED_SOURCES]);
+  const [sources, setSources] = useState<ListenSource[]>([DEFAULT_EIC_SOURCE, ...SEED_SOURCES]);
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
-  const [source, setSource] = useState<ListenSource>(MAP_SOURCE);
+  const resolveInitialSource = (): ListenSource => {
+    if (initialSourceId === "map") return MAP_SOURCE;
+    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice") return MAP_SOURCE;
+    if (initialLayer === "co2") return SEED_SOURCES.find((s) => s.id === "oco2-example") ?? DEFAULT_EIC_SOURCE;
+    if (initialLayer === "currents") return SEED_SOURCES.find((s) => s.id === "currents-example") ?? DEFAULT_EIC_SOURCE;
+    return DEFAULT_EIC_SOURCE;
+  };
+  const [source, setSource] = useState<ListenSource>(resolveInitialSource);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NasaHit[]>([]);
   const [resultsOpen, setResultsOpen] = useState(false);
@@ -447,6 +459,22 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   useEffect(() => {
     document.documentElement.classList.add("lv-lock");
     return () => document.documentElement.classList.remove("lv-lock");
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/listen/eic")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { date?: string } | null) => {
+        if (!data?.date) return;
+        const updatedMeta = `NASA SVS 5101 · ${data.date}`;
+        setSources((prev) =>
+          prev.map((s) => (s.id === EIC_FRAME_SOURCE.id ? { ...s, meta: updatedMeta } : s))
+        );
+        setSource((curr) =>
+          curr.id === EIC_FRAME_SOURCE.id ? { ...curr, meta: updatedMeta } : curr
+        );
+      })
+      .catch(() => {});
   }, []);
 
   const onLegend = useCallback((next: LegendModel) => {
@@ -565,13 +593,110 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     readingContextRef.current = context;
     setMeasured(null);
     setReadingError("");
-    if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind")) {
+    if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind" && layer !== "temperature")) {
       setMeasuring(false);
       return;
     }
     const controller = new AbortController();
-    const apiLayer = layer === "air" ? "air-temp" : layer;
     setMeasuring(true);
+
+    if (layer === "temperature") {
+      const timer = window.setTimeout(() => {
+        const when = formatUtcInstant(context.time) ?? context.time;
+        void fetch("/api/listen/pc/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lon: lng, time: context.time }),
+          signal: controller.signal,
+        })
+          .then(async (response) => {
+            if (!readingContextsMatch(readingContextRef.current, context)) return;
+            const body = (await response.json()) as {
+              id?: string;
+              status?: string;
+              result?: { point: { celsius: number; kelvin: number }; cached?: boolean };
+              error?: string;
+            };
+            if (response.status === 200 && body.result) {
+              const c = body.result.point.celsius;
+              setMeasured({
+                context,
+                status: "reading",
+                value: `${c.toFixed(1)} °C`,
+                detail: `${body.result.cached ? "Cached" : "MODIS"} · Azure · ${when}`,
+              });
+              setMeasuring(false);
+              return;
+            }
+            if (response.status === 202 && body.id) {
+              const jobId = body.id;
+              const poll = (attempts = 0) => {
+                if (attempts > 15 || controller.signal.aborted) {
+                  if (readingContextsMatch(readingContextRef.current, context)) {
+                    setMeasuring(false);
+                  }
+                  return;
+                }
+                window.setTimeout(() => {
+                  if (controller.signal.aborted || !readingContextsMatch(readingContextRef.current, context)) return;
+                  void fetch(`/api/listen/pc/jobs?id=${encodeURIComponent(jobId)}`, { signal: controller.signal })
+                    .then(async (pollRes) => {
+                      if (!readingContextsMatch(readingContextRef.current, context)) return;
+                      const pollData = (await pollRes.json()) as {
+                        status?: string;
+                        result?: { point: { celsius: number; kelvin: number }; cached?: boolean };
+                        error?: string;
+                      };
+                      if (pollData.status === "completed" && pollData.result) {
+                        const c = pollData.result.point.celsius;
+                        setMeasured({
+                          context,
+                          status: "reading",
+                          value: `${c.toFixed(1)} °C`,
+                          detail: `${pollData.result.cached ? "Cached" : "MODIS"} · Azure · ${when}`,
+                        });
+                        setMeasuring(false);
+                        return;
+                      }
+                      if (pollData.status === "failed") {
+                        const message = pollData.error || "No satellite scene for this date";
+                        setMeasured({ context, status: "no-data", value: message, detail: when });
+                        setReadingError(message);
+                        setMeasuring(false);
+                        return;
+                      }
+                      poll(attempts + 1);
+                    })
+                    .catch(() => {
+                      if (readingContextsMatch(readingContextRef.current, context)) setMeasuring(false);
+                    });
+                }, 600);
+              };
+              poll();
+              return;
+            }
+            const message = body.error || "No satellite scene available";
+            setMeasured({ context, status: "no-data", value: message, detail: when });
+            setReadingError(message);
+            setMeasuring(false);
+          })
+          .catch((error: unknown) => {
+            if (error instanceof DOMException && error.name === "AbortError") return;
+            if (!readingContextsMatch(readingContextRef.current, context)) return;
+            const message = error instanceof Error && error.message ? error.message : "The satellite service could not be reached";
+            setMeasured({ context, status: "no-data", value: message, detail: when });
+            setReadingError(message);
+            setMeasuring(false);
+          });
+      }, 350);
+
+      return () => {
+        controller.abort();
+        window.clearTimeout(timer);
+      };
+    }
+
+    const apiLayer = layer === "air" ? "air-temp" : layer;
     const timer = window.setTimeout(() => {
       const when = formatUtcInstant(context.time) ?? context.time;
       void fetch(
@@ -620,6 +745,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const chooseLayer = (id: LayerId) => {
     setLayer(id);
     if (EXTRA_LAYERS.some((item) => item.id === id)) setMore(true);
+    if (id === "co2" && source.id !== "oco2-example") {
+      const co2Source = sources.find((s) => s.id === "oco2-example") ?? SEED_SOURCES.find((s) => s.id === "oco2-example");
+      if (co2Source) setSource(co2Source);
+    } else if (id === "currents" && source.id !== "currents-example") {
+      const curSource = sources.find((s) => s.id === "currents-example") ?? SEED_SOURCES.find((s) => s.id === "currents-example");
+      if (curSource) setSource(curSource);
+    } else if (source.kind !== "map" && (source.layer !== id || EXTRA_LAYERS.some((item) => item.id === id) || id === "temperature" || id === "sea-ice")) {
+      setSource(MAP_SOURCE);
+    }
     const url = new URL(window.location.href);
     url.searchParams.set("data", paramForLayer(id));
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);

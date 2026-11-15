@@ -573,6 +573,10 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
       if (event.pointerType && event.pointerType !== 'mouse') return;
       pointer.x = event.clientX;
       pointer.y = event.clientY;
+      const hoverTarget = document.elementFromPoint(event.clientX, event.clientY);
+      const hideTargetCursor = hoverTarget instanceof Element && Boolean(hoverTarget.closest('[data-hide-target-cursor]'));
+      if (hideTargetCursor) root.setAttribute('data-suppressed', 'true');
+      else root.removeAttribute('data-suppressed');
       const inside = insideScope(pointer.x, pointer.y, event.target as Element | null);
       if (inside !== pointer.inside) {
         pointer.inside = inside;
@@ -604,6 +608,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
     const onLeave = () => {
       pointer.inside = false;
       pointer.pressed = false;
+      root.removeAttribute('data-suppressed');
       lockOn(null);
       hideCursor();
       wake();

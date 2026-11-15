@@ -181,7 +181,7 @@ export function StoryChaptersCarousel() {
     if (isNavigating) return;
     setIsNavigating(true);
     if (!badgeRef.current) {
-      router.push("/listen");
+      router.push("/listen?source=map");
       return;
     }
     gsap.to(badgeRef.current, {
@@ -190,7 +190,7 @@ export function StoryChaptersCarousel() {
       duration: 0.5,
       ease: "power2.inOut",
       onComplete: () => {
-        router.push("/listen");
+        router.push("/listen?source=map");
       },
     });
   }, [isNavigating, router]);
@@ -378,7 +378,7 @@ export function StoryChaptersCarousel() {
           </div>
 
           <Link
-            href="/listen"
+            href="/listen?source=map"
             className="story-chip-glass story-listen-pill"
             aria-label="Listen to the map"
           >
@@ -393,7 +393,7 @@ export function StoryChaptersCarousel() {
           </Link>
 
           <Link
-            href="/listen"
+            href="/listen?source=map"
             onClick={handleBadgeClick}
             className="story-listen-badge story-bottom-wide group"
             aria-label="823 months loaded - Listen to sonifications"

@@ -4,6 +4,7 @@
  * A missing reading stays null and is never treated as 0.
  */
 export const LAYER_SOUND_RANGES = {
+  temperature: { min: -50, max: 50, unit: "°C", quantity: "Land surface temperature" },
   air: { min: -50, max: 50, unit: "°C", quantity: "Air temperature" },
   currents: { min: 0, max: 3, unit: "m/s", quantity: "Ocean current speed" },
   wind: { min: 0, max: 40, unit: "m/s", quantity: "Wind speed" },

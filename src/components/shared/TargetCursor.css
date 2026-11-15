@@ -8,6 +8,10 @@
   pointer-events: none;
 }
 
+.target-cursor[data-suppressed="true"] {
+  visibility: hidden;
+}
+
 @media (pointer: coarse) {
   .target-cursor {
     display: none !important;

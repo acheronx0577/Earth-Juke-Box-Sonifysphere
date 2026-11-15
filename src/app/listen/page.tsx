@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Move across an Equal Earth map or open NASA media, pick one data layer, and hear the point under the probe.",
 };
 
-export default async function ListenPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
+export default async function ListenPage({ searchParams }: { searchParams: Promise<{ data?: string; source?: string }> }) {
   const params = await searchParams;
-  return <ListenV4 initialLayer={layerFromParam(params.data)} />;
+  return <ListenV4 initialLayer={layerFromParam(params.data)} initialSourceId={params.source} />;
 }

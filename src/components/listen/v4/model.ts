@@ -104,12 +104,6 @@ export const MAP_SOURCE: ListenSource = {
   legend: TEMP_LEGEND,
 };
 
-const CO2_PREVIEW =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#241433"/><stop offset="0.45" stop-color="#6a4ad4"/><stop offset="1" stop-color="#d7c4ff"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><rect y="150" width="320" height="30" fill="url(#g)"/></svg>`,
-  );
-
 const REEF_PREVIEW =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
@@ -120,22 +114,37 @@ export const SEED_SOURCES: readonly ListenSource[] = [
   MAP_SOURCE,
   {
     id: "oco2-example",
-    title: "OCO-2 CO₂ map",
+    title: "DYAMOND Global CO₂ (OCO-2)",
     kind: "image",
     eyebrow: "IMG",
-    meta: "Example image · not a NASA measurement",
-    preview: CO2_PREVIEW,
+    meta: "NASA SVS 5196 · image-derived",
+    preview: "/api/listen/svs/image?id=5196",
+    video: "/api/listen/svs/video?id=5196",
     layer: "co2",
     legend: null,
   },
   {
     id: "currents-example",
-    title: "Ocean currents animation",
+    title: "Global currents & SST (Ocean currents animation)",
     kind: "video",
     eyebrow: "VID",
-    meta: "Example clip · not NASA media",
-    preview: "",
+    meta: "NASA SVS 3912 · image-derived",
+    preview: "/api/listen/svs/image?id=3912",
+    video: "/api/listen/svs/video?id=3912",
     duration: "0:48",
+    layer: "currents",
+    legend: null,
+  },
+  {
+    id: "iss-lightning-5011",
+    title: "ISS Lightning 2017–2023",
+    kind: "video",
+    eyebrow: "VID",
+    meta: "NASA SVS 5011 · pulse triggers",
+    preview: "/api/listen/svs/image?id=5011",
+    video: "/api/listen/svs/video?id=5011",
+    duration: "0:25",
+    layer: "all",
     legend: null,
   },
   {
@@ -319,7 +328,34 @@ export function readProbe(input: {
   };
 
   let temperature: ReadingCard;
-  if (source.kind === "map" && region) {
+  if (measuring && layer === "temperature") {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#e08a3c",
+      state: "loading",
+      value: "Processing satellite scene…",
+      detail: "AZURE BACKGROUND JOB · MODIS",
+    };
+  } else if (accepted && accepted.status === "no-data" && layer === "temperature") {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#3a3a3a",
+      state: "empty",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
+  } else if (accepted && layer === "temperature") {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#e08a3c",
+      state: "matched",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
+  } else if (source.kind === "map" && region) {
     const anomaly = scaleAnomaly(region.anomaly, year);
     const nino = region.id === "nino34";
     temperature = {
@@ -351,7 +387,17 @@ export function readProbe(input: {
     seaIce = emptyCard("sea-ice", "SEA ICE", "SEA ICE IS ARCTIC + ANTARCTIC ONLY");
   }
 
-  const co2 = emptyCard("co2", "CO₂", "NEEDS A NASA OCO-2 SOURCE");
+  const co2: ReadingCard =
+    source.layer === "co2" || source.id === "oco2-example" || source.id === "dyamond-co2"
+      ? {
+          id: "co2",
+          label: "CO₂",
+          swatch: source.kind !== "map" && !pixelColor ? "#3a3a3a" : color,
+          state: "image",
+          value: source.kind !== "map" && !pixelColor ? "No data" : bandName(color),
+          detail: "FROM PIXELS · NOT A MEASUREMENT",
+        }
+      : emptyCard("co2", "CO₂", "NEEDS A NASA CO₂ SOURCE");
   const methane = emptyCard("methane", "METHANE", "NO METHANE LAYER ON THIS MAP");
 
   const extras = new Map<string, ReadingCard>();
@@ -383,6 +429,15 @@ export function readProbe(input: {
         value: accepted.value,
         detail: accepted.detail,
       });
+    } else if (id === "currents" && (source.id === "currents-example" || source.layer === "currents")) {
+      extras.set("currents", {
+        id: "currents",
+        label: layerLabel("currents"),
+        swatch: source.kind !== "map" && !pixelColor ? "#3a3a3a" : color,
+        state: "image",
+        value: source.kind !== "map" && !pixelColor ? "No data" : bandName(color),
+        detail: "FROM PIXELS · NOT A MEASUREMENT",
+      });
     } else {
       extras.set(id, emptyCard(id, layerLabel(id), "NO MATCHED DATA FOR THIS POINT"));
     }
@@ -412,18 +467,22 @@ export function readProbe(input: {
               : extras.get(layer) ?? temperature;
 
   let normalized: number | null = null;
-  if (active.state === "matched" && source.kind === "map" && region && (layer === "temperature" || layer === "all")) {
+  if (active.state === "matched" && accepted && layer === "temperature" && isSoundLayer(layer)) {
+    normalized = mapLayerToSound(layer, readingNumber(accepted.value)) ?? Math.min(1, Math.max(0, (scaleAnomaly(region ? region.anomaly : 0, year) + 1) / 4));
+  } else if (active.state === "matched" && source.kind === "map" && region && (layer === "temperature" || layer === "all")) {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && isSoundLayer(layer)) {
     normalized = mapLayerToSound(layer, readingNumber(measured?.value));
-  } else if (layer === "all") {
+  } else if (layer === "all" || active.state === "image") {
     const raw = color.replace("#", "");
     const r = Number.parseInt(raw.slice(0, 2), 16);
     const g = Number.parseInt(raw.slice(2, 4), 16);
     const b = Number.parseInt(raw.slice(4, 6), 16);
-    if (![r, g, b].some((part) => Number.isNaN(part))) normalized = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  } else if (active.state === "image") {
-    normalized = 0.45;
+    if (![r, g, b].some((part) => Number.isNaN(part))) {
+      normalized = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    } else {
+      normalized = 0.45;
+    }
   }
 
   const warmer = region ? scaleAnomaly(region.anomaly, year) : 0;

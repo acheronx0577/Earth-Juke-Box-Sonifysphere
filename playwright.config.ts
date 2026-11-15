@@ -13,7 +13,7 @@ export default defineConfig({
     trace: "off",
   },
   webServer: {
-    command: `npm run start -- --port ${port}`,
+    command: `npx next start -p ${port}`,
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: true,
     timeout: 120_000,

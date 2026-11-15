@@ -137,7 +137,7 @@ test("a failed NASA open clears the previous media and shows the error", async (
   await page.route("**/api/listen/nasa/asset?**", (route) => route.fulfill({ status: 400, json: { error: "Invalid NASA ID." } }));
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: /Ocean currents animation/ }).click();
-  await expect(page.locator("canvas.lv-media")).toBeVisible();
+  await expect(page.locator("video.lv-media, canvas.lv-media, img.lv-media")).toBeVisible();
   await liveMain(page).locator("#nasa-search").locator("visible=true").fill("earth");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /Introducing NASA/ }).click();

@@ -375,8 +375,13 @@ function finiteNumber(value: unknown): number | null {
 
 async function fetchJson(url: string, init: RequestInit & { next?: { revalidate?: number } }, fetchImpl: typeof fetch): Promise<unknown> {
   let response: Response;
+  const apiKey = process.env.PLANETARY_COMPUTER_API_KEY || process.env.PC_SDK_KEY || process.env.AZURE_PLANETARY_COMPUTER_KEY;
+  const headers: Record<string, string> = { Accept: "application/json", ...(init.headers as Record<string, string>) };
+  if (apiKey) {
+    headers["Ocp-Apim-Subscription-Key"] = apiKey;
+  }
   try {
-    response = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), headers: { Accept: "application/json", ...init.headers } });
+    response = await fetchImpl(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS), headers });
   } catch (error) {
     if (isTimeout(error)) throw new ProviderError(504, UNREACHABLE);
     throw new ProviderError(502, UNREACHABLE);

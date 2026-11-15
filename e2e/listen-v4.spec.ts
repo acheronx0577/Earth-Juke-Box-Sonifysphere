@@ -40,7 +40,7 @@ test("layer chips retarget the sound and the address", async ({ page }) => {
 });
 
 test("the probe and timeline change the reading", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen?source=map&sound=off");
   const readings = page.getByRole("region", { name: "Readings at probe" });
   await expect(readings).toContainText("0° 145°W");
   await expect(readings).toContainText("+2.84 °C");
@@ -99,7 +99,7 @@ test("an image source replaces the metadata legend", async ({ page }) => {
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: /OCO-2/ }).click();
   await expect(page.getByRole("img", { name: /OCO-2/ })).toBeVisible();
-  await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT")).toBeVisible();
+  await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT").first()).toBeVisible();
 });
 
 test("saving a profile lists it on the phone Saved tab", async ({ page }) => {

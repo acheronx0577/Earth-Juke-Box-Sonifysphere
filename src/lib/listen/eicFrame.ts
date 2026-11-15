@@ -5,7 +5,7 @@
  */
 
 export const EIC_PAGE_ID = "5101";
-export const EIC_FRAME_FILE = "sst_mur_print.jpg";
+export const EIC_FRAME_FILE = "sst_mur_most_recent_print.jpg";
 export const EIC_PAGE = "https://svs.gsfc.nasa.gov/5101/";
 export const EIC_API = "https://svs.gsfc.nasa.gov/api/5101/";
 export const EIC_SOURCE = "NASA Scientific Visualization Studio";
@@ -79,7 +79,7 @@ export function allowedFrameUrl(raw: string): URL | null {
   if (url.username || url.password) return null;
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   if (url.hostname !== FRAME_HOST) return null;
-  if (!url.pathname.startsWith("/vis/") || !url.pathname.endsWith(`/${EIC_FRAME_FILE}`)) return null;
+  if (!url.pathname.startsWith("/vis/") || (!url.pathname.endsWith(`/${EIC_FRAME_FILE}`) && !url.pathname.endsWith("/sst_mur_print.jpg"))) return null;
   // SVS publishes these file links as HTTP. The same host is requested over HTTPS.
   url.protocol = "https:";
   return url;
@@ -90,20 +90,28 @@ export function selectPrintFrame(page: unknown): SelectedFrame | null {
   const record = page as Record<string, unknown>;
   const title = typeof record.title === "string" ? record.title.trim() : "";
   const release = typeof record.release_date === "string" ? Date.parse(record.release_date) : Number.NaN;
-  if (!title || Number.isNaN(release)) return null;
+  const update = typeof record.update_date === "string" ? Date.parse(record.update_date) : Number.NaN;
+  const dateTimestamp = !Number.isNaN(update) ? update : release;
+  if (!title || Number.isNaN(dateTimestamp)) return null;
   const images: FrameCandidate[] = [];
   collectImages(page, images);
   const matches = images.filter((image) => {
     if (!allowedFrameUrl(image.url)) return false;
     const name = image.filename.split("/").pop();
-    if (name !== EIC_FRAME_FILE) return false;
+    if (name !== EIC_FRAME_FILE && name !== "sst_mur_print.jpg") return false;
     return image.width >= 640 && image.width <= 1600 && image.height >= 200;
   });
-  matches.sort((a, b) => Math.abs(a.width - 1024) - Math.abs(b.width - 1024) || a.width * a.height - b.width * b.height);
+  matches.sort((a, b) => {
+    const aName = a.filename.split("/").pop();
+    const bName = b.filename.split("/").pop();
+    if (aName === EIC_FRAME_FILE && bName !== EIC_FRAME_FILE) return -1;
+    if (bName === EIC_FRAME_FILE && aName !== EIC_FRAME_FILE) return 1;
+    return Math.abs(a.width - 1024) - Math.abs(b.width - 1024) || a.width * a.height - b.width * b.height;
+  });
   const chosen = matches[0];
   const url = chosen ? allowedFrameUrl(chosen.url) : null;
   if (!chosen || !url) return null;
-  const time = new Date(release).toISOString();
+  const time = new Date(dateTimestamp).toISOString();
   return {
     url: url.toString(),
     width: chosen.width,

@@ -259,6 +259,11 @@ body::-webkit-scrollbar {
   .sonify-sound-label {
     display: none;
   }
+
+  .sonify-sound-toggle,
+  .hero-image-ai-disclosure {
+    display: none;
+  }
 }
 
 .sonify-skip-link {

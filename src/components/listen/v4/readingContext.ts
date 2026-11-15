@@ -17,8 +17,8 @@ export interface TaggedReading {
   readonly context: ReadingContext;
   readonly value: string;
   readonly detail: string;
-  /** Absent on a real reading. "no-data" is an honest empty for this date. */
-  readonly status?: "reading" | "no-data";
+  /** Absent on a real reading. "no-data" is an honest empty for this date. "measuring" indicates processing. */
+  readonly status?: "reading" | "no-data" | "measuring";
 }
 
 export function readingContextsMatch(
