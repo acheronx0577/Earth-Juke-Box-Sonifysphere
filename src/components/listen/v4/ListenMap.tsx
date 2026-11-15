@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MAP_REGIONS } from "@/data/exploreMap";
+import { ChamferMark } from "@/components/listen/ChamferMark";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import { CENTRAL_MERIDIAN, MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
 import { legendFromMetadata, legendFromPixels, legendGradient, type LegendModel } from "@/components/listen/v4/legend";
@@ -357,27 +358,31 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         />
       ) : null}
       {mapMode ? <div className="lv-glass lv-cut lv-tag">
-        <div className="lv-glass-face lv-cut">
+        <ChamferMark />
+        <div className="lv-glass-face">
           <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
           <span className="lv-tag-short">MAP · NOAA CPC</span>
         </div>
       </div> : null}
       {mapMode ? <div className="lv-glass lv-cut lv-hint">
-        <div className="lv-glass-face lv-cut">
+        <ChamferMark />
+        <div className="lv-glass-face">
           <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
           <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
         </div>
       </div> : null}
       {mapMode ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
-          <div className="lv-glass-face lv-cut">
+          <ChamferMark />
+          <div className="lv-glass-face">
             <p>PROBE · {coord}</p>
             <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
           </div>
         </div>
       ) : ring ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
-          <div className="lv-glass-face lv-cut">
+          <ChamferMark />
+          <div className="lv-glass-face">
             <p>{tip}</p>
           </div>
         </div>
@@ -413,7 +418,8 @@ function LegendPanel({ legend }: { readonly legend: LegendModel }) {
   const ends = legend.stops.filter((stop) => stop.label);
   return (
     <div className="lv-glass lv-cut lv-legend">
-      <div className="lv-glass-face lv-cut">
+      <ChamferMark />
+      <div className="lv-glass-face">
         <p className="lv-legend-title">{legend.title}</p>
         {legend.stops.length > 0 ? (
           <div className="lv-legend-scale">
@@ -430,7 +436,10 @@ function LegendPanel({ legend }: { readonly legend: LegendModel }) {
             {legend.noData.label}
           </p>
         ) : null}
-        <p className="lv-legend-source">{legend.source.toUpperCase()}</p>
+        <p className="lv-legend-source lv-cut">
+          <ChamferMark />
+          {legend.source.toUpperCase()}
+        </p>
       </div>
     </div>
   );

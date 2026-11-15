@@ -28,6 +28,8 @@
 
 .lv-cut {
   --cut: 8px;
+  --lv-stroke: #555555;
+  position: relative;
   clip-path: polygon(
     var(--cut) 0,
     calc(100% - var(--cut)) 0,
@@ -38,6 +40,34 @@
     0 calc(100% - var(--cut)),
     0 var(--cut)
   );
+}
+
+/* The clip above shapes the fill. A rectangular border would be sliced off at
+   the diagonal, so the stroke is an SVG path (see ChamferMark) drawn on top. */
+.lv-chamfer-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.lv-chamfer-svg polygon,
+.lv-chamfer-svg polyline {
+  fill: none;
+  stroke: var(--lv-stroke, #555555);
+  stroke-width: 1.5px;
+  stroke-linejoin: miter;
+  stroke-linecap: butt;
+  vector-effect: non-scaling-stroke;
+}
+
+.lv-card.is-empty > .lv-chamfer-svg polygon,
+.lv-chip.is-more > .lv-chamfer-svg polygon {
+  stroke-dasharray: 3 2.5;
 }
 
 .lv-mono {
@@ -59,8 +89,8 @@
 .lv-sheet,
 .lv-saved {
   --cut: 14px;
-  background: var(--lv-line);
-  padding: 1px;
+  background: transparent;
+  padding: 0;
 }
 
 .lv-history-face,
@@ -114,9 +144,12 @@
 .lv-hist:focus-visible,
 .lv-collapse:focus-visible,
 .lv-tab:focus-visible,
-.lv-icon-btn:focus-visible {
-  outline: 2px solid var(--lv-focus);
-  outline-offset: 2px;
+.lv-icon-btn:focus-visible,
+.lv-result:focus-visible,
+.lv-profile:focus-visible,
+.lv-search:focus-visible {
+  outline: none;
+  --lv-stroke: var(--lv-focus);
 }
 
 .lv-section {
@@ -133,24 +166,28 @@
   --cut: 8px;
   width: 100%;
   min-height: 60px;
-  padding: 1px;
+  padding: 0;
   border: 0;
   border-radius: 0;
-  background: rgba(255, 243, 234, 0.28);
+  background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .lv-hist[aria-current="true"] {
-  background: var(--lv-cream);
+  --lv-stroke: var(--lv-cream);
+}
+
+.lv-hist:focus-visible {
+  --lv-stroke: var(--lv-focus);
 }
 
 .lv-hist-face {
   display: flex;
   gap: 10px;
   align-items: center;
-  min-height: 58px;
+  min-height: 60px;
   padding: 8px;
   background: #101616;
 }
@@ -174,6 +211,10 @@
   object-fit: cover;
 }
 
+.lv-thumb > .lv-chamfer-svg {
+  object-fit: fill;
+}
+
 .lv-thumb-badge {
   position: absolute;
   left: 3px;
@@ -182,6 +223,11 @@
   font-size: 8px;
   letter-spacing: 0.04em;
   color: var(--lv-cream);
+}
+
+.lv-play-badge,
+.lv-thumb-badge {
+  z-index: 3;
 }
 
 .lv-play-badge {
@@ -246,7 +292,6 @@
   flex: none;
   color: var(--lv-cream);
   background: #101616;
-  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.28);
 }
 
 .lv-main {
@@ -332,7 +377,6 @@
   border-radius: 0;
   background: var(--lv-raised);
   color: var(--lv-cream);
-  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.34);
   cursor: pointer;
   font-family: var(--font-geist-mono), monospace;
   font-size: 13px;
@@ -343,18 +387,17 @@
 .lv-chip.is-on {
   background: var(--lv-cream);
   color: var(--lv-ink);
-  box-shadow: none;
 }
 
 .lv-chip.is-more {
   background: transparent;
-  box-shadow: none;
-  border: 1px dashed rgba(255, 243, 234, 0.45);
+  border: 0;
 }
 
 .lv-chip:focus-visible {
   outline: none;
   background: var(--lv-focus);
+  --lv-stroke: #060b0b;
 }
 
 .lv-chip-grid {
@@ -429,8 +472,8 @@
   --cut: 8px;
   position: absolute;
   margin: 0;
-  padding: 1px;
-  background: rgba(255, 243, 234, 0.34);
+  padding: 0;
+  background: transparent;
   color: var(--lv-cream);
   pointer-events: none;
 }
@@ -509,12 +552,12 @@
 .lv-legend-missing { margin-top: 6px; color: var(--lv-dim); }
 
 .lv-legend-source {
+  --cut: 4px;
   display: inline-block;
   margin-top: 8px;
   padding: 3px 6px;
-  border: 1px solid rgba(255, 243, 234, 0.4);
+  border: 0;
   color: var(--lv-muted);
-  clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
 }
 
 .lv-read-head { margin-bottom: 8px; }
@@ -533,11 +576,11 @@
   padding: 12px;
   border-radius: 0;
   background: #101616;
-  border: 1px solid rgba(255, 243, 234, 0.22);
+  border: 0;
 }
 
 .lv-card.is-empty {
-  border: 1px dashed rgba(255, 243, 234, 0.55);
+  border: 0;
   background: #101616;
 }
 
@@ -715,7 +758,6 @@
   border: 0;
   background: transparent;
   color: var(--lv-cream);
-  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.45);
   cursor: pointer;
   font-family: var(--font-geist-mono), monospace;
   font-size: 12px;
@@ -772,8 +814,8 @@
   flex: 1;
   min-width: 0;
   height: 44px;
-  padding: 1px;
-  background: rgba(255, 243, 234, 0.28);
+  padding: 0;
+  background: transparent;
 }
 
 .lv-timeline-face {
@@ -858,8 +900,8 @@
   width: 92px;
   flex: none;
   margin: 0;
-  padding: 1px;
-  background: rgba(255, 243, 234, 0.28);
+  padding: 0;
+  background: #101616;
   color: var(--lv-cream);
   font-family: var(--font-geist-mono), monospace;
   font-size: 12px;
@@ -873,7 +915,7 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  background: #101616;
+  background: transparent;
 }
 
 .lv-results {
@@ -891,7 +933,6 @@
   overflow: auto;
   padding: 10px;
   background: var(--lv-surface);
-  box-shadow: inset 0 0 0 1px var(--lv-line);
 }
 
 .lv-result {
@@ -1034,7 +1075,6 @@
     border: 0;
     background: var(--lv-surface);
     color: var(--lv-cream);
-    box-shadow: inset 0 0 0 1px var(--lv-line);
     cursor: pointer;
     font-family: var(--font-geist-mono), monospace;
     font-size: 12px;
@@ -1109,6 +1149,7 @@
   }
   .lv-tab {
     --cut: 8px;
+    --lv-stroke: transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1127,6 +1168,7 @@
   .lv-tab[aria-current="page"] {
     background: var(--lv-cream);
     color: var(--lv-ink);
+    --lv-stroke: #555555;
   }
 }
 
