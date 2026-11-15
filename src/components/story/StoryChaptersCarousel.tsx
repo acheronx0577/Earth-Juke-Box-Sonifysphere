@@ -337,7 +337,7 @@ export function StoryChaptersCarousel() {
             aria-label="Listen to the map"
           >
             <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
-            <span className="story-listen-pill-label">« Listen to the map »</span>
+            <span className="story-listen-pill-label">Listen to the map</span>
           </Link>
 
           <Link
