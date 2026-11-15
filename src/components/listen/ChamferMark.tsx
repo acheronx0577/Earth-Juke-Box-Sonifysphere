@@ -12,14 +12,14 @@ interface Frame {
   sides: ChamferSides;
 }
 
-function readFrame(parent: HTMLElement, phone: boolean): Frame {
+function readFrame(parent: HTMLElement): Frame {
   const rect = parent.getBoundingClientRect();
   const w = Math.round(rect.width * 100) / 100;
   const h = Math.round(rect.height * 100) / 100;
   const cut = Number.parseFloat(getComputedStyle(parent).getPropertyValue("--cut")) || 8;
   let sides: ChamferSides = "all";
-  if (phone && parent.classList.contains("lv-timeline-track")) sides = "leading";
-  else if (phone && parent.classList.contains("lv-date")) sides = "trailing";
+  if (parent.classList.contains("lv-timeline-track")) sides = "leading";
+  else if (parent.classList.contains("lv-date")) sides = "trailing";
   return { w, h, cut, sides };
 }
 
@@ -31,9 +31,8 @@ export function ChamferMark() {
   useLayoutEffect(() => {
     const parent = ref.current?.parentElement;
     if (!parent) return;
-    const phoneQuery = window.matchMedia("(max-width: 699px)");
     const read = () => {
-      const next = readFrame(parent, phoneQuery.matches);
+      const next = readFrame(parent);
       setFrame((prev) =>
         prev.w === next.w && prev.h === next.h && prev.cut === next.cut && prev.sides === next.sides ? prev : next,
       );
@@ -41,11 +40,7 @@ export function ChamferMark() {
     read();
     const observer = new ResizeObserver(read);
     observer.observe(parent);
-    phoneQuery.addEventListener("change", read);
-    return () => {
-      observer.disconnect();
-      phoneQuery.removeEventListener("change", read);
-    };
+    return () => observer.disconnect();
   }, []);
 
   const { w, h, cut, sides } = frame;
