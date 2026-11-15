@@ -1989,7 +1989,11 @@ nextjs-portal {
   letter-spacing: -0.04em;
 }
 
-.about-credits { margin-top: 120px; padding-bottom: 40px; }
+.about-credits {
+  margin-top: 120px;
+  padding-bottom: 40px;
+  scroll-margin-top: 6rem;
+}
 
 .about-credits-flowing-shell {
   display: none;
@@ -2111,8 +2115,9 @@ nextjs-portal {
   .about-credits .about-crow {
     grid-template-columns: clamp(150px, 14vw, 230px) minmax(0, 1fr) auto;
     align-items: center;
-    min-height: 88px;
-    padding: 22px 0;
+    height: auto;
+    min-height: 72px;
+    padding-block: 28px;
   }
 
   .about-credits .about-credit-value {
@@ -2127,12 +2132,24 @@ nextjs-portal {
     font-size: clamp(13px, 0.95vw, 16px);
   }
 
-  .about-credits[data-flowing-ready="true"] .about-credits-flowing-shell {
-    height: clamp(720px, 72svh, 980px);
+  .about-credits[data-flowing-ready="true"] .about-credits-flowing-shell,
+  .about-credits-flowing,
+  .about-credits-flowing .flowing-menu__list {
+    height: auto;
+    overflow: visible;
   }
 
   .about-credits-flowing .flowing-menu__item {
-    min-height: 84px;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 72px;
+    overflow: visible;
+  }
+
+  .about-credits-flowing .flowing-menu__link {
+    height: auto;
+    min-height: 72px;
+    padding-block: 28px;
   }
 
   .about-credits-flowing .flowing-menu__index {
