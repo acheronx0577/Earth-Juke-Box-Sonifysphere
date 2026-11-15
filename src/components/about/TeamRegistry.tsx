@@ -23,7 +23,20 @@ export function TeamRegistry() {
 
     const totalCards = cards.length;
     let lastCounterY: number | null = null;
-    const stickyHeight = window.innerHeight * 7;
+    const cardSpacing = 0.15;
+    // Full arc was 7 viewports; the last card is centered at 5/7 of that.
+    const fullArcDistance = () => window.innerHeight * 7;
+
+    function progressWhenCardCentered(index: number) {
+      const initialOffset = -cardSpacing * (totalCards - 1);
+      const totalTravel = 1 - initialOffset;
+      const cardOffset = (totalCards - 1 - index) * cardSpacing;
+      return (0.5 - cardOffset - initialOffset) / totalTravel;
+    }
+
+    function distanceUntilLastCard() {
+      return fullArcDistance() * progressWhenCardCentered(totalCards - 1);
+    }
 
     function getRadius() {
       return window.innerWidth < 900
@@ -36,7 +49,6 @@ export function TeamRegistry() {
 
     function positionCards(progress = 0) {
       const radius = getRadius();
-      const cardSpacing = 0.15;
       const initialOffset = -cardSpacing * (totalCards - 1);
       const totalTravel = 1 - initialOffset;
       const arcProgress = initialOffset + progress * totalTravel;
@@ -60,7 +72,6 @@ export function TeamRegistry() {
     }
 
     function centeredCardIndex(progress: number) {
-      const cardSpacing = 0.15;
       const initialOffset = -cardSpacing * (totalCards - 1);
       const totalTravel = 1 - initialOffset;
       const arcProgress = initialOffset + progress * totalTravel;
@@ -91,20 +102,20 @@ export function TeamRegistry() {
     const trigger = ScrollTrigger.create({
       trigger: stickySection,
       start: "top top",
-      end: `+=${stickyHeight}px`,
+      end: () => `+=${distanceUntilLastCard()}`,
       pin: true,
       pinSpacing: true,
       anticipatePin: 1,
       onUpdate: (self) => {
-        positionCards(self.progress);
-        updateTeamCounter(self.progress);
+        const progress = self.progress * progressWhenCardCentered(totalCards - 1);
+        positionCards(progress);
+        updateTeamCounter(progress);
       },
     });
 
     const onResize = () => {
       lastCounterY = null;
-      positionCards(trigger.progress || 0);
-      updateTeamCounter(trigger.progress || 0);
+      ScrollTrigger.refresh();
     };
 
     window.addEventListener("resize", onResize);
