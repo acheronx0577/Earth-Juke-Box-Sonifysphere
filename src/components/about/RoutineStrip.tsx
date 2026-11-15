@@ -16,6 +16,8 @@ const BLOCKS = [
     href: "https://gml.noaa.gov/ccgg/trends/",
     external: true,
     icon: "station" as const,
+    image: "/assets/landing/chapters/chapter-01.webp",
+    alt: "Observatory hut and instrument masts on the lava ridge above a cloud deck",
   },
   {
     num: "02",
@@ -27,6 +29,8 @@ const BLOCKS = [
     href: "/listen",
     external: false,
     icon: "sonar" as const,
+    image: "/assets/about/routine/routine_02_map.webp",
+    alt: "Earth at night with sonar rings over the oceans",
   },
   {
     num: "03",
@@ -38,6 +42,8 @@ const BLOCKS = [
     href: "/challenge",
     external: false,
     icon: "scope" as const,
+    image: "/assets/about/routine/routine_03_challenges.webp",
+    alt: "Synthesizer console with a waveform scope in a night lab",
   },
   {
     num: "04",
@@ -49,6 +55,8 @@ const BLOCKS = [
     href: "/listen",
     external: false,
     icon: "waves" as const,
+    image: "/assets/about/routine/routine_04_voices.webp",
+    alt: "Three glowing waveform ribbons crossing a star field",
   },
 ] as const;
 
@@ -130,6 +138,8 @@ function RoutineIcon({ kind }: { kind: RoutineBlock["icon"] }) {
   );
 }
 
+void RoutineIcon;
+
 function RoutineCard({ block }: { block: RoutineBlock }) {
   const link = block.external ? (
     <a href={block.href} target="_blank" rel="noopener noreferrer" className="routine-btn">
@@ -147,7 +157,15 @@ function RoutineCard({ block }: { block: RoutineBlock }) {
         <p>{block.num}</p>
         <p>{block.tag}</p>
       </div>
-      <RoutineIcon kind={block.icon} />
+      <div className="routine-media">
+        <img
+          src={block.image}
+          alt={block.alt}
+          className="routine-img"
+          data-slot={block.icon}
+          draggable={false}
+        />
+      </div>
       <div className="routine-block-footer">
         <div className="routine-block-meta">
           <h3>{block.title}</h3>
