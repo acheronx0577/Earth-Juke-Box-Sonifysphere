@@ -242,6 +242,7 @@ export interface CircularGalleryProps {
   onCardHover?: (over: boolean) => void;
   openAspect?: number;
   dpr?: number;
+  imageWatermark?: string;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -271,6 +272,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
   onCardHover,
   openAspect,
   dpr,
+  imageWatermark,
   className = '',
   style,
   ...rest
@@ -316,6 +318,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     onActiveChange,
     onCardHover,
     openAspect: openAspect ? clamp(openAspect, 0.5, 3) : undefined,
+    imageWatermark,
     dpr
   };
   const settingsRef = useRef(settings);
@@ -496,7 +499,32 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+        const watermark = settingsRef.current.imageWatermark?.trim();
+        let source: TexImageSource = image;
+        if (watermark) {
+          const watermarked = document.createElement('canvas');
+          watermarked.width = image.naturalWidth;
+          watermarked.height = image.naturalHeight;
+          const context = watermarked.getContext('2d');
+          if (context) {
+            context.drawImage(image, 0, 0);
+            const fontSize = Math.max(24, Math.round(image.naturalWidth * 0.026));
+            const padding = Math.round(fontSize * 0.55);
+            const badgeHeight = Math.round(fontSize * 1.65);
+            context.font = `700 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+            const badgeWidth = Math.ceil(context.measureText(watermark).width + padding * 2);
+            const x = Math.round((image.naturalWidth - badgeWidth) / 2);
+            const y = image.naturalHeight - padding - badgeHeight;
+            context.fillStyle = 'rgba(20, 20, 20, 0.86)';
+            context.fillRect(x, y, badgeWidth, badgeHeight);
+            context.fillStyle = '#f2f2f0';
+            context.textAlign = 'left';
+            context.textBaseline = 'middle';
+            context.fillText(watermark, x + padding, y + badgeHeight / 2);
+            source = watermarked;
+          }
+        }
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
@@ -1322,7 +1350,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
                 buttonsRef.current[index] = el;
               }}
               tabIndex={index === active ? 0 : -1}
-              aria-label={`${item.text || item.alt || 'Challenge'}, ${index + 1} of ${count}`}
+              aria-label={`${item.text || item.alt || 'Challenge'}${imageWatermark ? ', AI-generated image' : ''}, ${index + 1} of ${count}`}
               aria-current={index === active ? 'true' : undefined}
               onFocus={() => engineRef.current?.focus(index)}
               onClick={() => engineRef.current?.open(index)}

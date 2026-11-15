@@ -194,12 +194,12 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "hero-image",
     label: "Hero image",
-    text: "AI-generated illustration, not a real photo of Earth.",
+    text: "ChatGPT-generated hero illustration. The chapter artwork and one representative crew portrait are also AI-generated and visibly labeled.",
   },
   {
     id: "si-tools",
     label: "SI tools",
-    text: "Grok Bot, ChatGPT, Claude, Antigravity, Codex. Hero is AI-generated; data is not.",
+    text: "Grok Bot, ChatGPT, Claude, Antigravity, Codex. Hero and chapter artwork are AI-generated; project data is not.",
   },
   {
     id: "audio-provenance",

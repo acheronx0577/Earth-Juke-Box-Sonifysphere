@@ -101,7 +101,15 @@ function ChapterTeaserSection() {
                 src={teaser.image}
                 loading="lazy"
                 decoding="async"
+                data-si-generated="true"
+                data-si-media="image"
               />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-3 right-3 z-10 bg-[#141414]/85 px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.12em] text-[#f2f2f0] sm:text-[11px]"
+              >
+                AI-GENERATED IMAGE
+              </span>
             </div>
             <p className="font-mono font-semibold uppercase text-[clamp(0.8rem,0.75vw,0.85rem)] leading-none text-[#141414]">
               {teaser.tag}

@@ -29,7 +29,7 @@ const FLOWING_MARQUEES: Record<string, string> = {
   elevenlabs: "NARRATION & TEXTURES · ELEVENLABS AI · LABELED",
   "noaa-cpc": "SURFACE TEMP · NOAA CPC EQUAL EARTH",
   "ges-disc": "ATMOSPHERE CO₂ · NASA GES DISC / OCO-2",
-  "hero-image": "AI HERO IMAGE · CHATGPT",
+  "hero-image": "AI HERO + CHAPTER ART · SI-GENERATED",
   "si-tools": "SI TOOLS · GROK BOT, CHATGPT, CLAUDE, ANTIGRAVITY, CODEX",
   "audio-provenance": "AUDIO · TONE.JS / WEB AUDIO",
   "video-provenance": "VIDEO · NO AI VIDEO",

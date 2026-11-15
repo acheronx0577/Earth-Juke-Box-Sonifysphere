@@ -203,5 +203,5 @@ npm run test:e2e
 ### Disclosures & AI Transparency
 - **Scientific Data:** Sourced directly from official NASA, NOAA, and Microsoft Planetary Computer endpoints.
 - **Audio Synthesis:** Synthesized programmatically in-browser via Tone.js and Web Audio API from real scientific parameters. Generated WAV files carry RIFF INFO provenance tags.
-- **AI Art & Texture Disclosure:** The home hero illustration is an AI-generated artwork watermarked `AI-GENERATED ART · CHATGPT`. Optional ElevenLabs audio loops are explicitly disclosed and tagged as AI-generated.
+- **AI Art & Texture Disclosure:** The home hero, chapter artwork and one representative crew portrait are AI-generated and visibly labeled in the experience. ChatGPT generated the home hero. Optional ElevenLabs audio loops are explicitly disclosed and tagged as AI-generated.
 - **Design & Layout:** Orbit Matter template architecture by [Codegrid](https://www.codegridweb.com/); FlowingMenu adapted from [React Bits](https://reactbits.dev/).

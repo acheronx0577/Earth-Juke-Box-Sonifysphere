@@ -298,6 +298,7 @@ export function StoryChaptersCarousel() {
             fadeEdges={0.06}
             shadow={0}
             dpr={1.25}
+            imageWatermark="AI-GENERATED IMAGE"
             scrollSpeed={2}
             scrollEase={0.08}
             autoScroll={paused ? 0 : FLOW_SPEED}
