@@ -411,9 +411,12 @@
 }
 
 .routine .routine-container .routine-copy .container {
+  box-sizing: border-box;
   width: 100%;
+  max-width: none;
   height: 100%;
-  padding: 5rem 6rem;
+  margin-inline: 0;
+  padding: clamp(4.5rem, 8vh, 6rem) clamp(1.5rem, 4vw, 6rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -460,6 +463,7 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider {
+  container-type: inline-size;
   width: 100%;
   height: calc(100% - 9rem);
   overflow: hidden;
@@ -477,8 +481,8 @@
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
   position: relative;
-  flex: 0 0 540px;
-  width: 540px;
+  flex: 0 0 min(540px, calc(100cqi - 2.5rem));
+  width: min(540px, calc(100cqi - 2.5rem));
   height: 100%;
   background-color: #262626;
   border: 1px solid rgba(242, 242, 240, 0.14);
@@ -976,8 +980,8 @@
   }
 
   .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
-    flex: 0 0 84vw;
-    width: 84vw;
+    flex: 0 0 min(84vw, calc(100cqi - 1.25rem));
+    width: min(84vw, calc(100cqi - 1.25rem));
     padding: 1.25rem;
   }
 
