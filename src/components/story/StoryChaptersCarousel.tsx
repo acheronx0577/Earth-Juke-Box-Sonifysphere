@@ -285,6 +285,7 @@ export function StoryChaptersCarousel() {
 
             <Link
               href={activeChapter.challengePath}
+              prefetch={false}
               className="story-btn-pill"
               aria-label={`Play ${activeChapter.title}`}
             >
