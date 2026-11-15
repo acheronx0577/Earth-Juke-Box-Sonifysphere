@@ -12,6 +12,16 @@ import { SkipLink } from "@/components/shared/SkipLink";
 import TargetCursor from "@/components/shared/TargetCursor";
 import "./globals.css";
 
+const DEFAULT_SITE_URL = "https://www.sonifysphere.earth";
+
+function resolveSiteUrl(): URL {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const value = (configured || DEFAULT_SITE_URL).replace(/\/+$/, "");
+  return new URL(value);
+}
+
+const siteUrl = resolveSiteUrl();
+
 export const viewport: Viewport = {
   themeColor: "#141414",
   colorScheme: "dark",
@@ -20,7 +30,10 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sonifysphere.org"),
+  metadataBase: siteUrl,
+  alternates: {
+    canonical: "/",
+  },
   title: "SonifySphere — The Earth Information Jukebox",
   description: "Four real records of a changing planet, turned into music you can play.",
   other: {
