@@ -96,7 +96,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "image",
     label: "Image",
-    text: "NASA EPIC (DSCOVR) is a credited reference, not the hero or the GIBS globe.",
+    text: "Listen loads NASA EPIC (DSCOVR) whole-Earth frames. Sound from those frames is image-derived, not a measurement. Not the hero or the GIBS globe.",
     linkLabel: "EPIC ↗",
     linkHref: "https://epic.gsfc.nasa.gov/",
   },
