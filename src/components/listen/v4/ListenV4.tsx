@@ -376,7 +376,16 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [measured, setMeasured] = useState<{ value: string; detail: string } | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const ready = useRef(false);
+  const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 699px)");
+    const apply = () => setPhoneSearch(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.add("lv-lock");
@@ -654,7 +663,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               id="nasa-search"
               type="search"
               value={query}
-              placeholder="Search NASA images, videos or a place..."
+              placeholder={phoneSearch ? "Search NASA media…" : "Search NASA images, videos or a place..."}
               onChange={(event) => setQuery(event.target.value)}
             />
           </div>
@@ -665,7 +674,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               DATA LAYER · <span className="lv-layer-long">PICK ONE TO DRIVE THE SOUND</span>
               <span className="lv-layer-short">PICK ONE</span>
             </p>
-            <p className="lv-mono lv-eyebrow lv-swipe">{layers.length} LAYERS · SWIPE →</p>
+            <p className="lv-mono lv-eyebrow lv-swipe">6 LAYERS · SWIPE →</p>
           </div>
           <div className="lv-chips" role="group" aria-label="Data layer">
             {layers.map((item) => (
@@ -884,6 +893,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           </svg>
           SAVED
         </button>
+        <span className="lv-home-indicator" aria-hidden="true" />
       </div>
       <input
         ref={fileRef}

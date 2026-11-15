@@ -1005,13 +1005,25 @@
     max-width: none;
     height: auto;
     min-height: 94px;
-    padding: 10px 18px calc(18px + env(safe-area-inset-bottom));
+    padding: 8px 12px calc(16px + env(safe-area-inset-bottom));
     justify-content: space-around;
     align-items: center;
-    background: rgba(13, 20, 20, 0.72);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 243, 234, 0.12);
+    background: rgba(13, 20, 20, 0.58);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid rgba(255, 243, 234, 0.16);
+    clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+  }
+
+  .lv-home-indicator {
+    position: absolute;
+    left: 50%;
+    bottom: 7px;
+    width: 134px;
+    height: 5px;
+    transform: translateX(-50%);
+    border-radius: 99px;
+    background: rgba(255, 243, 234, 0.72);
   }
   .lv-tab {
     --cut: 8px;
@@ -1036,8 +1048,13 @@
   }
 }
 
+@media (max-width: 699px) {
+  .lv-play-pill { width: 156px; height: 44px; padding: 0 14px; }
+  .lv-collapse { height: 52px; }
+}
+
 @media (min-width: 700px) and (max-width: 1099px) {
-  .lv-page { padding: 24px 24px 112px; }
+  .lv-page { padding: 24px 24px 106px; }
   .lv-stage { height: 420px; }
   .lv-collapse { flex: 1; }
 }
