@@ -194,12 +194,13 @@ test("chips are a single shape", async ({ page }) => {
 
 test("the probe tooltip stays inside the stage at the east edge", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/listen?sound=off");
-  const stage = page.locator(".lv-stage");
+  await page.goto("/listen?source=map&sound=off");
+  const stage = liveMain(page).locator(".lv-stage");
+  await expect(stage).toBeVisible();
   const box = await stage.boundingBox();
   if (!box) throw new Error("stage has no box");
   await page.mouse.move(box.x + box.width - 6, box.y + box.height / 2);
-  const tip = page.locator(".lv-tip");
+  const tip = liveMain(page).locator(".lv-tip");
   await expect(tip).toBeVisible();
   const tipBox = await tip.boundingBox();
   if (!tipBox) throw new Error("tip has no box");
@@ -230,7 +231,7 @@ test("an image probe uses pixel position and does not call black pixels purple",
 
 test("a six-card temperature value stays on one line", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen?source=map&sound=off");
   await page.getByRole("button", { name: "MORE +" }).click();
   const strong = liveMain(page).locator(".lv-card[data-id='temperature'] strong");
   await expect(strong).toBeVisible();

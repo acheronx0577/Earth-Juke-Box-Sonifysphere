@@ -899,6 +899,38 @@
 .lv-value span { color: var(--lv-muted); }
 .lv-value strong { font-weight: 500; letter-spacing: 0.04em; }
 
+.lv-audio-key {
+  border-top: 1px solid rgba(255, 243, 234, 0.1);
+  color: var(--lv-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.lv-audio-key summary {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  color: var(--lv-cream);
+  cursor: pointer;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lv-audio-key summary:focus-visible {
+  outline: 2px solid #fff3ea;
+  outline-offset: 2px;
+}
+
+.lv-audio-key-body { display: flex; flex-direction: column; gap: 8px; padding: 0 0 10px; }
+.lv-audio-key-body p { margin: 0; }
+.lv-audio-key-context { color: var(--lv-cream); }
+.lv-audio-key-points { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+.lv-audio-key-point { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 6px; background: rgba(255, 243, 234, 0.05); }
+.lv-audio-key-point span { font-size: 9px; letter-spacing: 0.06em; }
+.lv-audio-key-point strong { color: var(--lv-cream); font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 500; }
+
 .lv-save {
   --cut: 6px;
   --lv-stroke: var(--lv-stroke-3);

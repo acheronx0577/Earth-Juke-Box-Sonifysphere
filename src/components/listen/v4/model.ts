@@ -6,7 +6,7 @@ import { isSoundLayer, mapLayerToSound, readingNumber } from "@/components/liste
 import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { formatUtcInstant } from "@/components/listen/v4/utcLabel";
 
-export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
+export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "sea-temp" | "currents" | "wind";
 export type SoundStyle = "synth" | "orchestra";
 export type InstrumentId = "soft-synth" | "marimba" | "woodblock" | "strings";
 export type VariationId = "soft" | "bright" | "deep";
@@ -44,6 +44,7 @@ export const PRIMARY_LAYERS: ReadonlyArray<{ id: LayerId; label: string }> = [
 
 export const EXTRA_LAYERS: ReadonlyArray<{ id: LayerId; label: string }> = [
   { id: "air", label: "AIR" },
+  { id: "sea-temp", label: "SEA TEMP" },
   { id: "currents", label: "CURRENTS" },
   { id: "wind", label: "WIND" },
 ];
@@ -169,7 +170,7 @@ export function layerFromParam(value: string | undefined): LayerId {
   if (value === "ch4" || value === "methane") return "methane";
   if (value === "sea-ice") return "sea-ice";
   if (value === "all") return "all";
-  if (value === "air" || value === "currents" || value === "wind") return value;
+  if (value === "air" || value === "sea-temp" || value === "currents" || value === "wind") return value;
   return "temperature";
 }
 
@@ -188,6 +189,7 @@ export function hearTitle(layer: LayerId): string {
   if (layer === "all") return "Hear the field as";
   if (layer === "temperature") return "Hear Temperature as";
   if (layer === "sea-ice") return "Hear Sea ice as";
+  if (layer === "sea-temp") return "Hear Sea temperature as";
   if (layer === "co2") return "Hear CO₂ as";
   if (layer === "methane") return "Hear Methane as";
   if (layer === "air") return "Hear Air temp as";
@@ -279,7 +281,7 @@ export function paintColor(layer: LayerId, lng: number, lat: number): string {
     if (region?.seaIce || region?.id === "arctic" || region?.id === "antarctica") return "#d5e6ee";
     return "#2a2a2a";
   }
-  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "currents" || layer === "wind") {
+  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "sea-temp" || layer === "currents" || layer === "wind") {
     return region ? "#3a3a3a" : "#161311";
   }
   if (inNino(lng, lat)) return "#e08a3c";
@@ -401,7 +403,7 @@ export function readProbe(input: {
   const methane = emptyCard("methane", "METHANE", "NO METHANE LAYER ON THIS MAP");
 
   const extras = new Map<string, ReadingCard>();
-  for (const id of ["air", "currents", "wind"] as const) {
+  for (const id of ["air", "sea-temp", "currents", "wind"] as const) {
     if (measuring && layer === id) {
       extras.set(id, {
         id,
@@ -472,17 +474,15 @@ export function readProbe(input: {
   } else if (active.state === "matched" && source.kind === "map" && region && (layer === "temperature" || layer === "all")) {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && isSoundLayer(layer)) {
-    normalized = mapLayerToSound(layer, readingNumber(measured?.value));
-  } else if (layer === "all" || active.state === "image") {
+    normalized = mapLayerToSound(layer, readingNumber(accepted?.value ?? measured?.value));
+  } else if (layer === "all" && (source.kind === "map" || pixelColor !== null)) {
     const raw = color.replace("#", "");
     const r = Number.parseInt(raw.slice(0, 2), 16);
     const g = Number.parseInt(raw.slice(2, 4), 16);
     const b = Number.parseInt(raw.slice(4, 6), 16);
-    if (![r, g, b].some((part) => Number.isNaN(part))) {
-      normalized = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    } else {
-      normalized = 0.45;
-    }
+    if (![r, g, b].some((part) => Number.isNaN(part))) normalized = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  } else if (active.state === "image" && (source.kind === "map" || pixelColor !== null)) {
+    normalized = 0.45;
   }
 
   const warmer = region ? scaleAnomaly(region.anomaly, year) : 0;
@@ -499,6 +499,8 @@ export function readProbe(input: {
             ? "NO WIND FIELD"
             : layer === "air"
               ? "NO AIR TEMP FIELD"
+              : layer === "sea-temp"
+                ? active.state === "matched" ? `SEA TEMP · ${active.value}` : active.state === "loading" ? "CHECKING SEA TEMP" : "NO MATCHED SEA TEMP"
               : layer === "currents"
                 ? "NO CURRENT FIELD"
                 : region
@@ -509,7 +511,9 @@ export function readProbe(input: {
       ? "SST ANOMALY °C"
       : layer === "sea-ice"
         ? "SEA ICE COVER"
-        : layer === "co2"
+        : layer === "sea-temp"
+          ? "SEA SURFACE TEMP °C"
+          : layer === "co2"
           ? "CO₂"
           : layer === "methane"
             ? "METHANE"

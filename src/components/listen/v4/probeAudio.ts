@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { InstrumentId, SoundStyle, VariationId } from "@/components/listen/v4/model";
+import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
 
 export interface HearingParams {
@@ -25,13 +26,6 @@ let latest: HearingParams | null = null;
 let playing = false;
 let toneNow: (() => number) | null = null;
 let lastStart = 0;
-
-function frequency(params: HearingParams): number {
-  const base = params.variation === "deep" ? 98 : params.variation === "bright" ? 294 : 196;
-  const span = params.variation === "deep" ? 180 : params.variation === "bright" ? 520 : 320;
-  if (params.value === null) return base;
-  return base + params.value * span;
-}
 
 function duration(params: HearingParams): string {
   if (params.instrument === "woodblock") return "32n";
@@ -91,7 +85,8 @@ async function buildVoice(params: HearingParams): Promise<Voice | null> {
 }
 
 function publish(params: HearingParams | null) {
-  if (!params || !playing) {
+  const frequency = params ? frequencyForValue(params.value, params.variation) : null;
+  if (!params || !playing || frequency === null) {
     delete document.documentElement.dataset.listenHearing;
     return;
   }
@@ -99,7 +94,7 @@ function publish(params: HearingParams | null) {
     params.style,
     params.instrument,
     params.variation,
-    Math.round(frequency(params)),
+    Math.round(frequency),
     Math.round(params.volume),
     params.tempo,
   ].join("|");
@@ -108,20 +103,17 @@ function publish(params: HearingParams | null) {
 function strike() {
   const params = latest;
   if (!params || !voice || !playbackAllowed()) return;
+  const frequency = frequencyForValue(params.value, params.variation);
+  if (frequency === null) {
+    voice.volume.value = -Infinity;
+    publish(params);
+    return;
+  }
   voice.volume.value = decibels(params.volume);
-  const note = frequency(params);
   const now = Math.max(toneNow?.() ?? 0, lastStart + 0.05);
   lastStart = now;
-  voice.triggerAttackRelease(params.style === "orchestra" || params.instrument === "strings" ? ToneNote(note) : note, duration(params), now);
+  voice.triggerAttackRelease(params.style === "orchestra" || params.instrument === "strings" ? noteNameForFrequency(frequency) : frequency, duration(params), now);
   publish(params);
-}
-
-function ToneNote(freq: number): string {
-  const midi = Math.round(69 + 12 * Math.log2(freq / 440));
-  const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const name = names[((midi % 12) + 12) % 12];
-  const octave = Math.floor(midi / 12) - 1;
-  return `${name}${octave}`;
 }
 
 function clearTimer() {
@@ -143,11 +135,11 @@ export function stopProbeAudio(): void {
 
 function armTimer(tempo: number) {
   clearTimer();
-  const interval = Math.max(140, Math.round(520 / Math.max(0.5, tempo)));
-  timer = setInterval(strike, interval);
+  timer = setInterval(strike, intervalForTempo(tempo));
 }
 
 export async function startProbeAudio(params: HearingParams): Promise<boolean> {
+  if (frequencyForValue(params.value, params.variation) === null) return false;
   latest = params;
   if (!playbackAllowed()) return false;
   stopProbeAudio();
@@ -173,7 +165,7 @@ export function updateProbeAudio(params: HearingParams): void {
   latest = params;
   if (!playing) return;
   publish(params);
-  if (voice) voice.volume.value = decibels(params.volume);
+  if (voice) voice.volume.value = params.value === null ? -Infinity : decibels(params.volume);
   if (previous && (previous.instrument !== params.instrument || previous.style !== params.style || previous.variation !== params.variation)) {
     void rebuild(params);
   }
