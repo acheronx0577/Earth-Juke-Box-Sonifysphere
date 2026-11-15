@@ -546,6 +546,50 @@
 .lv-legend { top: auto; right: 8px; bottom: 8px; width: min(210px, calc(50% - 16px)); }
 .lv-tip { min-width: 0; width: max-content; max-width: min(168px, calc(50% - 24px)); }
 
+.lv-plain {
+  border: 0;
+  box-shadow: none;
+  background: rgba(6, 11, 11, 0.72);
+  padding: 3px 6px;
+}
+
+.lv-tip.lv-plain {
+  top: 8px;
+  left: 8px;
+  max-width: calc(50% - 24px);
+  white-space: nowrap;
+}
+
+.lv-tip.lv-plain p {
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+
+.lv-legend.lv-plain {
+  width: max-content;
+  max-width: calc(50% - 16px);
+  padding: 4px 6px;
+}
+
+.lv-legend.lv-plain .lv-legend-scale {
+  margin-top: 0;
+  gap: 4px;
+  text-transform: none;
+}
+
+.lv-legend.lv-plain .lv-legend-scale i {
+  width: 64px;
+  flex: none;
+  height: 6px;
+}
+
+.lv-legend.lv-plain .lv-legend-none {
+  margin-top: 4px;
+  font-size: 9px;
+  text-transform: none;
+}
+
 .lv-tip .is-warm { color: #e08a3c; }
 .lv-tip .is-cool { color: #a593e6; }
 
