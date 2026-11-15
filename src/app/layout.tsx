@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { SonifyPlayerProvider } from "@/context/SonifyPlayerContext";
 import { AudioLiveFlag } from "@/components/shared/AudioLiveFlag";
 import { MiniPlayerPill } from "@/components/shared/MiniPlayerPill";
@@ -10,18 +11,6 @@ import { PageTransitions } from "@/components/shared/PageTransitions";
 import { SkipLink } from "@/components/shared/SkipLink";
 import TargetCursor from "@/components/shared/TargetCursor";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-});
 
 export const viewport: Viewport = {
   themeColor: "#141414",
@@ -72,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
       <head>
         <link
           rel="preload"
