@@ -5,6 +5,7 @@
  */
 export const LAYER_SOUND_RANGES = {
   air: { min: -50, max: 50, unit: "°C", quantity: "Air temperature" },
+  "sea-temp": { min: -2, max: 35, unit: "°C", quantity: "Sea surface temperature" },
   currents: { min: 0, max: 3, unit: "m/s", quantity: "Ocean current speed" },
   wind: { min: 0, max: 40, unit: "m/s", quantity: "Wind speed" },
 } as const;

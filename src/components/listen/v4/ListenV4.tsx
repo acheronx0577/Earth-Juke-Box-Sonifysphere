@@ -6,6 +6,7 @@ import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
 import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/components/listen/v4/eicSource";
 import { ListenMap } from "@/components/listen/v4/ListenMap";
+import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import {
   EXTRA_LAYERS,
   INSTRUMENTS,
@@ -301,6 +302,62 @@ function SoundFields({
   );
 }
 
+function AudioKey({
+  layer,
+  year,
+  source,
+  reading,
+  styleId,
+  variation,
+  tempo,
+}: {
+  readonly layer: LayerId;
+  readonly year: number;
+  readonly source: ListenSource;
+  readonly reading: ReturnType<typeof readProbe>;
+  readonly styleId: SoundStyle;
+  readonly variation: VariationId;
+  readonly tempo: number;
+}) {
+  const activeId = layer === "all" ? "visual" : layer;
+  const active = reading.cards.find((card) => card.id === activeId);
+  const toneLabel = (value: number) => {
+    const frequency = frequencyForValue(value, variation);
+    if (frequency === null) return "Silent";
+    return styleId === "orchestra"
+      ? `${noteNameForFrequency(frequency)} · nearest note`
+      : `${Math.round(frequency)} Hz`;
+  };
+  const currentFrequency = frequencyForValue(reading.normalized, variation);
+  const currentTone = currentFrequency === null
+    ? "Silent · no matched data"
+    : styleId === "orchestra"
+      ? `${noteNameForFrequency(currentFrequency)} · nearest note`
+      : `${Math.round(currentFrequency)} Hz`;
+  const interval = intervalForTempo(tempo);
+
+  return (
+    <details className="lv-audio-key">
+      <summary>Audio Key</summary>
+      <div className="lv-audio-key-body">
+        <p className="lv-audio-key-context">
+          {active?.value ?? "No matched data"} · {active?.detail ?? `${source.meta} · ${dateLabel(year)}`}
+        </p>
+        <div className="lv-audio-key-points" aria-label="Pitch mapping">
+          {[0, 0.5, 1].map((value) => (
+            <p className="lv-audio-key-point" key={value}>
+              <span>{value * 100}%</span>
+              <strong>{toneLabel(value)}</strong>
+            </p>
+          ))}
+        </div>
+        <p>Higher normalized values raise pitch. Current sound: {currentTone}.</p>
+        <p>Tempo triggers one note every {interval} ms. The selected instrument changes timbre; data controls pitch.</p>
+      </div>
+    </details>
+  );
+}
+
 function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (year: number) => void }) {
   const readoutId = useId();
   const ticksRef = useRef<HTMLDivElement>(null);
@@ -565,12 +622,13 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     readingContextRef.current = context;
     setMeasured(null);
     setReadingError("");
-    if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind")) {
+    if (source.kind !== "map" || (layer !== "air" && layer !== "sea-temp" && layer !== "currents" && layer !== "wind")) {
       setMeasuring(false);
       return;
     }
     const controller = new AbortController();
     const apiLayer = layer === "air" ? "air-temp" : layer;
+    setMeasured(null);
     setMeasuring(true);
     const timer = window.setTimeout(() => {
       const when = formatUtcInstant(context.time) ?? context.time;
@@ -579,24 +637,25 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         { signal: controller.signal },
       )
         .then(async (response) => {
-          const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
+          const body = (await response.json()) as { value?: number; unit?: string; source?: string; time?: string; error?: string };
           if (!readingContextsMatch(readingContextRef.current, context)) return;
           if (isNoDataResponse(response.status, body.error)) {
             setMeasured({ context, status: "no-data", value: "No data for this date", detail: when });
             return;
           }
-          if (!response.ok || typeof body.value !== "number") {
+          if (!response.ok || typeof body.value !== "number" || !Number.isFinite(body.value)) {
             const message = body.error || "No reading";
             setMeasured({ context, status: "no-data", value: message, detail: when });
             setReadingError(message);
             return;
           }
           setReadingError("");
+          const actualTime = formatUtcInstant(body.time ?? context.time) ?? when;
           setMeasured({
             context,
             status: "reading",
             value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
-            detail: `${body.source ?? "Matched"} · ${when}`,
+            detail: `${body.source ?? "Matched"} · ${actualTime}`,
           });
         })
         .catch((error: unknown) => {
@@ -735,6 +794,10 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       stopProbeAudio();
       setPlaying(false);
       setStatus("");
+      return;
+    }
+    if (hearing.value === null) {
+      setStatus("No matched data at this point. Move the probe or choose a data layer with coverage.");
       return;
     }
     setSoundEnabled(true);
@@ -960,6 +1023,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                   onVolume={setVolume}
                   onTempo={setTempo}
                 />
+                <AudioKey
+                  layer={layer}
+                  year={year}
+                  source={source}
+                  reading={reading}
+                  styleId={styleId}
+                  variation={variation}
+                  tempo={tempo}
+                />
                 <div className="lv-sheet-actions">
                   <button type="button" className="lv-play lv-cut" onClick={() => void togglePlay()}>
                     <ChamferMark />
@@ -1045,6 +1117,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               <strong>{reading.pitch}</strong>
             </p>
           </div>
+          <AudioKey
+            layer={layer}
+            year={year}
+            source={source}
+            reading={reading}
+            styleId={styleId}
+            variation={variation}
+            tempo={tempo}
+          />
           <button type="button" className="lv-save lv-cut" onClick={saveProfile}>
             <ChamferMark />
             SAVE PROFILE
