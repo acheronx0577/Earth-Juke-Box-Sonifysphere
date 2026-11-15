@@ -58,6 +58,21 @@ function graticule(): string[] {
 }
 
 const GRID = graticule();
+
+function earthOval(): string {
+  const pts: string[] = [];
+  for (let lat = -88; lat <= 88; lat += 4) {
+    const [x, y] = project(CENTRAL_MERIDIAN + 180, lat);
+    pts.push(`${pts.length ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  for (let lat = 88; lat >= -88; lat -= 4) {
+    const [x, y] = project(CENTRAL_MERIDIAN - 180, lat);
+    pts.push(`L${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return `${pts.join("")}Z`;
+}
+
+const OVAL = earthOval();
 const NINO_WEST = project(-170, 0)[0];
 const NINO_EAST = project(-120, 0)[0];
 const NINO_PROBE = project(-145, 0);
@@ -77,6 +92,7 @@ interface ListenMapProps {
   readonly onLegend: (legend: LegendModel) => void;
   readonly tip: string;
   readonly coord: string;
+  readonly onPixel: (color: string | null) => void;
 }
 
 async function sampleImage(img: CanvasImageSource, width: number, height: number): Promise<ImageData | null> {
@@ -91,7 +107,7 @@ async function sampleImage(img: CanvasImageSource, width: number, height: number
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
-export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, tip, coord }: ListenMapProps) {
+export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, tip, coord, onPixel }: ListenMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -101,6 +117,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const land = useMemo(() => getLandPaths(), []);
   const [px, py] = project(lng, lat);
   const mapMode = source.kind === "map";
+  const [ring, setRing] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -176,12 +193,50 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     return () => cancelAnimationFrame(raf);
   }, [source.id]);
 
-  const move = (clientX: number, clientY: number, release: boolean) => {
-    const svg = svgRef.current;
-    if (!svg || !mapMode) {
-      onProbe(lat, lng, release);
+  const sampleMedia = (clientX: number, clientY: number) => {
+    const stage = stageRef.current;
+    const media = source.kind === "video" && source.id !== "currents-example" ? videoRef.current : source.id === "currents-example" ? null : imageRef.current;
+    const canvasMedia = source.id === "currents-example" ? stage?.querySelector("canvas") : null;
+    const node = media ?? canvasMedia;
+    if (!stage || !node) return;
+    const stageRect = stage.getBoundingClientRect();
+    const naturalWidth = node instanceof HTMLVideoElement ? node.videoWidth : node instanceof HTMLImageElement ? node.naturalWidth : node.width;
+    const naturalHeight = node instanceof HTMLVideoElement ? node.videoHeight : node instanceof HTMLImageElement ? node.naturalHeight : node.height;
+    if (!naturalWidth || !naturalHeight) return;
+    const scale = Math.min(stageRect.width / naturalWidth, stageRect.height / naturalHeight);
+    const drawnWidth = naturalWidth * scale;
+    const drawnHeight = naturalHeight * scale;
+    const left = (stageRect.width - drawnWidth) / 2;
+    const top = (stageRect.height - drawnHeight) / 2;
+    const x = (clientX - stageRect.left - left) / drawnWidth;
+    const y = (clientY - stageRect.top - top) / drawnHeight;
+    setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
+    if (x < 0 || x > 1 || y < 0 || y > 1) {
+      onPixel(null);
       return;
     }
+    const canvas = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return;
+    try {
+      context.drawImage(node, Math.floor(x * naturalWidth), Math.floor(y * naturalHeight), 1, 1, 0, 0, 1, 1);
+      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+      const hex = [r, g, b].map((part) => part.toString(16).padStart(2, "0")).join("");
+      onPixel(`#${hex}`);
+    } catch {
+      onPixel(null);
+    }
+  };
+
+  const move = (clientX: number, clientY: number, release: boolean) => {
+    const svg = svgRef.current;
+    if (!mapMode) {
+      sampleMedia(clientX, clientY);
+      return;
+    }
+    if (!svg) return;
     const point = svg.createSVGPoint();
     point.x = clientX;
     point.y = clientY;
@@ -206,6 +261,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   return (
     <div
       className="lv-stage"
+      data-kind={source.kind}
       ref={stageRef}
       tabIndex={0}
       role="group"
@@ -223,6 +279,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       {mapMode ? (
         <svg ref={svgRef} className="lv-map" viewBox={`0 0 ${MAP_VIEW.width} ${MAP_VIEW.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Equal Earth map, NOAA CPC example">
           <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="#100e0c" />
+          <path d={OVAL} fill="none" stroke="rgba(255,243,234,0.16)" strokeWidth="1.25" />
           {GRID.map((d, index) => (
             <path key={index} d={d} fill="none" stroke="rgba(255,243,234,0.07)" strokeWidth="1" />
           ))}
@@ -255,29 +312,36 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       ) : (
         <img ref={imageRef} className="lv-media" src={source.preview} alt={source.title} />
       )}
+      {!mapMode && ring ? <span className="lv-ring" style={{ left: ring.x, top: ring.y }} aria-hidden="true" /> : null}
       {source.id === "currents-example" ? (
         <ExampleClip
           frame={frame}
           onSample={(pixels) => onLegend(legendFromPixels(pixels.data, pixels.width, pixels.height, "FRAME COLORS"))}
         />
       ) : null}
-      <div className="lv-glass lv-cut lv-tag">
+      {mapMode ? <div className="lv-glass lv-cut lv-tag">
         <div className="lv-glass-face lv-cut">
           <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
           <span className="lv-tag-short">MAP · NOAA CPC</span>
         </div>
-      </div>
-      <div className="lv-glass lv-cut lv-hint">
+      </div> : null}
+      {mapMode ? <div className="lv-glass lv-cut lv-hint">
         <div className="lv-glass-face lv-cut">
           <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
           <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
         </div>
-      </div>
+      </div> : null}
       {mapMode ? (
         <div className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y }}>
           <div className="lv-glass-face lv-cut">
             <p>PROBE · {coord}</p>
             <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
+          </div>
+        </div>
+      ) : ring ? (
+        <div className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y }}>
+          <div className="lv-glass-face lv-cut">
+            <p>{tip}</p>
           </div>
         </div>
       ) : null}
