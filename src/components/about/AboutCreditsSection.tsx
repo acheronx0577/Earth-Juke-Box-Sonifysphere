@@ -12,7 +12,7 @@ const FlowingMenu = dynamic(() => import("@/components/shared/FlowingMenu"), {
 const DESKTOP_MENU_QUERY = "(min-width: 1200px) and (hover: hover) and (pointer: fine)";
 const FLOWING_MARQUEES: Record<string, string> = {
   data: "CO₂ · NOAA MAUNA LOA · EMBEDDED",
-  gibs: "IMAGERY · NASA GIBS BLUE MARBLE",
+  gibs: "IMAGERY · NASA GIBS · BLUE MARBLE AND COLOUR MAP",
   library: "MEDIA · NASA IMAGE AND VIDEO LIBRARY",
   gistemp: "TEMPERATURE · NASA GISTEMP V4 · EXAMPLE",
   image: "FRAMES · NASA EPIC / DSCOVR · IMAGE-DERIVED",
