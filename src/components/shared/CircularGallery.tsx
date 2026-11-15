@@ -32,10 +32,8 @@ export interface GalleryItem {
 
 const DEFAULT_ITEMS: GalleryItem[] = [
   { image: '/assets/landing/chapters/chapter-01.webp', text: '01 · Guess the Signal', description: 'Listen to sonified planetary records and identify the vital sign' },
-  { image: '/assets/landing/chapters/chapter-02.webp', text: '02 · Compose Track', description: 'Layer 4 planetary signals into a custom atmospheric soundscape' },
-  { image: '/assets/landing/chapters/chapter-03.webp', text: '03 · Tune the Signal', description: 'Align frequency dials to detect the climate anomaly spike' },
-  { image: '/assets/about/routine/routine_04_voices.webp', text: '04 · Waveform Ribbons', description: 'Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps' },
-  { image: '/assets/about/routine/routine_03_challenges.webp', text: '05 · Climate Console', description: 'Explore the historical 1958–2026 sonification synthesizer archive' },
+  { image: '/assets/landing/chapters/chapter-03.webp', text: '02 · Tune the Signal', description: 'Align frequency dials to detect the climate anomaly spike' },
+  { image: '/assets/about/routine/routine_04_voices.webp', text: '03 · Waveform Ribbons', description: 'Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps' },
 ];
 
 const VERTEX = `#version 300 es
@@ -375,6 +373,17 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
 
     const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    const labelProbe = document.createElement('canvas').getContext('2d');
+    const fitLabel = (text: string, size: number, family: string, maxWidth: number) => {
+      const upper = text.toUpperCase();
+      const widthAt = (px: number) => {
+        if (!labelProbe) return upper.length * px * 0.62;
+        labelProbe.font = `600 ${px}px ${family}`;
+        return labelProbe.measureText(upper).width + Math.max(0, upper.length - 1) * px * 0.05;
+      };
+      if (widthAt(size) <= maxWidth) return size;
+      return Math.max(9, Math.min(size, size * (maxWidth / Math.max(widthAt(size), 1))));
+    };
     const colorCache = new Map<string, number[]>();
     const parse = (value: string): number[] => {
       const key = String(value);
@@ -508,11 +517,35 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const measure = () => {
       const s = settingsRef.current;
-      // Reserve room below each card for its visible title.
-      const height = 0.59 * view.height * s.itemSize;
-      const width = height * s.itemAspect;
-      const scale = Math.min(1, (view.width * 0.85) / width);
-      return { w: width * scale, h: height * scale, spacing: width * scale * (1 + s.gap) };
+      const gap = 1 + s.gap;
+      const maxH = Math.max(120, view.height * 0.66);
+      // Wide screens show every listed card at once, centred, with titles fully
+      // inside. The side pad keeps the outer titles clear of the edge fade.
+      if (view.width >= 1280) {
+        const count = Math.max(1, s.items.length);
+        const pad = 20;
+        const w = (view.width - pad * 2) / (Math.max(0, count - 1) * gap + 1);
+        const h = Math.min(maxH, w / Math.max(s.itemAspect, 0.2));
+        return { w, h, spacing: Math.max(w * gap, w + 8) };
+      }
+      // Grow cards with the gallery, but slower than its width, so 1920 and 2560
+      // get larger cards and still show more than a fixed trio. Short viewports
+      // shrink the card so the title still fits under it.
+      const sizeBias = clamp(s.itemSize, 0.2, 2) / 1.2;
+      const across = clamp(view.width / ((500 + view.width * 0.045) * sizeBias), 1.25, 5.5);
+      let w = view.width / (across * gap);
+      let h = w / Math.max(s.itemAspect, 0.2);
+      if (h > maxH) {
+        h = maxH;
+        w = h * s.itemAspect;
+      }
+      const maxW = view.width * (view.width < 560 ? 0.74 : 0.42);
+      if (w > maxW) {
+        w = maxW;
+        h = Math.min(w / Math.max(s.itemAspect, 0.2), maxH);
+        w = h * s.itemAspect;
+      }
+      return { w, h, spacing: Math.max(w * gap, w + 8) };
     };
 
     const arcOf = (x: number) => {
@@ -548,8 +581,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const count = currentList.length;
       const { w, h, spacing } = measure();
       state.spacing = spacing;
-      const introEase = 1 - Math.pow(1 - state.intro, 3);
-      const scroll = state.scroll + (1 - introEase) * spacing * 1.6;
+      const scroll = state.scroll;
       const baseLabel = h * 0.072 * fontScale(fontRef.current);
       const openFrame = (item: GalleryItem) => {
         // Revert width back to wide aspect (landscape ~1.6) while keeping tall height
@@ -613,6 +645,21 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       return { w, h, spacing, openH: frame.height, openY: frame.y, titleSpace: frame.titleSpace };
     };
 
+    // Shared by the card and its title. The fade covers 1.5 card-widths at each edge,
+    // and a card halfway through that zone sits near 38% opacity.
+    const positionFade = (centerX: number, cardW: number) => {
+      const span = Math.max(cardW, 1);
+      const zone = span * 1.5;
+      const lead = zone - span;
+      const cardLeft = centerX - span / 2;
+      const cardRight = centerX + span / 2;
+      let t = 1;
+      if (cardLeft < lead) t = Math.min(t, (cardLeft + span) / zone);
+      if (cardRight > view.width - lead) t = Math.min(t, (view.width - cardRight + span) / zone);
+      t = clamp(t, 0, 1);
+      return Math.pow(t, 1.42);
+    };
+
     const draw = (metrics: { w: number; h: number; spacing: number }) => {
       const s = settingsRef.current;
       const ratio = view.ratio;
@@ -628,7 +675,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (u.uResolution) gl.uniform2f(u.uResolution, canvas.width, canvas.height);
       if (u.uFocal) gl.uniform1f(u.uFocal, view.height * 1.207 * ratio);
       if (u.uWaveTime) gl.uniform1f(u.uWaveTime, state.waveTime);
-      if (u.uFade) gl.uniform1f(u.uFade, s.fadeEdges);
+      if (u.uFade) gl.uniform1f(u.uFade, 0);
       if (u.uPlaceholder) gl.uniform3fv(u.uPlaceholder, parse(s.textColor));
       if (u.uRingColor) gl.uniform3fv(u.uRingColor, parse(s.textColor));
       if (u.uRingWidth) gl.uniform1f(u.uRingWidth, 2 * ratio);
@@ -644,7 +691,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         if (u.uAngle) gl.uniform1f(u.uAngle, card.angle);
         if (u.uRadius) gl.uniform1f(u.uRadius, Math.min(card.radius, card.w / 2, card.h / 2) * ratio);
         if (u.uWave) gl.uniform1f(u.uWave, wavePx * (1 - card.focus));
-        if (u.uAlpha) gl.uniform1f(u.uAlpha, card.alpha);
+        if (u.uAlpha) gl.uniform1f(u.uAlpha, card.alpha * positionFade(view.width / 2 + card.x, card.w));
       };
 
       if (s.shadow > 0) {
@@ -683,11 +730,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       ensurePool(metrics.spacing);
       const used = new Set<PoolEntry>();
       const font = fontRef.current;
-      const fade = (value: number) => {
-        if (s.fadeEdges <= 0) return 1;
-        const t = clamp(value / s.fadeEdges, 0, 1);
-        return t * t * t * (t * (t * 6 - 15) + 10);
-      };
       if (s.showTitles) {
         cards.forEach((card) => {
           if (!card.item.text) return;
@@ -702,7 +744,18 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
             entry.font = font;
             entry.el.style.font = font;
           }
-          const size = card.labelSize;
+          const family = getComputedStyle(entry.el).fontFamily || 'monospace';
+          const maxWidth = Math.max(72, card.w);
+          let size = fitLabel(card.item.text || '', card.labelSize, family, maxWidth);
+          entry.el.style.whiteSpace = 'nowrap';
+          entry.el.style.width = 'max-content';
+          entry.el.style.maxWidth = 'none';
+          entry.el.style.fontSize = `${size}px`;
+          const rendered = entry.el.scrollWidth;
+          if (rendered > maxWidth) {
+            size = Math.max(9, size * (maxWidth / rendered));
+            entry.el.style.fontSize = `${size}px`;
+          }
           const closedOffset = card.h / 2 + Math.max(size * 1.3, 34);
           const openOffset = card.h / 2 + 58;
           const offset = mix(closedOffset, openOffset, card.focus);
@@ -710,12 +763,10 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const y = card.y - Math.cos(card.angle) * offset;
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
-          const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
-          entry.el.style.fontSize = `${size}px`;
-          entry.el.style.width = `${Math.max(120, Math.min(card.w * 0.94, metrics.spacing - 12))}px`;
+          const titleOpacity = card.alpha * card.labelAlpha * positionFade(cssX, card.w);
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
-          entry.el.style.opacity = String(card.alpha * card.labelAlpha * mix(edge, 1, card.focus));
+          entry.el.style.opacity = String(titleOpacity);
         });
       }
       pool.forEach((entry) => {
@@ -773,13 +824,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       view.ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(view.width * view.ratio));
       canvas.height = Math.max(1, Math.round(view.height * view.ratio));
-      const before = state.spacing;
       const { spacing } = measure();
-      if (before > 1 && spacing !== before) {
-        state.scroll = (state.scroll / before) * spacing;
-        state.target = (state.target / before) * spacing;
+      if (state.spacing <= 1) {
+        state.spacing = spacing;
+        state.scroll = state.active * spacing;
+        state.target = state.scroll;
+      } else if (spacing !== state.spacing) {
+        state.scroll = (state.scroll / state.spacing) * spacing;
+        state.target = (state.target / state.spacing) * spacing;
+        state.spacing = spacing;
       }
-      state.spacing = spacing;
     };
 
     const frame = (now: number) => {
