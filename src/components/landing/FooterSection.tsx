@@ -1,77 +1,90 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { FooterWordmark } from "@/components/landing/FooterWordmark";
 
-function FooterNavAndDataColumns({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
+function NavLinks({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
   return (
     <>
-      <div className="sonify-footer-col">
-        <p className="sonify-footer-kicker">Navigate</p>
-        <Link href="/listen" className="sonify-text-link sonify-footer-link">
-          Listen
+      <Link href="/listen" className="sonify-text-link sonify-footer-link">
+        Listen
+      </Link>
+      <Link href="/story" className="sonify-text-link sonify-footer-link">
+        Story
+      </Link>
+      <Link href="/about" className="sonify-text-link sonify-footer-link">
+        About
+      </Link>
+      {showChallenge ? (
+        <Link href="/challenge" className="sonify-text-link sonify-footer-link">
+          Challenge
         </Link>
-        <Link href="/story" className="sonify-text-link sonify-footer-link">
-          Story
-        </Link>
-        <Link href="/about" className="sonify-text-link sonify-footer-link">
-          About
-        </Link>
-        {showChallenge ? (
-          <Link href="/challenge" className="sonify-text-link sonify-footer-link">
-            Challenge
-          </Link>
-        ) : null}
-      </div>
-
-      <div className="sonify-footer-col">
-        <p className="sonify-footer-kicker">CO₂ data</p>
-        <p className="sonify-footer-copy">NOAA Global Monitoring Laboratory</p>
-        <p className="sonify-footer-copy">Mauna Loa Observatory · monthly mean</p>
-        <a
-          className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
-          href="https://gml.noaa.gov/ccgg/trends/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          gml.noaa.gov
-        </a>
-      </div>
+      ) : null}
     </>
   );
 }
 
-function FooterImageAndTypeColumns() {
+function Co2Body() {
   return (
     <>
-      <div className="sonify-footer-col">
-        <p className="sonify-footer-kicker">Earth image</p>
-        <p className="sonify-footer-copy">NASA EPIC Team (DSCOVR)</p>
+      <p className="sonify-footer-copy">NOAA Global Monitoring Laboratory</p>
+      <p className="sonify-footer-copy">Mauna Loa Observatory · monthly mean</p>
+      <a
+        className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
+        href="https://gml.noaa.gov/ccgg/trends/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        gml.noaa.gov
+      </a>
+    </>
+  );
+}
+
+function EarthBody() {
+  return (
+    <>
+      <p className="sonify-footer-copy">NASA EPIC Team (DSCOVR)</p>
+      <a
+        className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
+        href="https://epic.gsfc.nasa.gov/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        epic.gsfc.nasa.gov
+      </a>
+    </>
+  );
+}
+
+function TypeBody() {
+  return (
+    <>
+      <p className="sonify-footer-copy">
+        <span>{"Display: Planet Kosmos by Mads Rydahl, The Planet ("}</span>
         <a
-          className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
-          href="https://epic.gsfc.nasa.gov/"
+          className="sonify-footer-inline-link"
+          href="https://www.dafont.com/planet-kosmos.font"
           target="_blank"
           rel="noreferrer"
         >
-          epic.gsfc.nasa.gov
+          dafont.com
         </a>
-      </div>
-
-      <div className="sonify-footer-col">
-        <p className="sonify-footer-kicker">Type</p>
-        <p className="sonify-footer-copy">
-          <span>{"Display: Planet Kosmos by Mads Rydahl, The Planet ("}</span>
-          <a
-            className="sonify-footer-inline-link"
-            href="https://www.dafont.com/planet-kosmos.font"
-            target="_blank"
-            rel="noreferrer"
-          >
-            dafont.com
-          </a>
-          <span>{")"}</span>
-        </p>
-        <p className="sonify-footer-copy">UI: Geist / Geist Mono (SIL OFL 1.1)</p>
-      </div>
+        <span>{")"}</span>
+      </p>
+      <p className="sonify-footer-copy">UI: Geist / Geist Mono (SIL OFL 1.1)</p>
     </>
+  );
+}
+
+function FooterCredit({ title, children }: Readonly<{ title: string; children: ReactNode }>) {
+  return (
+    <details className="sonify-footer-col sonify-footer-fold">
+      <summary className="sonify-footer-kicker">
+        <span>{title}</span>
+        <span className="sonify-footer-chevron" aria-hidden="true" />
+      </summary>
+      <div className="sonify-footer-fold-body">{children}</div>
+    </details>
   );
 }
 
@@ -85,8 +98,42 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
 
         <div className="sonify-footer-inner">
           <div className="sonify-footer-cols">
-            <FooterNavAndDataColumns showChallenge={showChallenge} />
-            <FooterImageAndTypeColumns />
+            <div className="sonify-footer-static">
+              <div className="sonify-footer-col">
+                <p className="sonify-footer-kicker">Navigate</p>
+                <NavLinks showChallenge={showChallenge} />
+              </div>
+              <div className="sonify-footer-col">
+                <p className="sonify-footer-kicker">CO₂ data</p>
+                <Co2Body />
+              </div>
+              <div className="sonify-footer-col">
+                <p className="sonify-footer-kicker">Earth image</p>
+                <EarthBody />
+              </div>
+              <div className="sonify-footer-col">
+                <p className="sonify-footer-kicker">Type</p>
+                <TypeBody />
+              </div>
+            </div>
+
+            <div className="sonify-footer-phone">
+              <div className="sonify-footer-col sonify-footer-nav">
+                <p className="sonify-footer-kicker">Navigate</p>
+                <div className="sonify-footer-nav-links">
+                  <NavLinks showChallenge={showChallenge} />
+                </div>
+              </div>
+              <FooterCredit title="CO₂ data">
+                <Co2Body />
+              </FooterCredit>
+              <FooterCredit title="Earth image">
+                <EarthBody />
+              </FooterCredit>
+              <FooterCredit title="Type">
+                <TypeBody />
+              </FooterCredit>
+            </div>
           </div>
 
           <FooterWordmark />
