@@ -132,6 +132,12 @@ export function RoutineStrip() {
       return -(wrapperWidth - containerWidth);
     }
 
+    const place = (amount: number) => {
+      const maxTranslateX = calculateMaxTranslate();
+      gsap.set(wrapper, { x: amount * maxTranslateX });
+      gsap.set(progress, { scaleX: amount });
+    };
+
     const trigger = ScrollTrigger.create({
       trigger: section,
       start: "top top",
@@ -141,20 +147,19 @@ export function RoutineStrip() {
       scrub: 1,
       anticipatePin: 1,
       invalidateOnRefresh: true,
-      onUpdate: (self) => {
-        const maxTranslateX = calculateMaxTranslate();
-        gsap.set(wrapper, { x: self.progress * maxTranslateX });
-        gsap.set(progress, { scaleX: self.progress });
-      },
+      onUpdate: (self) => place(self.progress),
+      onRefresh: (self) => place(self.progress),
     });
 
     const onResize = () => {
       trigger.refresh();
     };
     window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
 
     return () => {
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
       trigger.kill();
     };
   }, []);
