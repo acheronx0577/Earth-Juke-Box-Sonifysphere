@@ -275,30 +275,16 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         return room;
       };
 
+      // Keep the badge beside the pointer. Searching the whole stage made it jump to distant corners.
       const candidates = [
         { x: 14, y: 12 },
         { x: 14, y: -height - gap },
         { x: -width - 14, y: 12 },
         { x: -width - 14, y: -height - gap },
       ];
-      const topBand = obstacles.reduce((bottom, obstacle) => obstacle.top < stageHeight / 2 ? Math.max(bottom, obstacle.bottom) : bottom, 0);
-      const bottomBand = obstacles.reduce((top, obstacle) => obstacle.bottom > stageHeight / 2 ? Math.min(top, obstacle.top) : top, stageHeight);
-      if (bottomBand - topBand >= height + gap * 2) {
-        candidates.unshift({ x: edge - tipAnchor.x, y: topBand + gap - tipAnchor.y });
-      }
-      for (const obstacle of obstacles) {
-        candidates.push(
-          { x: obstacle.left - gap - width - tipAnchor.x, y: obstacle.top - tipAnchor.y },
-          { x: obstacle.right + gap - tipAnchor.x, y: obstacle.top - tipAnchor.y },
-          { x: obstacle.left - tipAnchor.x, y: obstacle.top - gap - height - tipAnchor.y },
-          { x: obstacle.left - tipAnchor.x, y: obstacle.bottom + gap - tipAnchor.y },
-        );
-      }
-      for (const left of [gap, Math.round((stageWidth - width) / 2), stageWidth - width - gap]) {
-        for (const top of [gap, Math.round((stageHeight - height) / 2), stageHeight - height - gap]) {
-          candidates.push({ x: left - tipAnchor.x, y: top - tipAnchor.y });
-        }
-      }
+
+      const currentShiftIsLocal = Math.abs(tipShift.x) <= width + gap && Math.abs(tipShift.y) <= height + gap;
+      if (currentShiftIsLocal && clearance(tipShift.x, tipShift.y) >= 0) return;
 
       let best = candidates[0] ?? { x: gap - tipAnchor.x, y: gap - tipAnchor.y };
       let bestRoom = Number.NEGATIVE_INFINITY;
@@ -324,7 +310,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     observer.observe(stage);
     stage.querySelectorAll(".lv-tag, .lv-legend, .lv-hint, .lv-nino-label, .lv-nino-box, .lv-probe-dot").forEach((node) => observer.observe(node));
     return () => observer.disconnect();
-  }, [tipAnchor, tip, legend]);
+  }, [tipAnchor, tip, legend, tipShift]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -402,14 +388,26 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
 
   const sampleMedia = (clientX: number, clientY: number) => {
     const stage = stageRef.current;
-    const media = source.kind === "video" ? videoRef.current : imageRef.current;
-    const canvasMedia = source.id === "currents-example" && !source.video ? stage?.querySelector("canvas") : null;
-    const node = media ?? canvasMedia;
-    if (!stage || !node) return;
+    if (!stage) return;
     const stageRect = stage.getBoundingClientRect();
+    setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
+    setPixel({
+      x: Math.min(1, Math.max(0, (clientX - stageRect.left) / stageRect.width)),
+      y: Math.min(1, Math.max(0, (clientY - stageRect.top) / stageRect.height)),
+    });
+    const media = source.kind === "video" ? videoRef.current : imageRef.current;
+    const canvasMedia = source.id === "currents-example" && !source.video ? stage.querySelector("canvas") : null;
+    const node = media ?? canvasMedia;
+    if (!node) {
+      onPixel(null);
+      return;
+    }
     const naturalWidth = node instanceof HTMLVideoElement ? node.videoWidth : node instanceof HTMLImageElement ? node.naturalWidth : node.width;
     const naturalHeight = node instanceof HTMLVideoElement ? node.videoHeight : node instanceof HTMLImageElement ? node.naturalHeight : node.height;
-    if (!naturalWidth || !naturalHeight) return;
+    if (!naturalWidth || !naturalHeight) {
+      onPixel(null);
+      return;
+    }
     const scale = Math.min(stageRect.width / naturalWidth, stageRect.height / naturalHeight);
     const drawnWidth = naturalWidth * scale;
     const drawnHeight = naturalHeight * scale;
@@ -419,11 +417,6 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const unscaledY = (clientY - stageRect.top - imageOffset.y) / mapZoom;
     const x = (unscaledX - left) / drawnWidth;
     const y = (unscaledY - top) / drawnHeight;
-    setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
-    setPixel({
-      x: Math.min(1, Math.max(0, (clientX - stageRect.left) / stageRect.width)),
-      y: Math.min(1, Math.max(0, (clientY - stageRect.top) / stageRect.height)),
-    });
     if (x < 0 || x > 1 || y < 0 || y > 1) {
       onPixel(null);
       return;
@@ -432,7 +425,10 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     canvas.width = 1;
     canvas.height = 1;
     const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) return;
+    if (!context) {
+      onPixel(null);
+      return;
+    }
     try {
       context.drawImage(node, Math.floor(x * naturalWidth), Math.floor(y * naturalHeight), 1, 1, 0, 0, 1, 1);
       const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
