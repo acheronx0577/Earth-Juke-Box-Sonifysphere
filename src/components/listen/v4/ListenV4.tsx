@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
@@ -142,6 +142,7 @@ function HistoryList({
   onNew,
   drawer,
   onClose,
+  closeRef,
 }: {
   readonly sources: readonly ListenSource[];
   readonly searches: readonly SearchRecord[];
@@ -151,6 +152,7 @@ function HistoryList({
   readonly onNew: () => void;
   readonly drawer?: boolean;
   readonly onClose?: () => void;
+  readonly closeRef?: RefObject<HTMLButtonElement | null>;
 }) {
   return (
     <>
@@ -160,7 +162,7 @@ function HistoryList({
             <p className="lv-mono lv-eyebrow">HISTORY · {sources.length + searches.length} ITEMS</p>
             <p className="lv-title">Your sources</p>
           </div>
-          <button type="button" className="lv-icon-btn lv-cut" aria-label="Close history" onClick={onClose}>
+          <button ref={closeRef} type="button" className="lv-icon-btn lv-cut" aria-label="Close history" onClick={onClose}>
             ×
           </button>
         </div>
@@ -206,7 +208,7 @@ function HistoryList({
                   <span className="lv-find">FIND </span>
                   <span className="lv-hist-title">{item.term}</span>
                 </strong>
-                <small>{item.detail}</small>
+                {item.detail ? <small>{item.detail}</small> : null}
               </span>
             </span>
           </button>
@@ -435,7 +437,25 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     }
   }, [searches, sources, profiles]);
 
+  const historyTabRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const drawerWasOpen = useRef(false);
   const sheetWasOpen = useRef(false);
+
+  useEffect(() => {
+    if (drawer) {
+      drawerWasOpen.current = true;
+      const close = drawerCloseRef.current;
+      const frame = requestAnimationFrame(() => close?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+    if (!drawerWasOpen.current) return;
+    drawerWasOpen.current = false;
+    const tab = historyTabRef.current;
+    if (!tab || tab.offsetParent === null) return;
+    const frame = requestAnimationFrame(() => tab.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [drawer]);
   useEffect(() => {
     if (sheet) {
       sheetWasOpen.current = true;
@@ -842,6 +862,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             searches={searches}
             activeId={source.id}
             drawer={drawer}
+            closeRef={drawerCloseRef}
             onClose={() => setDrawer(false)}
             onOpen={openSource}
             onSearch={(term) => void searchNASA(term)}
@@ -900,6 +921,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <Timeline year={year} onYear={setYear} />
       <div className="lv-tabs" role="navigation" aria-label="Listen views">
         <button
+          ref={historyTabRef}
           type="button"
           className="lv-tab lv-cut"
           aria-current={drawer ? "page" : undefined}
