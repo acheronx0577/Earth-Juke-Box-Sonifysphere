@@ -1117,7 +1117,7 @@
   font-size: 13px;
 }
 
-@media (max-width: 1099px) {
+@media (max-width: 1023px) {
   .lv-page {
     --lv-tab-space: calc(94px + env(safe-area-inset-bottom, 0px));
     display: flex;
@@ -1341,7 +1341,7 @@
   .lv-page { --lv-nav-space: calc(2rem + 2rem + 16px + env(safe-area-inset-top, 0px)); }
 }
 
-@media (min-width: 700px) and (max-width: 1099px) {
+@media (min-width: 700px) and (max-width: 1023px) {
   .lv-page { padding-left: 24px; padding-right: 24px; }
   .lv-chips { margin-right: -24px; padding-right: 24px; }
   .lv-collapse { flex: 1; }
@@ -1357,41 +1357,78 @@
   .lv-card { min-width: 0; }
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1024px) {
   html.lv-lock,
   html.lv-lock body {
-    overflow: auto;
+    overflow: hidden;
   }
 
   .lv-page {
-    min-height: 100svh;
-    height: auto;
-    overflow: visible;
+    height: 100svh;
+    max-height: 100svh;
+    min-height: 0;
+    overflow: hidden;
     display: grid;
-    grid-template-columns: 248px minmax(0, 1fr) 320px;
+    grid-template-columns: minmax(140px, 248px) minmax(520px, 1fr) minmax(260px, 320px);
     grid-template-rows: minmax(0, 1fr) 44px;
     column-gap: 16px;
     row-gap: 12px;
     padding: var(--lv-nav-space) 32px 16px;
   }
-  .lv-history { grid-column: 1; grid-row: 1; min-height: 0; }
+  .lv-history,
+  .lv-sound {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .lv-history { grid-column: 1; grid-row: 1; }
+  .lv-history-face,
+  .lv-sound-face {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    overflow: auto;
+  }
   .lv-main {
     grid-column: 2;
     grid-row: 1;
     min-height: 0;
-    display: grid;
-    grid-template-rows: auto auto auto auto;
+    height: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
   }
-  .lv-sound { grid-column: 3; grid-row: 1; min-height: 0; }
+  .lv-stage {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+  }
+  .lv-status:empty { display: none; }
+  .lv-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .lv-chips::-webkit-scrollbar { display: none; }
+  .lv-sound { grid-column: 3; grid-row: 1; }
   .lv-timeline {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: center;
     width: min(932px, 100%);
   }
-  .lv-cards { min-height: 150px; height: auto; overflow: visible; }
-  .lv-card { height: auto; min-height: 150px; }
+  .lv-cards {
+    min-height: 0;
+    height: auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    grid-auto-columns: minmax(8.25rem, 1fr);
+    scrollbar-width: none;
+  }
+  .lv-cards::-webkit-scrollbar { display: none; }
+  .lv-card { height: auto; min-height: clamp(6.5rem, calc(100svh - 28rem), 150px); }
   .lv-drawer-only { display: none; }
 }
 
