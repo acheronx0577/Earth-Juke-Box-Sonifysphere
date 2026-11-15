@@ -427,6 +427,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [legend, setLegend] = useState<LegendModel>(legendFromMetadata(legendMetaFor(initialLayer, MAP_SOURCE)));
   const [measured, setMeasured] = useState<TaggedReading | null>(null);
   const [measuring, setMeasuring] = useState(false);
+  const [readingError, setReadingError] = useState("");
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
   const nasaSearchRequests = useRef(createLatestRequest());
@@ -563,6 +564,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     };
     readingContextRef.current = context;
     setMeasured(null);
+    setReadingError("");
     if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind")) {
       setMeasuring(false);
       return;
@@ -571,6 +573,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     const apiLayer = layer === "air" ? "air-temp" : layer;
     setMeasuring(true);
     const timer = window.setTimeout(() => {
+      const when = formatUtcInstant(context.time) ?? context.time;
       void fetch(
         `/api/listen/measurements?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&time=${encodeURIComponent(context.time)}&layer=${apiLayer}`,
         { signal: controller.signal },
@@ -578,12 +581,17 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         .then(async (response) => {
           const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
           if (!readingContextsMatch(readingContextRef.current, context)) return;
-          const when = formatUtcInstant(context.time) ?? context.time;
           if (isNoDataResponse(response.status, body.error)) {
             setMeasured({ context, status: "no-data", value: "No data for this date", detail: when });
             return;
           }
-          if (!response.ok || typeof body.value !== "number") throw new Error(body.error ?? "No reading");
+          if (!response.ok || typeof body.value !== "number") {
+            const message = body.error || "No reading";
+            setMeasured({ context, status: "no-data", value: message, detail: when });
+            setReadingError(message);
+            return;
+          }
+          setReadingError("");
           setMeasured({
             context,
             status: "reading",
@@ -594,7 +602,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === "AbortError") return;
           if (!readingContextsMatch(readingContextRef.current, context)) return;
-          setMeasured(null);
+          const message = error instanceof Error && error.message ? error.message : "The data service could not be reached";
+          setMeasured({ context, status: "no-data", value: message, detail: when });
+          setReadingError(message);
         })
         .finally(() => {
           if (!readingContextsMatch(readingContextRef.current, context)) return;
@@ -1100,6 +1110,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <p className="sr-only" aria-live="polite">
         {announced ? `${announced.label}: ${announced.value}. ${announced.detail}` : ""}
       </p>
+      <p className="sr-only" aria-live="assertive">{readingError}</p>
     </main>
   );
 }
