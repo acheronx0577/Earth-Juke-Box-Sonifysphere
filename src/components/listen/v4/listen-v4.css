@@ -1118,27 +1118,48 @@
 }
 
 @media (max-width: 1023px) {
+  html.lv-lock,
+  html.lv-lock body {
+    overflow: hidden;
+  }
+
   .lv-page {
     --lv-tab-space: calc(94px + env(safe-area-inset-bottom, 0px));
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: var(--lv-nav-space) 16px calc(var(--lv-tab-space) + 20px);
+    gap: 12px;
+    height: 100svh;
+    max-height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+    padding: var(--lv-nav-space) 16px var(--lv-tab-space);
+  }
+
+  .lv-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 12px;
+    overflow: hidden;
   }
 
   .lv-fold {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     box-sizing: border-box;
-    min-height: calc(100svh - var(--lv-nav-space));
-    padding-bottom: var(--lv-tab-space);
+    min-height: 0;
+    padding-bottom: 0;
   }
 
   .lv-fold .lv-stage {
-    flex: 1 1 0;
+    flex: 1 1 auto;
     height: auto;
-    min-height: 11rem;
+    min-height: 0;
+  }
+
+  .lv-status:empty {
+    display: none;
   }
 
   .lv-history { display: none; }
