@@ -144,21 +144,21 @@ export function StatsSection() {
       className="sonify-stats-section content-stretch flex flex-col items-start pb-[80px] sm:pb-[120px] px-4 sm:px-6 lg:px-10 xl:px-14 relative shrink-0 w-full max-w-[1440px] xl:max-w-[1600px] 2xl:max-w-[1800px] mx-auto overflow-hidden"
       data-name="Landing/Stats"
     >
-      <div className="content-stretch flex flex-wrap md:flex-nowrap gap-[16px] sm:gap-[24px] items-start relative shrink-0 w-full">
+      <div className="sonify-stats-panel content-stretch flex flex-wrap md:flex-nowrap gap-[16px] sm:gap-[24px] items-start relative shrink-0 w-full">
         {STAT_ITEMS.map((stat) => (
           <div
             key={stat.id}
-            className="content-stretch flex flex-col gap-[32px] sm:gap-[48px] items-start min-w-[140px] flex-1 p-4 sm:p-[24px] relative"
+            className="sonify-stat-cell content-stretch flex flex-col gap-[32px] sm:gap-[48px] items-start min-w-[140px] flex-1 p-4 sm:p-[24px] relative"
             data-name={`Stat · ${stat.label}`}
           >
-            <img alt="" className="absolute block inset-0 max-w-none size-full pointer-events-none" src={stat.bgSvg} />
-            <div className="content-stretch flex gap-[10px] items-center relative shrink-0">
+            <img alt="" className="sonify-stat-background absolute block inset-0 max-w-none size-full pointer-events-none" src={stat.bgSvg} />
+            <div className="sonify-stat-label content-stretch flex gap-[10px] items-center relative shrink-0">
               <div className="bg-[rgba(242,242,240,0.62)] relative shrink-0 size-[8px]" />
               <p className="font-mono font-normal leading-[1.3] relative shrink-0 text-[#f2f2f0] text-[11px] tracking-[0.44px] uppercase whitespace-nowrap">
                 {stat.label}
               </p>
             </div>
-            <div className="content-stretch flex flex-col gap-[6px] items-start relative shrink-0 text-[#f2f2f0] whitespace-nowrap">
+            <div className="sonify-stat-reading content-stretch flex flex-col gap-[6px] items-start relative shrink-0 text-[#f2f2f0] whitespace-nowrap">
               <p
                 className="sonify-stat-number font-sans font-medium leading-none relative shrink-0 text-[48px] sm:text-[72px] tracking-[-1.44px]"
                 data-stat-value={stat.numericValue}
