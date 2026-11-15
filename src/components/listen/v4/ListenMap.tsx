@@ -440,27 +440,34 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           onSample={(pixels) => onLegend(legendFromPixels(pixels.data, pixels.width, pixels.height, "FRAME COLORS"))}
         />
       ) : null}
-      {mapMode ? <div className="lv-glass lv-cut lv-tag">
+      {false && mapMode ? <div className="lv-glass lv-cut lv-tag">
         <ChamferMark />
         <div className="lv-glass-face">
           <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
           <span className="lv-tag-short">MAP · NOAA CPC</span>
         </div>
       </div> : null}
-      {mapMode ? <div className="lv-glass lv-cut lv-hint">
+      {false && mapMode ? <div className="lv-glass lv-cut lv-hint">
         <ChamferMark />
         <div className="lv-glass-face">
           <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
           <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
         </div>
       </div> : null}
-      {mapMode ? (
+      {false && mapMode ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
           <ChamferMark />
           <div className="lv-glass-face">
             <p>PROBE · {coord}</p>
             <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
           </div>
+        </div>
+      ) : null}
+      {mapMode ? (
+        <div className="lv-glass lv-tip lv-plain">
+          <p>
+            {coord} · <span className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{probePhrase(tip)}</span>
+          </p>
         </div>
       ) : ring ? (
         <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
@@ -497,33 +504,65 @@ function ExampleClip({ frame, onSample }: { readonly frame: number; readonly onS
   return <canvas ref={ref} className="lv-media" width={320} height={180} aria-label="Ocean currents animation" />;
 }
 
+function probePhrase(tip: string): string {
+  return tip
+    .replace(/[↑↓]/g, "")
+    .replace(/\s*·\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase()
+    .replace("niño", "Niño");
+}
+
 function LegendPanel({ legend }: { readonly legend: LegendModel }) {
   const ends = legend.stops.filter((stop) => stop.label);
+  const noData = legend.noData;
   return (
-    <div className="lv-glass lv-cut lv-legend">
-      <ChamferMark />
-      <div className="lv-glass-face">
-        <p className="lv-legend-title">{legend.title}</p>
+    <>
+      {false && (
+        <div className="lv-glass lv-cut lv-legend">
+          <ChamferMark />
+          <div className="lv-glass-face">
+            <p className="lv-legend-title">{legend.title}</p>
+            {legend.stops.length > 0 ? (
+              <div className="lv-legend-scale">
+                <span>{ends[0]?.label ?? ""}</span>
+                <i style={{ background: legendGradient(legend.stops) }} />
+                <span>{ends.at(-1)?.label ?? ""}</span>
+              </div>
+            ) : (
+              <p className="lv-legend-missing">NO SCALE DETECTED</p>
+            )}
+            {noData ? (
+              <p className="lv-legend-none">
+                <i style={{ background: noData?.color }} />
+                {noData?.label}
+              </p>
+            ) : null}
+            <p className="lv-legend-source lv-cut">
+              <ChamferMark />
+              {legend.source.toUpperCase()}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="lv-glass lv-legend lv-plain">
         {legend.stops.length > 0 ? (
           <div className="lv-legend-scale">
-            <span>{ends[0]?.label ?? ""}</span>
+            <span>{(ends[0]?.label ?? "colder").toLowerCase()}</span>
             <i style={{ background: legendGradient(legend.stops) }} />
-            <span>{ends.at(-1)?.label ?? ""}</span>
+            <span>{(ends.at(-1)?.label ?? "warmer").toLowerCase()}</span>
           </div>
         ) : (
-          <p className="lv-legend-missing">NO SCALE DETECTED</p>
+          <p className="lv-legend-missing">no scale</p>
         )}
-        {legend.noData ? (
+        {noData ? (
           <p className="lv-legend-none">
-            <i style={{ background: legend.noData.color }} />
-            {legend.noData.label}
+            <i style={{ background: noData.color }} />
+            no data
           </p>
         ) : null}
-        <p className="lv-legend-source lv-cut">
-          <ChamferMark />
-          {legend.source.toUpperCase()}
-        </p>
       </div>
-    </div>
+    </>
   );
 }
