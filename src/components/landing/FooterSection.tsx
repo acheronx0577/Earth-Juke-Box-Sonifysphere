@@ -141,7 +141,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
           <div className="sonify-footer-legal">
             <p>Space Apps 2026 · The Earth Information Jukebox</p>
             <p>
-              Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth · CO₂: NOAA GML Mauna Loa
+              Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth. SI tools: Grok Bot, ChatGPT, Claude, Antigravity, and Codex. CO₂: NOAA GML Mauna Loa
             </p>
           </div>
         </div>
