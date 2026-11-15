@@ -102,8 +102,15 @@ function MapThumb() {
 function Thumb({ source }: { readonly source: ListenSource }) {
   return (
     <span className="lv-thumb lv-cut" aria-hidden="true">
-      {source.kind === "map" ? <MapThumb /> : source.preview ? <img src={source.preview} alt="" /> : <MapThumb />}
-      {source.kind === "video" ? <span className="lv-thumb-badge">{source.duration ?? "VID"}</span> : null}
+      {source.kind === "map" || source.kind === "search" ? <MapThumb /> : source.preview ? <img src={source.preview} alt="" /> : <MapThumb />}
+      {source.kind === "video" ? (
+        <>
+          <span className="lv-play-badge">
+            <PlayGlyph />
+          </span>
+          <span className="lv-thumb-badge">{source.duration ?? "0:48"}</span>
+        </>
+      ) : null}
     </span>
   );
 }
@@ -173,10 +180,15 @@ function HistoryList({
             aria-current={item.id === activeId ? "true" : undefined}
             onClick={() => onOpen(item)}
           >
-            <Thumb source={item} />
-            <span className="lv-hist-copy">
-              <strong>{item.title}</strong>
-              <small>{item.meta}</small>
+            <span className="lv-hist-face lv-cut">
+              <Thumb source={item} />
+              <span className="lv-hist-copy">
+                <strong>
+                  <span className="lv-kind">{item.eyebrow}</span>
+                  <span className="lv-hist-title">{item.title}</span>
+                </strong>
+                <small>{item.meta}</small>
+              </span>
             </span>
           </button>
         ))}
@@ -185,15 +197,17 @@ function HistoryList({
       <div className="lv-list">
         {searches.map((item) => (
           <button type="button" key={item.id} className="lv-hist lv-cut" onClick={() => onSearch(item.term)}>
-            <span className="lv-search-glyph" aria-hidden="true">
-              <SearchIcon />
-            </span>
-            <span className="lv-hist-copy">
-              <strong>
-                <span className="lv-find">FIND </span>
-                {item.term}
-              </strong>
-              <small>{item.detail}</small>
+            <span className="lv-hist-face lv-cut">
+              <span className="lv-search-glyph lv-cut" aria-hidden="true">
+                <SearchIcon />
+              </span>
+              <span className="lv-hist-copy">
+                <strong>
+                  <span className="lv-find">FIND </span>
+                  <span className="lv-hist-title">{item.term}</span>
+                </strong>
+                <small>{item.detail}</small>
+              </span>
             </span>
           </button>
         ))}
