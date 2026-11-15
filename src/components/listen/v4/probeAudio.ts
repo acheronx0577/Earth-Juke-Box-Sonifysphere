@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import * as Tone from "tone";
 import type { InstrumentId, SoundStyle, VariationId } from "@/components/listen/v4/model";
 import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
@@ -40,7 +41,6 @@ function decibels(volume: number): number {
 }
 
 async function buildVoice(params: HearingParams): Promise<Voice | null> {
-  const Tone = await import("tone");
   toneNow = () => Tone.now();
   await Tone.start();
   await Tone.context.resume();
