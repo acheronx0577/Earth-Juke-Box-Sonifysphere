@@ -165,7 +165,7 @@ async function testRoute() {
     const auth = new Headers(init?.headers).get("authorization") ?? "";
     assert.equal(auth.startsWith("Basic "), true);
     calls.push(url.toString());
-    if (url.pathname.includes("wind")) {
+    if (url.pathname.includes("t_sea")) {
       return new Response("nope", { status: 503 });
     }
     if (url.pathname.includes("ocean_current")) {
@@ -216,13 +216,13 @@ async function testRoute() {
     assert.equal(recentAgain.status, 200);
     assert.equal(calls.length, 3);
 
-    const wind = await probe(10.12341, "wind");
-    const windBody = await wind.json();
-    assert.equal(wind.status, 502);
-    assert.equal(windBody.error, "No matched reading is available for this layer, place, and time.");
-    assert.equal(wind.headers.get("cache-control"), "no-store");
-    const windAgain = await probe(10.12341, "wind");
-    assert.equal(windAgain.status, 502);
+    const seaDown = await probe(10.12341, "sea-temp");
+    const seaBody = await seaDown.json();
+    assert.equal(seaDown.status, 502);
+    assert.equal(seaBody.error, "No matched reading is available for this layer, place, and time.");
+    assert.equal(seaDown.headers.get("cache-control"), "no-store");
+    const seaAgain = await probe(10.12341, "sea-temp");
+    assert.equal(seaAgain.status, 502);
     assert.equal(calls.length, 5);
 
     const empty = await probe(33, "currents");
@@ -243,14 +243,14 @@ async function testRoute() {
     assert.equal(downAgain.status, 502);
     assert.equal(calls.filter((entry) => entry === "down").length, 2);
 
-    const leaked = JSON.stringify(firstBody) + JSON.stringify(secondBody) + JSON.stringify(windBody);
+    const leaked = JSON.stringify(firstBody) + JSON.stringify(secondBody) + JSON.stringify(seaBody);
     assert.equal(leaked.includes(password), false);
     assert.equal(leaked.includes(username), false);
     assert.equal(leaked.includes("Basic"), false);
 
     delete process.env.METEOMATICS_USERNAME;
     delete process.env.METEOMATICS_PASSWORD;
-    const unconfigured = await probe(10.12341);
+    const unconfigured = await probe(10.12341, "sea-temp");
     assert.equal(unconfigured.status, 503);
     assert.equal(unconfigured.headers.get("cache-control"), "no-store");
   } finally {
