@@ -5,6 +5,7 @@ import * as Tone from "tone";
 import type { InstrumentId, LayerId, PitchMode, SoundStyle, VariationId } from "@/components/listen/v4/model";
 import { frequencyForValue, intervalForTempo, layerTimbreFor, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
+import type { ProximityMix } from "@/components/listen/v4/proximityAudio";
 
 export interface HearingParams {
   readonly style: SoundStyle;
@@ -14,13 +15,14 @@ export interface HearingParams {
   readonly ambience: boolean;
   readonly layer: LayerId;
   readonly pan: number;
+  readonly proximity?: ProximityMix;
   readonly volume: number;
   readonly tempo: number;
   readonly value: number | null;
 }
 
 type Voice = {
-  readonly volume: { value: number };
+  readonly volume: { value: number; rampTo: (value: number, duration: number) => unknown };
   connect: (destination: Tone.Filter) => unknown;
   triggerAttackRelease: (note: number | string, duration: string, time?: number) => unknown;
   dispose: () => unknown;
@@ -29,6 +31,8 @@ type Voice = {
 type AudioRig = {
   readonly voice: Voice;
   readonly panner: Tone.Panner;
+  readonly filter: Tone.Filter;
+  readonly reverb: Tone.Reverb;
   readonly ambient: Tone.Oscillator | null;
   dispose: () => void;
 };
@@ -50,6 +54,20 @@ function decibels(volume: number): number {
   return -32 + (volume / 100) * 26;
 }
 
+function proximityVolume(params: HearingParams): number {
+  const gain = params.proximity?.gain ?? 1;
+  return gain <= 0 || params.value === null ? -Infinity : decibels(params.volume) + 20 * Math.log10(gain);
+}
+
+function proximityCutoff(params: HearingParams): number {
+  const variation = params.variation === "bright" ? 1.55 : params.variation === "deep" ? 0.55 : 1;
+  return Math.min(5200, layerTimbreFor(params.layer).filterHz * variation * (0.7 + (params.proximity?.detail ?? 0) * 1.1));
+}
+
+function proximityReverb(params: HearingParams): number {
+  return (params.ambience ? 0.24 : 0.09) * (1 - (params.proximity?.detail ?? 0) * 0.8);
+}
+
 function activeFrequency(params: HearingParams): number | null {
   return frequencyForValue(params.value, params.variation, params.pitchMode);
 }
@@ -67,15 +85,12 @@ async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
 
   try {
     const timbre = layerTimbreFor(params.layer);
-    const cutoff = Math.min(
-      5200,
-      timbre.filterHz * (params.variation === "bright" ? 1.55 : params.variation === "deep" ? 0.55 : 1),
-    );
+    const cutoff = proximityCutoff(params);
     const limiter = own(new Tone.Limiter(-1).toDestination());
     const reverb = own(new Tone.Reverb({
       decay: params.ambience ? 3.2 : 1.4,
       preDelay: 0.025,
-      wet: params.ambience ? 0.24 : 0.09,
+      wet: proximityReverb(params),
     }));
     const panner = own(new Tone.Panner(Math.max(-1, Math.min(1, params.pan))));
     const filter = own(new Tone.Filter(cutoff, "lowpass"));
@@ -121,7 +136,7 @@ async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
     }
 
     voice.connect(filter);
-    voice.volume.value = decibels(params.volume);
+    voice.volume.value = proximityVolume(params);
 
     const frequency = activeFrequency(params) ?? 220;
     let ambient: Tone.Oscillator | null = null;
@@ -131,7 +146,7 @@ async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
       ambient = own(new Tone.Oscillator({
         frequency: frequency / 4,
         type: "sine",
-        volume: params.volume <= 0 ? -Infinity : decibels(params.volume) - 24,
+        volume: proximityVolume(params) - 24,
       }));
       ambient.connect(ambientFilter);
     }
@@ -145,6 +160,8 @@ async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
     return {
       voice,
       panner,
+      filter,
+      reverb,
       ambient,
       dispose() {
         if (disposed) return;
@@ -192,6 +209,8 @@ function publish(params: HearingParams | null) {
     params.pitchMode,
     params.ambience ? "ambience" : "dry",
     params.pan.toFixed(2),
+    (params.proximity?.detail ?? 0).toFixed(2),
+    (params.proximity?.gain ?? 1).toFixed(2),
   ].join("|");
 }
 
@@ -206,7 +225,6 @@ function strike(time = Tone.now()) {
     return;
   }
 
-  rig.voice.volume.value = decibels(params.volume);
   const note = params.style === "orchestra" || params.instrument === "strings" ? noteNameForFrequency(frequency) : frequency;
   rig.voice.triggerAttackRelease(note, duration(params), time);
   publish(params);
@@ -239,10 +257,12 @@ function sameVoiceConfig(a: HearingParams, b: HearingParams): boolean {
 
 function applyRigParams(target: AudioRig, params: HearingParams) {
   const frequency = activeFrequency(params);
-  target.voice.volume.value = frequency === null ? -Infinity : decibels(params.volume);
+  target.voice.volume.rampTo(frequency === null ? -Infinity : proximityVolume(params), 0.18);
   target.panner.pan.rampTo(Math.max(-1, Math.min(1, params.pan)), 0.22);
+  target.filter.frequency.rampTo(proximityCutoff(params), 0.25);
+  target.reverb.wet.rampTo(proximityReverb(params), 0.25);
   if (target.ambient) {
-    target.ambient.volume.value = frequency === null || params.volume <= 0 ? -Infinity : decibels(params.volume) - 24;
+    target.ambient.volume.rampTo(frequency === null ? -Infinity : proximityVolume(params) - 24, 0.25);
     if (frequency !== null) target.ambient.frequency.rampTo(frequency / 4, 0.35);
   }
 }

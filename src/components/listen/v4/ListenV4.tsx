@@ -43,6 +43,7 @@ import { LISTEN_UPLOAD_ACCEPT, validateListenUpload } from "@/lib/listen/uploadV
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
+import { proximityMix, type ListeningFocus } from "@/components/listen/v4/proximityAudio";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
 
@@ -510,7 +511,8 @@ function AudioKey({
         </div>
         <p>Higher normalized values raise pitch. Current sound: {currentTone}. Mapping: {pitchMode === "pentatonic" ? "C-major pentatonic" : "continuous"}.</p>
         <p>One note every {interval} ms. Timbre: {timbre}. {ambience ? "A quiet two-octave pad and longer reverb are on." : "A short room reverb is on; the ambient pad is off."}</p>
-        <p>{source.kind === "map" ? `Stereo position follows longitude · ${panPosition}. The regional scan uses example data, not live measurements.` : "Media sources stay centered in stereo."}</p>
+        <p>Stereo position follows the probe within the visible area · {panPosition}. Zooming in brings nearby sound forward with clearer detail and less reverb; distant and offscreen points fade. Zooming out restores a wider, softer sound. Pitch continues to follow the selected data.</p>
+        {source.kind === "map" ? <p>The regional scan uses example data, not live measurements.</p> : null}
       </div>
     </details>
   );
@@ -662,6 +664,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [measuring, setMeasuring] = useState(false);
   const [readingError, setReadingError] = useState("");
   const [pixelColor, setPixelColor] = useState<string | null>(null);
+  const [listeningFocus, setListeningFocus] = useState<ListeningFocus | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
   const mapScanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nasaSearchRequests = useRef(createLatestRequest());
@@ -830,12 +833,13 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
       pitchMode,
       ambience,
       layer,
-      pan: source.kind === "map" ? Math.max(-1, Math.min(1, lng / 180)) : 0,
+      pan: proximityMix(listeningFocus?.sourceId === source.id ? listeningFocus : null).pan,
+      proximity: proximityMix(listeningFocus?.sourceId === source.id ? listeningFocus : null),
       volume,
       tempo,
       value: reading.normalized,
     }),
-    [styleId, instrument, variation, pitchMode, ambience, layer, source.kind, lng, volume, tempo, reading.normalized],
+    [styleId, instrument, variation, pitchMode, ambience, layer, source.id, listeningFocus, volume, tempo, reading.normalized],
   );
 
   useEffect(() => {
@@ -1389,6 +1393,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
             tip={reading.tip}
             coord={coord}
             onPixel={setPixelColor}
+            onFocus={setListeningFocus}
             onProbe={(nextLat, nextLng) => {
               if (scanning) stopMapScan("Map scan stopped at the selected point.");
               setLat(Math.max(-85, Math.min(85, nextLat)));
