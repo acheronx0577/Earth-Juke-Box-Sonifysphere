@@ -23,6 +23,8 @@ import { RoundRail } from "@/components/play/RoundRail";
 import { SignalMap } from "@/components/play/SignalMap";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { SoundOffNote } from "@/components/shared/SoundOffNote";
+import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
+import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
 
 type Phase = "ready" | "listening" | "answered" | "result";
 
@@ -144,9 +146,11 @@ function FeedbackBlock({
 export function GuessGame({
   seed,
   rounds = GUESS_ROUND_COUNT,
+  sharedResult = null,
 }: {
   readonly seed?: number;
   readonly rounds?: number;
+  readonly sharedResult?: SharedGuessResult | null;
 }) {
   const { pause, soundOn, setSoundEnabled, isSoundOn } = useSonifyPlayer();
   const router = useRouter();
@@ -201,6 +205,7 @@ export function GuessGame({
   }, []);
 
   useEffect(() => {
+    if (sharedResult) return;
     const stored = readGuessRun();
     const activeSeed = seed ?? null;
     const resumable = isResumableGuessRun(stored, rounds) ? stored : null;
@@ -228,7 +233,7 @@ export function GuessGame({
       return;
     }
     openFresh(activeSeed ?? freshSeed());
-  }, [openFresh, rounds, seed]);
+  }, [openFresh, rounds, seed, sharedResult]);
 
   const deck = useMemo(() => {
     if (visitSeed === null) return [] as GuessRound[];
@@ -238,6 +243,7 @@ export function GuessGame({
   const round = deck[index] ?? deck[0];
 
   useEffect(() => {
+    if (sharedResult) return;
     if (!booted || visitSeed === null) return;
     if (phase === "result") {
       writeGuessRun(null);
@@ -255,14 +261,15 @@ export function GuessGame({
       pickedId,
       history,
     });
-  }, [booted, visitSeed, session, index, phase, score, streak, best, correctCount, pickedId, history]);
+  }, [booted, visitSeed, session, index, phase, score, streak, best, correctCount, pickedId, history, sharedResult]);
 
   useEffect(() => {
+    if (sharedResult) return;
     if (!booted || visitSeed === null) return;
     const current = new URLSearchParams(window.location.search).get("seed");
     if (current === String(visitSeed)) return;
     router.replace(`/challenge/guess?seed=${visitSeed}`, { scroll: false });
-  }, [booted, router, visitSeed]);
+  }, [booted, router, visitSeed, sharedResult]);
 
   useEffect(() => {
     const target = pendingFocus.current;
@@ -516,6 +523,45 @@ export function GuessGame({
     </div>
   );
 
+  const shareResult: SharedGuessResult = {
+    correct: correctCount,
+    total: deck.length,
+    score,
+    bestStreak: best,
+  };
+
+  if (sharedResult) {
+    const accuracy = Math.round((sharedResult.correct / sharedResult.total) * 100);
+    return (
+      <PlayFrame title="Shared Guess the Signal result">
+        <section className="sonify-console" aria-labelledby="shared-guess-title" data-testid="guess-shared-result">
+          <div className="sonify-console-in flex flex-col gap-6 p-6 sm:p-10">
+            <div>
+              <p className="about-kicker">A player shared this result</p>
+              <h2 id="shared-guess-title" className="m-0 font-sans text-3xl font-medium text-[#f2f2f0]">Guess the Signal</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-y border-[rgba(242,242,240,0.14)] py-5 sm:grid-cols-4">
+              <div><span className="about-kicker">Signals named</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.correct}/{sharedResult.total}</p></div>
+              <div><span className="about-kicker">Accuracy</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{accuracy}%</p></div>
+              <div><span className="about-kicker">Score</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.score}</p></div>
+              <div><span className="about-kicker">Best streak</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.bestStreak}</p></div>
+            </div>
+            <p className="sonify-help m-0">Each signal connects sound patterns to a region or data record. Play a round to hear the pattern, then compare the clue with the answer.</p>
+            <ChallengeShareActions
+              path="/challenge/guess"
+              params={{ result: encodeGuessResult(sharedResult) }}
+              title="Guess the Signal"
+              score={`${sharedResult.correct} / ${sharedResult.total}`}
+              detail={`Accuracy ${accuracy}% · Score ${sharedResult.score} · Best streak ${sharedResult.bestStreak}`}
+              fileName="sonifysphere-guess-result.png"
+            />
+            <Link href="/challenge/guess" className="sonify-text-next">Play Guess the Signal →</Link>
+          </div>
+        </section>
+      </PlayFrame>
+    );
+  }
+
   return (
     <PlayFrame title="Guess the Signal" toolbar={scoreToolbar} className="sonify-guess">
       <p className="sr-only" aria-live="polite">
@@ -592,6 +638,15 @@ export function GuessGame({
                 <Link href="/challenge/compose" className="sonify-text-next">
                   Next: try Compose →
                 </Link>
+                <p className="sonify-help m-0">{correctCount === deck.length ? "You identified every signal. Replay the rounds to connect each sound with its region or record." : "Review each missed round and replay its sound to connect the pattern with the correct region or record."}</p>
+                <ChallengeShareActions
+                  path="/challenge/guess"
+                  params={{ result: encodeGuessResult(shareResult) }}
+                  title="Guess the Signal"
+                  score={`${correctCount} / ${deck.length}`}
+                  detail={`Score ${score} · Best streak ${best}`}
+                  fileName="sonifysphere-guess-result.png"
+                />
               </div>
               <div className="sonify-result-list">
                 <p className="about-kicker">Round by round</p>

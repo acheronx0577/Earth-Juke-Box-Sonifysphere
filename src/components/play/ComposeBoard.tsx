@@ -21,6 +21,7 @@ import { CutButton } from "@/components/play/CutControls";
 import { PlayFrame } from "@/components/play/PlayFrame";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { SoundOffNote } from "@/components/shared/SoundOffNote";
+import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
 
 const LAYER_NOTE: Record<LayerId, number> = {
   temperature: 247,
@@ -539,6 +540,17 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   />
                 </label>
               )}
+              {plan ? (
+                <ChallengeShareActions
+                  path="/challenge/compose"
+                  params={{ mix: encodeMix(slots, bpm) }}
+                  title="Earth mixtape"
+                  score={`${filledCount} / 8 slots`}
+                  detail={`${bpm} BPM · An Earth data mixtape ready to play`}
+                  fileName="sonifysphere-earth-mixtape.png"
+                  copyLink={false}
+                />
+              ) : null}
             </section>
           </div>
         </div>

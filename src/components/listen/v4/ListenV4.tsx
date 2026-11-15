@@ -34,6 +34,7 @@ import {
 } from "@/components/listen/v4/model";
 import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
+import { LISTEN_UPLOAD_ACCEPT, validateListenUpload } from "@/lib/listen/uploadValidation";
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
@@ -176,10 +177,13 @@ function HistoryList({
       ) : (
         <p className="lv-mono lv-eyebrow">HISTORY</p>
       )}
-      <button type="button" className="lv-new lv-cut" onClick={onNew}>
+      <button type="button" className="lv-new lv-cut" aria-describedby="lv-upload-note" onClick={onNew}>
         <ChamferMark />
         + New source
       </button>
+      <p id="lv-upload-note" className="lv-upload-note">
+        JPEG, PNG, or WebP up to 25 MB · MP4 or WebM up to 100 MB and 15 minutes
+      </p>
       <p className="lv-mono lv-eyebrow lv-section">RECENT SOURCES</p>
       <div className="lv-list">
         {sources.map((item) => (
@@ -399,6 +403,8 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
 export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const { setSoundEnabled } = useSonifyPlayer();
   const fileRef = useRef<HTMLInputElement>(null);
+  const uploadUrls = useRef(new Map<string, string>());
+  const uploadRequest = useRef(0);
   const [sources, setSources] = useState<ListenSource[]>([EIC_FRAME_SOURCE, ...SEED_SOURCES]);
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const [source, setSource] = useState<ListenSource>(MAP_SOURCE);
@@ -406,6 +412,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [results, setResults] = useState<NasaHit[]>([]);
   const [resultsOpen, setResultsOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const [uploadError, setUploadError] = useState("");
   const [layer, setLayer] = useState<LayerId>(initialLayer);
   const [more, setMore] = useState(EXTRA_LAYERS.some((item) => item.id === initialLayer));
   const [lat, setLat] = useState(0);
@@ -447,6 +454,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   useEffect(() => {
     document.documentElement.classList.add("lv-lock");
     return () => document.documentElement.classList.remove("lv-lock");
+  }, []);
+
+  useEffect(() => () => {
+    uploadRequest.current += 1;
+    for (const url of uploadUrls.current.values()) URL.revokeObjectURL(url);
+    uploadUrls.current.clear();
   }, []);
 
   const onLegend = useCallback((next: LegendModel) => {
@@ -627,6 +640,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   const openSource = (item: ListenSource) => {
     const next = item.id === EIC_FRAME_SOURCE.id ? { ...item, preview: EIC_FRAME_IMAGE } : item;
+    setUploadError("");
     setSource(next);
     setPixelColor(null);
     setSavedOpen(false);
@@ -642,6 +656,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   const searchNASA = async (term = query) => {
     const clean = term.trim();
+    setUploadError("");
     setQuery(clean);
     const place = placeMatch(clean);
     if (place) {
@@ -679,6 +694,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   };
 
   const chooseHit = async (item: NasaHit) => {
+    setUploadError("");
     const ticket = nasaAssetRequests.current.start();
     setStatus("Loading NASA media…");
     try {
@@ -708,26 +724,44 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     }
   };
 
-  const onUpload = (file?: File) => {
+  const onUpload = async (file?: File) => {
     if (!file) return;
-    const kind = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : null;
-    if (!kind) {
-      setStatus("Choose an image or video file.");
-      return;
+    const requestId = ++uploadRequest.current;
+    setUploadError("");
+    setStatus(`Checking ${file.name}…`);
+    try {
+      const { kind } = await validateListenUpload(file);
+      if (requestId !== uploadRequest.current) return;
+      let evictedId: string | null = null;
+      if (uploadUrls.current.size >= 3) {
+        const oldest = uploadUrls.current.entries().next().value as [string, string] | undefined;
+        if (oldest) {
+          evictedId = oldest[0];
+          URL.revokeObjectURL(oldest[1]);
+          uploadUrls.current.delete(oldest[0]);
+        }
+      }
+      const id = `upload-${Date.now()}-${requestId}`;
+      const url = URL.createObjectURL(file);
+      const next: ListenSource = {
+        id,
+        title: file.name,
+        kind,
+        eyebrow: kind === "video" ? "VID" : "IMG",
+        meta: "YOUR UPLOAD · THIS SESSION",
+        preview: url,
+        video: kind === "video" ? url : undefined,
+        legend: null,
+      };
+      uploadUrls.current.set(id, url);
+      setSources((previous) => [next, ...previous.filter((old) => old.id !== next.id && old.id !== evictedId)].slice(0, 20));
+      openSource(next);
+      setStatus(`${kind === "image" ? "Image" : "Video"} ready. It stays in this browser session.`);
+    } catch (error) {
+      if (requestId !== uploadRequest.current) return;
+      setStatus("");
+      setUploadError(error instanceof Error ? error.message : "The file could not be opened. Choose a supported image or video.");
     }
-    const url = URL.createObjectURL(file);
-    const next: ListenSource = {
-      id: `upload-${file.name}-${file.size}`,
-      title: file.name,
-      kind,
-      eyebrow: kind === "video" ? "VID" : "IMG",
-      meta: "YOUR UPLOAD · THIS SESSION",
-      preview: url,
-      video: kind === "video" ? url : undefined,
-      legend: null,
-    };
-    setSources((previous) => [next, ...previous.filter((old) => old.id !== next.id)].slice(0, 20));
-    openSource(next);
   };
 
   const togglePlay = async () => {
@@ -906,6 +940,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           />
         )}
         <p className="lv-status" role="status">{status}</p>
+        {uploadError ? <p className="lv-status lv-upload-error" role="alert">{uploadError}</p> : null}
         </div>
         {savedOpen ? null : (
           <section aria-label="Readings at probe">
@@ -1097,10 +1132,11 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         className="sr-only"
         tabIndex={-1}
         type="file"
-        accept="image/*,video/*"
+        accept={LISTEN_UPLOAD_ACCEPT}
         aria-label="Upload image or video"
+        aria-describedby="lv-upload-note"
         onChange={(event) => {
-          onUpload(event.currentTarget.files?.[0]);
+          void onUpload(event.currentTarget.files?.[0]);
           event.currentTarget.value = "";
         }}
       />
