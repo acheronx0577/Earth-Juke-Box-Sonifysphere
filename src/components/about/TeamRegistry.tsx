@@ -105,7 +105,7 @@ export function TeamRegistry() {
       end: () => `+=${distanceUntilLastCard()}`,
       pin: true,
       pinSpacing: true,
-      anticipatePin: 1,
+      anticipatePin: 0,
       onUpdate: (self) => {
         const progress = self.progress * progressWhenCardCentered(totalCards - 1);
         positionCards(progress);
