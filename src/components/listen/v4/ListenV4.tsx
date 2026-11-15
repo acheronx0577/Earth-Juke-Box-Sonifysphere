@@ -329,7 +329,7 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
                 </span>
               );
             })}
-            <span className="lv-playhead" style={{ left: `${ratio * 100}%` }} aria-hidden="true">
+            <span className="lv-playhead" style={{ left: `calc(${ratio} * (100% - 7px))` }} aria-hidden="true">
               <i />
               <b />
             </span>
