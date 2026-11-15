@@ -33,6 +33,7 @@ import {
 } from "@/components/listen/v4/model";
 import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
+import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
@@ -422,7 +423,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [savedOpen, setSavedOpen] = useState(false);
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [legend, setLegend] = useState<LegendModel>(legendFromMetadata(legendMetaFor(initialLayer, MAP_SOURCE)));
-  const [measured, setMeasured] = useState<{ value: string; detail: string } | null>(null);
+  const [measured, setMeasured] = useState<TaggedReading | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
@@ -549,36 +550,54 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     updateProbeAudio(hearing);
   }, [hearing, playing]);
 
+  const readingContextRef = useRef<ReadingContext | null>(null);
   useEffect(() => {
-    if (layer !== "air" && layer !== "currents" && layer !== "wind") {
-      setMeasured(null);
+    const context: ReadingContext = {
+      source: source.id,
+      layer,
+      lat,
+      lon: lng,
+      time: probeInstant(year),
+    };
+    readingContextRef.current = context;
+    setMeasured(null);
+    if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind")) {
       setMeasuring(false);
       return;
     }
     const controller = new AbortController();
-    const time = `${year}-09-15T12:00:00.000Z`;
     const apiLayer = layer === "air" ? "air-temp" : layer;
     setMeasuring(true);
     const timer = window.setTimeout(() => {
-      void fetch(`/api/listen/measurements?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&time=${encodeURIComponent(time)}&layer=${apiLayer}`, {
-        signal: controller.signal,
-      })
+      void fetch(
+        `/api/listen/measurements?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&time=${encodeURIComponent(context.time)}&layer=${apiLayer}`,
+        { signal: controller.signal },
+      )
         .then(async (response) => {
           const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
           if (!response.ok || typeof body.value !== "number") throw new Error(body.error ?? "No reading");
-          setMeasured({ value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(), detail: `${body.source ?? "Matched"} · ${dateLabel(year)}` });
+          setMeasured({
+            context,
+            value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
+            detail: `${body.source ?? "Matched"} · ${dateLabel(year)}`,
+          });
         })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === "AbortError") return;
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
           setMeasured(null);
         })
-        .finally(() => setMeasuring(false));
+        .finally(() => {
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
+          setMeasuring(false);
+        });
     }, 350);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [layer, lat, lng, year]);
+  }, [source.id, source.kind, layer, lat, lng, year]);
 
   const chooseLayer = (id: LayerId) => {
     setLayer(id);
@@ -734,6 +753,10 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   const coord = formatCoord(lat, lng);
   const when = dateLabel(year);
+  const announced =
+    layer === "air" || layer === "currents" || layer === "wind"
+      ? reading.cards.find((card) => card.id === layer)
+      : undefined;
   const layers = more ? [...PRIMARY_LAYERS, ...EXTRA_LAYERS] : PRIMARY_LAYERS;
   const summary = `${reading.matched} MATCHED · ${reading.imageDerived} IMAGE-DERIVED · ${reading.empty} NO DATA`;
 
@@ -1063,6 +1086,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       />
       <p className="sr-only" aria-live="polite">
         {playing ? `Hearing ${layerLabel(layer).toLowerCase()} as ${instrument.replaceAll("-", " ")}, volume ${Math.round(volume)} percent.` : "Sound is stopped."}
+      </p>
+      <p className="sr-only" aria-live="polite">
+        {announced ? `${announced.label}: ${announced.value}. ${announced.detail}` : ""}
       </p>
     </main>
   );
