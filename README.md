@@ -32,15 +32,17 @@ There are three dedicated games. The Waveform Ribbons card opens Listen. The Cli
 
 ## How sound works
 
-The browser uses Tone.js/Web Audio for synthesis and optional orchestral samples. Layer, region, year, season and weather selections feed deterministic pitch, envelope, oscillator, noise and filter settings. The three voice concepts presented in About are pitch for concentration, pulse for seasonal variation and clicks for record events.
+The classic map uses Tone.js/Web Audio for synthesis and optional orchestral samples. Layer, region, year, season and weather selections feed deterministic pitch, envelope, oscillator, noise and filter settings. The three voice concepts presented in About are pitch for concentration, pulse for seasonal variation and clicks for record events. The new Listen workspace samples image or video color and brightness under the probe and maps the selected visual or measured layer to a browser oscillator. Instrument and variation chips change its sound.
 
-The current implementation uses curated values, note tables and procedural mappings. It does **not** automatically extract scientific measurements from EIC image pixels or ingest a complete live climate time series. This prototype demonstrates an interaction and sound vocabulary; it is not a calibrated scientific analysis tool.
+Pixels provide visual features, not scientific measurements or coordinates. Numeric Meteomatics readings require a user-supplied latitude, longitude and UTC time; they are not inferred from the media. The app does not ingest a complete live climate time series. This prototype demonstrates an interaction and sound vocabulary; it is not a calibrated scientific analysis tool.
 
 ## Data and visual sources
 
 | Source | Current use and scope |
 |---|---|
 | [NASA GIBS](https://nasa-gibs.github.io/gibs-api-docs/) | Blue Marble raster imagery is requested by the interactive globe. See `src/components/listen/ExploreMap.tsx`. |
+| [NASA Image and Video Library](https://images.nasa.gov/docs/images.nasa.gov_api_docs.pdf) | Search and selected media assets in the new Listen workspace. This public API does not use the NASA Open APIs key. Media records are not numeric science readings. |
+| [Meteomatics Weather API](https://www.meteomatics.com/en/api/) | Optional matched air temperature, sea surface temperature, ocean current speed and wind speed, requested server-side with the user's coordinates and UTC time. Availability varies by place and time. |
 | [NASA EPIC / DSCOVR](https://epic.gsfc.nasa.gov/) | Credited Earth-image reference in the product. This credit is separate from the actual GIBS globe imagery. |
 | [NOAA Global Monitoring Laboratory](https://gml.noaa.gov/ccgg/trends/) | Reference for the Mauna Loa CO₂ narrative and attribution. Displayed figures are embedded in the application rather than fetched as a complete NOAA time series. NOAA is not NASA. |
 | [NOAA Climate Prediction Center](https://www.cpc.ncep.noaa.gov/) and [NSIDC Sea Ice Index](https://nsidc.org/data/seaice_index/) | Attributions appear on selected example regional readouts. Their values and dates need source validation before scientific claims in a submission. |
@@ -48,7 +50,7 @@ The current implementation uses curated values, note tables and procedural mappi
 
 Regional example values are labeled where implemented. Some 2026 figures, counts and labels in the interface have not been independently validated. Do not describe all displayed figures as verified observations or all four selectable layers as complete regional datasets; unsupported regional layers show “No data.”
 
-The home hero artwork is an AI-generated illustration with a visible `AI-GENERATED ART · CHATGPT` watermark. Team photographs and scientific Earth imagery remain separate assets. The About credits and page metadata identify ChatGPT's image use, OpenAI Codex's code/documentation assistance, and the project's non-AI data and audio generation. Downloaded WAV mixes carry matching RIFF INFO metadata; no AI-generated audio or video is included.
+The home hero artwork is an AI-generated illustration with a visible `AI-GENERATED ART · CHATGPT` watermark. Team photographs and scientific Earth imagery remain separate assets. The About credits and page metadata identify ChatGPT's image use and OpenAI Codex's code/documentation assistance. Live probe audio is synthesized in the browser. An optional ElevenLabs action can generate a sound loop after a user click when enabled on the server. Classic downloadable WAV mixes carry RIFF INFO metadata describing their procedural origin. No AI-generated video is included.
 
 ## Tech stack
 
@@ -97,6 +99,8 @@ npm run start
 ```
 
 The main experience does not require credentials or a database. Internet access is needed for external imagery, remote fonts during builds and optional data routes. Audio starts through a user gesture; browser autoplay restrictions apply.
+
+For optional measurements and sound generation in a Codespace or deployment, set `METEOMATICS_USERNAME`, `METEOMATICS_PASSWORD`, `ELEVENLABS_API_KEY`, and `ELEVENLABS_SOUND_GENERATION_ENABLED=true` as server environment variables. Keep them out of Git and client code. The public NASA media search and browser sound work without these credentials; the NASA Open APIs key is not used by this media search.
 
 ## Verify
 
