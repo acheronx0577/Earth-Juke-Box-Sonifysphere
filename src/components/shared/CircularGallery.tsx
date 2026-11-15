@@ -508,11 +508,26 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const measure = () => {
       const s = settingsRef.current;
-      // Reserve room below each card for its visible title.
-      const height = 0.59 * view.height * s.itemSize;
-      const width = height * s.itemAspect;
-      const scale = Math.min(1, (view.width * 0.85) / width);
-      return { w: width * scale, h: height * scale, spacing: width * scale * (1 + s.gap) };
+      const gap = 1 + s.gap;
+      // Grow cards with the gallery, but slower than its width, so 1920 and 2560
+      // get larger cards and still show more than a fixed trio. Short viewports
+      // shrink the card so the title still fits under it.
+      const sizeBias = clamp(s.itemSize, 0.2, 2) / 1.2;
+      const across = clamp(view.width / ((500 + view.width * 0.045) * sizeBias), 1.25, 5.5);
+      let w = view.width / (across * gap);
+      let h = w / Math.max(s.itemAspect, 0.2);
+      const maxH = Math.max(120, view.height * 0.66);
+      if (h > maxH) {
+        h = maxH;
+        w = h * s.itemAspect;
+      }
+      const maxW = view.width * (view.width < 560 ? 0.74 : 0.42);
+      if (w > maxW) {
+        w = maxW;
+        h = Math.min(w / Math.max(s.itemAspect, 0.2), maxH);
+        w = h * s.itemAspect;
+      }
+      return { w, h, spacing: Math.max(w * gap, w + 8) };
     };
 
     const arcOf = (x: number) => {
