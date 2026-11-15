@@ -435,13 +435,23 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     }
   }, [searches, sources, profiles]);
 
+  const sheetWasOpen = useRef(false);
+  useEffect(() => {
+    if (sheet) {
+      sheetWasOpen.current = true;
+      return;
+    }
+    if (!sheetWasOpen.current) return;
+    sheetWasOpen.current = false;
+    const toggle = soundToggleRef.current;
+    const frame = requestAnimationFrame(() => toggle?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [sheet]);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (sheet) {
-        setSheet(false);
-        soundToggleRef.current?.focus();
-      }
+      if (sheet) setSheet(false);
       else if (drawer) setDrawer(false);
       else if (resultsOpen) setResultsOpen(false);
     };
@@ -778,7 +788,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           {sheet ? (
             <div className="lv-sheet lv-cut" id="sound-controls">
               <div className="lv-sheet-face lv-cut">
-                <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => { setSheet(false); soundToggleRef.current?.focus(); }}>
+                <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => setSheet(false)}>
                   <i />
                   <span>
                     SOUND PROFILE
