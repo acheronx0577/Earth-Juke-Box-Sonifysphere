@@ -484,22 +484,17 @@
   height: calc(100% - clamp(4.5rem, 2.2rem + 4.5svh, 10rem));
   max-height: 100%;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper {
   /* --land is 0 while the frame is portrait and reaches 1 on a landscape laptop.
-     Portrait cards take ~86% of the slider so the next card is only a peek.
+     Portrait cards take 94% of the slider, leaving a thin peek of the next card.
      Landscape keeps Orbit's ~58%, about one card and a half. */
   --land: clamp(0, (100vw - 85svh) / 50vw, 1);
-  --frac: calc(0.86 - 0.28 * var(--land));
+  --frac: calc(0.94 - 0.36 * var(--land));
   position: relative;
   width: calc(400% * var(--frac) + 3 * var(--routine-gap));
-  height: auto;
-  max-height: 100%;
-  flex: 0 0 auto;
+  height: 100%;
   transform: translateX(0%);
   display: flex;
   align-items: stretch;
@@ -511,13 +506,13 @@
   position: relative;
   flex: 1;
   width: 100%;
-  height: auto;
-  max-height: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   background-color: #303030;
   border: 0;
   border-radius: 0.75rem;
+  box-sizing: border-box;
   padding: var(--routine-block-pad);
   display: flex;
   flex-direction: column;
@@ -577,10 +572,9 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  aspect-ratio: 16 / 10;
   margin: clamp(0.45rem, 0.2rem + 0.4svh, 0.75rem) 0;
   border: 0;
   border-radius: 0.75rem;
@@ -612,7 +606,7 @@
   --st-max: calc(292 - 10368px / 100cqi);
   --st: min(var(--st-max), max(var(--st-min), var(--ideal)));
   --den: calc(1152 - var(--vis));
-  object-position: center calc(100% * var(--st) / var(--den));
+  object-position: center clamp(0%, calc(100% * var(--st) / var(--den)), 100%);
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="sonar"] {
