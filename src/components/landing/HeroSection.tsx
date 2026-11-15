@@ -71,6 +71,9 @@ function HeroImages() {
       </div>
       <div className="hero-img-overlay" />
       <div className="hero-img-gradient" />
+      <p className="pointer-events-none absolute right-4 top-28 z-[2] m-0 max-w-[10.5rem] text-right font-mono text-[11px] font-medium uppercase leading-[1.35] tracking-[0.14em] text-[#f2f2f0] [text-shadow:0_1px_2px_#141414]">
+        AI-generated image
+      </p>
     </div>
   );
 }
