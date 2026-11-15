@@ -2,31 +2,41 @@
 
 import { useEffect, useRef } from "react";
 import * as Tone from "tone";
-import type { InstrumentId, SoundStyle, VariationId } from "@/components/listen/v4/model";
-import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
+import type { InstrumentId, LayerId, PitchMode, SoundStyle, VariationId } from "@/components/listen/v4/model";
+import { frequencyForValue, intervalForTempo, layerTimbreFor, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
 
 export interface HearingParams {
   readonly style: SoundStyle;
   readonly instrument: InstrumentId;
   readonly variation: VariationId;
+  readonly pitchMode: PitchMode;
+  readonly ambience: boolean;
+  readonly layer: LayerId;
+  readonly pan: number;
   readonly volume: number;
   readonly tempo: number;
   readonly value: number | null;
 }
 
 type Voice = {
-  triggerAttackRelease: (note: number | string, duration: number | string, time?: number) => void;
-  dispose: () => void;
-  volume: { value: number };
+  readonly volume: { value: number };
+  connect: (destination: Tone.Filter) => unknown;
+  triggerAttackRelease: (note: number | string, duration: string, time?: number) => unknown;
+  dispose: () => unknown;
 };
 
-let voice: Voice | null = null;
-let timer: ReturnType<typeof setInterval> | null = null;
+type AudioRig = {
+  readonly voice: Voice;
+  readonly panner: Tone.Panner;
+  readonly ambient: Tone.Oscillator | null;
+  dispose: () => void;
+};
+
+let rig: AudioRig | null = null;
+let clock: Tone.Clock | null = null;
 let latest: HearingParams | null = null;
 let playing = false;
-let toneNow: (() => number) | null = null;
-let lastStart = 0;
 
 function duration(params: HearingParams): string {
   if (params.instrument === "woodblock") return "32n";
@@ -40,52 +50,133 @@ function decibels(volume: number): number {
   return -32 + (volume / 100) * 26;
 }
 
-async function buildVoice(params: HearingParams): Promise<Voice | null> {
-  toneNow = () => Tone.now();
+function activeFrequency(params: HearingParams): number | null {
+  return frequencyForValue(params.value, params.variation, params.pitchMode);
+}
+
+async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
   await Tone.start();
   await Tone.context.resume();
   if (!playbackAllowed()) return null;
-  if (params.style === "orchestra" || params.instrument === "strings") {
-    const sampler = new Tone.Sampler({
-      C3: "/audio/orchestra/strings-C3.mp3",
-      G3: "/audio/orchestra/strings-G3.mp3",
-      C4: "/audio/orchestra/strings-C4.mp3",
-      G4: "/audio/orchestra/strings-G4.mp3",
-      C5: "/audio/orchestra/strings-C5.mp3",
-    }).toDestination();
-    await Tone.loaded();
-    return sampler;
+
+  const nodes: Array<{ dispose: () => unknown }> = [];
+  const own = <T extends { dispose: () => unknown }>(node: T): T => {
+    nodes.push(node);
+    return node;
+  };
+
+  try {
+    const timbre = layerTimbreFor(params.layer);
+    const cutoff = Math.min(
+      5200,
+      timbre.filterHz * (params.variation === "bright" ? 1.55 : params.variation === "deep" ? 0.55 : 1),
+    );
+    const limiter = own(new Tone.Limiter(-1).toDestination());
+    const reverb = own(new Tone.Reverb({
+      decay: params.ambience ? 3.2 : 1.4,
+      preDelay: 0.025,
+      wet: params.ambience ? 0.24 : 0.09,
+    }));
+    const panner = own(new Tone.Panner(Math.max(-1, Math.min(1, params.pan))));
+    const filter = own(new Tone.Filter(cutoff, "lowpass"));
+    filter.connect(panner);
+    panner.connect(reverb);
+    reverb.connect(limiter);
+
+    let voice: Voice;
+    if (params.style === "orchestra" || params.instrument === "strings") {
+      voice = own(new Tone.Sampler({
+        C3: "/audio/orchestra/strings-C3.mp3",
+        G3: "/audio/orchestra/strings-G3.mp3",
+        C4: "/audio/orchestra/strings-C4.mp3",
+        G4: "/audio/orchestra/strings-G4.mp3",
+        C5: "/audio/orchestra/strings-C5.mp3",
+      }));
+    } else if (params.instrument === "marimba") {
+      voice = own(new Tone.FMSynth({
+        harmonicity: 3.2,
+        modulationIndex: 4,
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.01, decay: 0.25, sustain: 0.02, release: 0.2 },
+        modulation: { type: "square" },
+        modulationEnvelope: { attack: 0.01, decay: 0.12, sustain: 0, release: 0.1 },
+      }));
+    } else if (params.instrument === "woodblock") {
+      voice = own(new Tone.MembraneSynth({
+        pitchDecay: 0.01,
+        octaves: 2,
+        oscillator: { type: "square" },
+        envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.04 },
+      }));
+    } else {
+      voice = own(new Tone.Synth({
+        oscillator: { type: timbre.oscillator },
+        envelope: {
+          attack: params.layer === "sea-ice" ? 0.08 : 0.025,
+          decay: 0.14,
+          sustain: params.layer === "sea-ice" ? 0.16 : 0.2,
+          release: params.layer === "sea-ice" ? 0.42 : 0.25,
+        },
+      }));
+    }
+
+    voice.connect(filter);
+    voice.volume.value = decibels(params.volume);
+
+    const frequency = activeFrequency(params) ?? 220;
+    let ambient: Tone.Oscillator | null = null;
+    if (params.ambience) {
+      const ambientFilter = own(new Tone.Filter(520, "lowpass"));
+      ambientFilter.connect(panner);
+      ambient = own(new Tone.Oscillator({
+        frequency: frequency / 4,
+        type: "sine",
+        volume: params.volume <= 0 ? -Infinity : decibels(params.volume) - 24,
+      }));
+      ambient.connect(ambientFilter);
+    }
+
+    await Promise.all([
+      reverb.ready,
+      params.style === "orchestra" || params.instrument === "strings" ? Tone.loaded() : Promise.resolve(),
+    ]);
+
+    let disposed = false;
+    return {
+      voice,
+      panner,
+      ambient,
+      dispose() {
+        if (disposed) return;
+        disposed = true;
+        try {
+          ambient?.stop();
+        } catch {
+          // The oscillator may not have started yet.
+        }
+        for (const node of [...nodes].reverse()) {
+          try {
+            node.dispose();
+          } catch {
+            // Continue disposing the remaining audio nodes.
+          }
+        }
+      },
+    };
+  } catch (error) {
+    for (const node of [...nodes].reverse()) {
+      try {
+        node.dispose();
+      } catch {
+        // Continue disposing the remaining audio nodes.
+      }
+    }
+    throw error;
   }
-  if (params.instrument === "marimba") {
-    return new Tone.FMSynth({
-      harmonicity: 3.2,
-      modulationIndex: 4,
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.01, decay: 0.25, sustain: 0.02, release: 0.2 },
-      modulation: { type: "square" },
-      modulationEnvelope: { attack: 0.01, decay: 0.12, sustain: 0, release: 0.1 },
-    }).toDestination();
-  }
-  if (params.instrument === "woodblock") {
-    return new Tone.MembraneSynth({
-      pitchDecay: 0.01,
-      octaves: 2,
-      oscillator: { type: "square" },
-      envelope: { attack: 0.001, decay: 0.08, sustain: 0, release: 0.04 },
-    }).toDestination();
-  }
-  const synth = new Tone.Synth({
-    oscillator: { type: "sine" },
-    envelope: { attack: 0.02, decay: 0.12, sustain: 0.2, release: 0.25 },
-  }).toDestination();
-  const filter = new Tone.Filter(params.variation === "bright" ? 3200 : params.variation === "deep" ? 420 : 1100, "lowpass").toDestination();
-  synth.disconnect();
-  synth.connect(filter);
-  return synth;
 }
 
 function publish(params: HearingParams | null) {
-  const frequency = params ? frequencyForValue(params.value, params.variation) : null;
+  const frequency = params ? activeFrequency(params) : null;
   if (!params || !playing || frequency === null) {
     delete document.documentElement.dataset.listenHearing;
     return;
@@ -97,62 +188,95 @@ function publish(params: HearingParams | null) {
     Math.round(frequency),
     Math.round(params.volume),
     params.tempo,
+    params.layer,
+    params.pitchMode,
+    params.ambience ? "ambience" : "dry",
+    params.pan.toFixed(2),
   ].join("|");
 }
 
-function strike() {
+function strike(time = Tone.now()) {
   const params = latest;
-  if (!params || !voice || !playbackAllowed()) return;
-  const frequency = frequencyForValue(params.value, params.variation);
+  if (!params || !rig || !playbackAllowed()) return;
+  const frequency = activeFrequency(params);
   if (frequency === null) {
-    voice.volume.value = -Infinity;
+    rig.voice.volume.value = -Infinity;
+    if (rig.ambient) rig.ambient.volume.value = -Infinity;
     publish(params);
     return;
   }
-  voice.volume.value = decibels(params.volume);
-  const now = Math.max(toneNow?.() ?? 0, lastStart + 0.05);
-  lastStart = now;
-  voice.triggerAttackRelease(params.style === "orchestra" || params.instrument === "strings" ? noteNameForFrequency(frequency) : frequency, duration(params), now);
+
+  rig.voice.volume.value = decibels(params.volume);
+  const note = params.style === "orchestra" || params.instrument === "strings" ? noteNameForFrequency(frequency) : frequency;
+  rig.voice.triggerAttackRelease(note, duration(params), time);
   publish(params);
 }
 
-function clearTimer() {
-  if (timer) clearInterval(timer);
-  timer = null;
+function clearClock() {
+  try {
+    clock?.stop();
+    clock?.dispose();
+  } catch {
+    // Clock already stopped or disposed.
+  }
+  clock = null;
+}
+
+function armClock(tempo: number) {
+  clearClock();
+  const interval = intervalForTempo(tempo);
+  clock = new Tone.Clock((time) => strike(time), 1000 / interval);
+  clock.start(Tone.now() + interval / 1000);
+}
+
+function sameVoiceConfig(a: HearingParams, b: HearingParams): boolean {
+  return a.instrument === b.instrument &&
+    a.style === b.style &&
+    a.variation === b.variation &&
+    a.layer === b.layer &&
+    a.ambience === b.ambience;
+}
+
+function applyRigParams(target: AudioRig, params: HearingParams) {
+  const frequency = activeFrequency(params);
+  target.voice.volume.value = frequency === null ? -Infinity : decibels(params.volume);
+  target.panner.pan.rampTo(Math.max(-1, Math.min(1, params.pan)), 0.22);
+  if (target.ambient) {
+    target.ambient.volume.value = frequency === null || params.volume <= 0 ? -Infinity : decibels(params.volume) - 24;
+    if (frequency !== null) target.ambient.frequency.rampTo(frequency / 4, 0.35);
+  }
 }
 
 export function stopProbeAudio(): void {
   playing = false;
-  clearTimer();
+  clearClock();
   try {
-    voice?.dispose();
+    rig?.dispose();
   } catch {
     // Already disposed.
   }
-  voice = null;
+  rig = null;
   publish(null);
 }
 
-function armTimer(tempo: number) {
-  clearTimer();
-  timer = setInterval(strike, intervalForTempo(tempo));
-}
-
 export async function startProbeAudio(params: HearingParams): Promise<boolean> {
-  if (frequencyForValue(params.value, params.variation) === null) return false;
+  if (activeFrequency(params) === null) return false;
   latest = params;
   if (!playbackAllowed()) return false;
   stopProbeAudio();
   playing = true;
   latest = params;
   try {
-    voice = await buildVoice(params);
-    if (!voice || !playing || !playbackAllowed()) {
+    rig = await buildVoice(params);
+    if (!rig || !playing || !playbackAllowed()) {
+      rig?.dispose();
       stopProbeAudio();
       return false;
     }
-    strike();
-    armTimer(params.tempo);
+    rig.ambient?.start();
+    rig.panner.pan.rampTo(Math.max(-1, Math.min(1, params.pan)), 0.18);
+    strike(Tone.now() + 0.03);
+    armClock(params.tempo);
     return true;
   } catch {
     stopProbeAudio();
@@ -165,23 +289,32 @@ export function updateProbeAudio(params: HearingParams): void {
   latest = params;
   if (!playing) return;
   publish(params);
-  if (voice) voice.volume.value = params.value === null ? -Infinity : decibels(params.volume);
-  if (previous && (previous.instrument !== params.instrument || previous.style !== params.style || previous.variation !== params.variation)) {
+  if (rig) applyRigParams(rig, params);
+  if (previous && (
+    previous.instrument !== params.instrument ||
+    previous.style !== params.style ||
+    previous.variation !== params.variation ||
+    previous.layer !== params.layer ||
+    previous.ambience !== params.ambience
+  )) {
     void rebuild(params);
   }
-  if (!previous || previous.tempo !== params.tempo) armTimer(params.tempo);
+  if (!previous || previous.tempo !== params.tempo) armClock(params.tempo);
 }
 
 async function rebuild(params: HearingParams) {
-  const generation = params;
   try {
     const next = await buildVoice(params);
-    if (!playing || latest !== generation || !next) {
+    const current = latest;
+    if (!playing || !current || !next || !sameVoiceConfig(params, current)) {
       next?.dispose();
       return;
     }
-    voice?.dispose();
-    voice = next;
+    const previous = rig;
+    rig = next;
+    rig.ambient?.start();
+    applyRigParams(rig, current);
+    previous?.dispose();
   } catch {
     // Keep the previous voice if a swap fails.
   }
