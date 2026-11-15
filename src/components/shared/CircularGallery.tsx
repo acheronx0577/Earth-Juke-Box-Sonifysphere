@@ -434,7 +434,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       } | null,
       lastInput: 0,
       active: 0,
-      spacing: 1
+      spacing: 1,
+      docked: false
     };
 
     interface CardRender {
@@ -519,8 +520,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const s = settingsRef.current;
       const gap = 1 + s.gap;
       const maxH = Math.max(120, view.height * 0.66);
-      // Wide screens show every listed card at once, centred, with titles fully
-      // inside. The side pad keeps the outer titles clear of the edge fade.
+      // Wide screens show every listed card at once, in order, with titles fully
+      // inside. The row is locked here; the loop only runs below this width.
       if (view.width >= 1280) {
         const count = Math.max(1, s.items.length);
         const pad = 20;
@@ -581,7 +582,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const count = currentList.length;
       const { w, h, spacing } = measure();
       state.spacing = spacing;
-      const scroll = state.scroll;
+      const docked = view.width >= 1280;
+      const scroll = docked ? ((count - 1) / 2) * spacing : state.scroll;
       const baseLabel = h * 0.072 * fontScale(fontRef.current);
       const openFrame = (item: GalleryItem) => {
         // Revert width back to wide aspect (landscape ~1.6) while keeping tall height
@@ -599,8 +601,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const activeFrame = openFrame(currentList[wrap(state.active, count)]);
       const spread = Math.max(0, activeFrame.width / 2 - w / 2);
       const activeX = state.active * spacing - scroll;
-      const first = Math.floor((scroll - view.width / 2 - spacing * 2) / spacing);
-      const lastSlot = Math.ceil((scroll + view.width / 2 + spacing * 2) / spacing);
+      const first = docked ? 0 : Math.floor((scroll - view.width / 2 - spacing * 2) / spacing);
+      const lastSlot = docked ? count - 1 : Math.ceil((scroll + view.width / 2 + spacing * 2) / spacing);
       const next: CardRender[] = [];
       let lead: CardRender | null = null;
 
@@ -648,6 +650,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     // Shared by the card and its title. The fade covers 1.5 card-widths at each edge,
     // and a card halfway through that zone sits near 38% opacity.
     const positionFade = (centerX: number, cardW: number) => {
+      if (view.width >= 1280) return 1;
       const span = Math.max(cardW, 1);
       const zone = span * 1.5;
       const lead = zone - span;
@@ -800,6 +803,18 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       wake();
     };
 
+    // Wide screens keep the row still. Selection changes the highlight only.
+    const activate = (index: number, announce = true) => {
+      const s = settingsRef.current;
+      const count = Math.max(1, s.items.length);
+      const next = wrap(index, count);
+      if (state.active === next) return;
+      state.active = next;
+      if (announce) setActive(next);
+      s.onActiveChange?.(next);
+      wake();
+    };
+
     let openTimestamp = 0;
 
     const openSlot = (slot: number) => {
@@ -825,10 +840,25 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       canvas.width = Math.max(1, Math.round(view.width * view.ratio));
       canvas.height = Math.max(1, Math.round(view.height * view.ratio));
       const { spacing } = measure();
-      if (state.spacing <= 1) {
+      const dockedNow = view.width >= 1280;
+      const wasDocked = state.docked;
+      state.docked = dockedNow;
+      container.dataset.docked = dockedNow ? "true" : "false";
+      if (dockedNow) {
+        const count = Math.max(1, s.items.length);
+        state.active = wrap(state.active, count);
+        state.spacing = spacing;
+        const locked = ((count - 1) / 2) * spacing;
+        state.scroll = locked;
+        state.target = locked;
+        state.velocity = 0;
+      } else if (wasDocked || state.spacing <= 1) {
+        const count = Math.max(1, s.items.length);
+        state.active = wrap(state.active, count);
         state.spacing = spacing;
         state.scroll = state.active * spacing;
         state.target = state.scroll;
+        state.velocity = 0;
       } else if (spacing !== state.spacing) {
         state.scroll = (state.scroll / state.spacing) * spacing;
         state.target = (state.target / state.spacing) * spacing;
@@ -844,7 +874,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       }
       if (!visible || document.hidden) return;
       const s = settingsRef.current;
-      const idleAuto = s.autoScroll && !reduce && !state.drag && state.open < 0.01 && state.hovered === null && !state.keyboard;
+      const docked = view.width >= 1280;
+      const idleAuto = !docked && s.autoScroll && !reduce && !state.drag && state.open < 0.01 && state.hovered === null && !state.keyboard;
       if (idleAuto && lastDraw && now - lastDraw < 1000 / 30) {
         raf = requestAnimationFrame(frame);
         return;
@@ -862,6 +893,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       // Auto-scroll runs continuously, pausing on hover, drag, open, or keyboard
       const isHovered = state.hovered !== null;
       const auto =
+        !docked &&
         s.autoScroll &&
         !reduce &&
         !state.drag &&
@@ -920,12 +952,14 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         settling = true;
       });
 
-      const slot = auto ? Math.round(state.scroll / Math.max(state.spacing, 1)) : nearest();
-      if (slot !== state.active && !state.drag) {
-        state.active = slot;
-        const index = wrap(slot, s.items.length);
-        setActive(index);
-        s.onActiveChange?.(index);
+      if (!docked) {
+        const slot = auto ? Math.round(state.scroll / Math.max(state.spacing, 1)) : nearest();
+        if (slot !== state.active && !state.drag) {
+          state.active = slot;
+          const index = wrap(slot, s.items.length);
+          setActive(index);
+          s.onActiveChange?.(index);
+        }
       }
 
       const metrics = layout();
@@ -980,6 +1014,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         if (slot !== null && !state.hover.has(slot)) state.hover.set(slot, 0);
         wake();
       }
+      if (view.width >= 1280 && card) activate(card.index);
       if (card) container.setAttribute('data-pointer', '');
       else container.removeAttribute('data-pointer');
     };
@@ -1021,7 +1056,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           container.setAttribute('data-dragging', '');
           setPointer(null);
         }
-        if (drag.moved) {
+        if (drag.moved && view.width < 1280) {
           state.target = drag.start - dx * (settingsRef.current.scrollSpeed / 2);
           drag.samples.push({ x: event.clientX, t: performance.now() });
           if (drag.samples.length > 6) drag.samples.shift();
@@ -1039,6 +1074,14 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       state.drag = null;
       container.removeAttribute('data-dragging');
       if (container.hasPointerCapture?.(event.pointerId)) container.releasePointerCapture(event.pointerId);
+      if (view.width >= 1280) {
+        if (drag.moved) return;
+        const card = hit(drag.p);
+        if (!card) return;
+        settingsRef.current.onItemClick?.(card.item, card.index);
+        activate(card.index);
+        return;
+      }
       if (drag.moved) {
         if (state.openTarget > 0 || state.open > 0.05) {
           const distance = event.clientX - drag.x0;
@@ -1087,6 +1130,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     };
 
     const onWheel = (event: WheelEvent) => {
+      if (view.width >= 1280) return;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? view.height : 1;
       const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
       if (!delta) return;
@@ -1105,13 +1149,18 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (step) {
         event.preventDefault();
         if (container.contains(document.activeElement) && document.activeElement !== container) state.keyboard = true;
-        setSlot(nearest() + step);
+        if (view.width >= 1280) activate(wrap(state.active, s.items.length) + step);
+        else setSlot(nearest() + step);
         const index = wrap(state.active, s.items.length);
         if (container.contains(document.activeElement)) buttonsRef.current[index]?.focus({ preventScroll: true });
         return;
       }
       if (event.key === 'Home' || event.key === 'End') {
         event.preventDefault();
+        if (view.width >= 1280) {
+          activate(event.key === 'Home' ? 0 : s.items.length - 1);
+          return;
+        }
         const base = nearest() - wrap(nearest(), s.items.length);
         setSlot(event.key === 'Home' ? base : base + s.items.length - 1);
         return;
@@ -1203,11 +1252,23 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     engineRef.current = {
       wake,
-      open: (index: number) => openSlot(slotFor(index)),
-      focus: (index: number) => setSlot(slotFor(index), false),
+      open: (index: number) => {
+        if (view.width >= 1280) activate(index);
+        else openSlot(slotFor(index));
+      },
+      focus: (index: number) => {
+        if (view.width >= 1280) activate(index, false);
+        else setSlot(slotFor(index), false);
+      },
       close,
-      next: () => setSlot(nearest() + 1),
-      prev: () => setSlot(nearest() - 1),
+      next: () => {
+        if (view.width >= 1280) activate(wrap(state.active, settingsRef.current.items.length) + 1);
+        else setSlot(nearest() + 1);
+      },
+      prev: () => {
+        if (view.width >= 1280) activate(wrap(state.active, settingsRef.current.items.length) - 1);
+        else setSlot(nearest() - 1);
+      },
     };
 
     return () => {
