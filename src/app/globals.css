@@ -2194,7 +2194,7 @@ nextjs-portal {
 }
 
 /* --credits-u is 1px at 1920×1080. Width sets the scale, svh caps short screens,
-   and the floor is a 1000px-wide frame so the desktop row never steps down. */
+   and desktop credit rows fill the viewport up to a 2200px frame. */
 .about-credits {
   --credits-u: max(calc(1000px / 1920), min(calc(100vw / 1920), calc(100svh / 1080)));
   margin-top: 120px;
@@ -2260,7 +2260,7 @@ nextjs-portal {
 /* Desktop row, from the 1001px layout up. Phones at 1000px and below keep the static list. */
 @media (min-width: 1001px) {
   .about-credits.about-wrap {
-    width: min(1400px, max(calc(var(--credits-u) * 1400), 82vw));
+    width: min(2200px, calc(100vw - var(--credits-u) * 64));
     max-width: calc(100% - var(--credits-u) * 64);
     padding-inline: calc(var(--credits-u) * 48);
   }
@@ -2296,9 +2296,9 @@ nextjs-portal {
     font-weight: 400;
     line-height: 1.45;
     letter-spacing: 0;
-    white-space: normal;
+    white-space: nowrap;
     text-overflow: unset;
-    overflow-wrap: break-word;
+    overflow-wrap: normal;
   }
 
   .about-credits .about-credit-link,
