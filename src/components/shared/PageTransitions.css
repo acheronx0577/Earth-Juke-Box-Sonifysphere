@@ -4,6 +4,12 @@
   z-index: 100000;
   overflow: hidden;
   touch-action: none;
+  pointer-events: none;
+}
+
+.sonify-page-transition[data-state="covering"],
+.sonify-page-transition[data-state="loading"] {
+  pointer-events: auto;
 }
 
 .sonify-page-transition[hidden] {

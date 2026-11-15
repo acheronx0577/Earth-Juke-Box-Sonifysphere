@@ -2,7 +2,13 @@ import { ASSETS } from "@/data/landingData";
 import { canWarmAssets, warmImages } from "@/lib/assetCache";
 import { warmListenAssets } from "@/lib/listenAssets";
 
-const chapterImages = [1, 2, 3].map((index) => `/assets/landing/chapters/chapter-0${index}.webp`);
+const chapterImages = [
+  "/assets/landing/chapters/chapter-01.webp",
+  "/assets/landing/chapters/chapter-02.webp",
+  "/assets/landing/chapters/chapter-03.webp",
+  "/assets/about/routine/routine_04_voices.webp",
+  "/assets/about/routine/routine_03_challenges.webp",
+];
 const routeImages: Record<string, readonly string[]> = {
   "/": [ASSETS.heroEarthSky, ASSETS.heroForegroundAstronaut, ASSETS.heroTitleEarth, ASSETS.heroTitleBreathes, ASSETS.headerWordmark],
   "/about": ["/assets/about/hero-map.svg"],
