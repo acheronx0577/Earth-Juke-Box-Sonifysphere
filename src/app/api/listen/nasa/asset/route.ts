@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-/** Real NASA media ids include spaces and dots. Reject anything that could change the request path. */
+/** Real NASA ids include punctuation such as curly apostrophes. Reject only characters that could change the request path. */
 function isSafeNasaId(id: string): boolean {
-  if (id.length < 3 || id.length > 180) return false;
+  if (id.length < 1 || id.length > 240) return false;
   if (id !== id.trim() || id.includes("..")) return false;
   if (/[\u0000-\u001f\u007f\\/?#%]/.test(id)) return false;
-  return /^[\w .()+'-]+$/.test(id);
+  return /\p{L}|\p{N}/u.test(id);
 }
 
 export async function GET(request: NextRequest) {
