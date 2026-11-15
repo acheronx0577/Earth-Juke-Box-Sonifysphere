@@ -183,3 +183,28 @@ test("challenge arrows keep the play link on the centred game", async ({ page })
   await page.keyboard.press("ArrowRight");
   await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "02");
 });
+
+test("zoomed challenge stays open when the arrows are used", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const caption = page.locator(".circular-gallery-caption");
+
+  for (const [width, height] of [[1440, 900], [390, 844]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/challenge");
+    await page.locator(".circular-gallery").click();
+    await expect(caption).toContainText("Ear training quiz");
+    await expect.poll(async () => caption.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+
+    await liveMain(page).getByRole("button", { name: "Next Challenge" }).click();
+    await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "02");
+    await expect(caption).toContainText("Wave match");
+    await expect.poll(async () => caption.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+
+    await liveMain(page).locator("[data-challenge-count]").click();
+    await expect.poll(async () => caption.evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+
+    await page.mouse.click(8, 80);
+    await expect.poll(async () => Number(await caption.evaluate((el) => getComputedStyle(el).opacity))).toBeLessThan(0.05);
+  }
+});
+
