@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   ASSETS,
   THEME_CARDS,
@@ -157,6 +157,7 @@ export function ThemePickerSection() {
   const { activeTheme, setActiveTheme } = useSonifyPlayer();
   const dataset = datasetForTheme(activeTheme);
   const trackRef = useRef<HTMLDivElement | null>(null);
+  const [page, setPage] = useState(0);
 
   // Mouse drag state for smaller screen slider
   const isDraggingRef = useRef(false);
@@ -195,6 +196,34 @@ export function ThemePickerSection() {
     setActiveTheme(id);
   };
 
+  const syncPage = () => {
+    const el = trackRef.current;
+    if (!el) return;
+    const cards = Array.from(el.children) as HTMLElement[];
+    if (cards.length === 0) return;
+    const origin = el.offsetLeft;
+    const viewMid = el.scrollLeft + el.clientWidth / 2;
+    let best = 0;
+    let bestDist = Number.POSITIVE_INFINITY;
+    cards.forEach((card, index) => {
+      const mid = card.offsetLeft - origin + card.offsetWidth / 2;
+      const dist = Math.abs(mid - viewMid);
+      if (dist < bestDist) {
+        best = index;
+        bestDist = dist;
+      }
+    });
+    setPage((current) => (current === best ? current : best));
+  };
+
+  const goToCard = (index: number) => {
+    const el = trackRef.current;
+    const card = el?.children[index] as HTMLElement | undefined;
+    if (!el || !card) return;
+    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    setPage(index);
+  };
+
   return (
     <section
       className="content-stretch flex flex-col gap-6 sm:gap-8 items-start px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-16 pt-[60px] sm:pt-[80px] pb-4 sm:pb-6 relative shrink-0 w-full max-w-[1440px] xl:max-w-[1700px] 2xl:max-w-[2100px] min-[2200px]:max-w-[2500px] mx-auto overflow-hidden"
@@ -224,6 +253,7 @@ export function ThemePickerSection() {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
+          onScroll={syncPage}
           className="no-scrollbar flex flex-row gap-6 items-stretch w-full overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-2 select-none cursor-grab active:cursor-grabbing"
         >
           {THEME_CARDS.map((card) => (
@@ -236,6 +266,25 @@ export function ThemePickerSection() {
               />
             </div>
           ))}
+        </div>
+        <div className="flex w-full justify-center md:hidden" role="group" aria-label="Datasets">
+          {THEME_CARDS.map((card, index) => {
+            const active = page === index;
+            return (
+              <button
+                key={card.id}
+                type="button"
+                aria-label={`Dataset ${index + 1} of ${THEME_CARDS.length}`}
+                aria-current={active ? "true" : undefined}
+                onClick={() => goToCard(index)}
+                className="inline-flex h-11 w-11 items-center justify-center border-0 bg-transparent p-0 focus:outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#f2f2f0] focus-visible:outline-offset-[3px]"
+              >
+                <span
+                  className={`block h-2 w-2 rounded-full ${active ? "bg-[#f2f2f0]" : "bg-[#f2f2f0]/35"}`}
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
