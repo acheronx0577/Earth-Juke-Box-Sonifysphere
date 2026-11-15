@@ -223,57 +223,21 @@ export function RoutineStrip() {
       pin: true,
       pinSpacing: true,
       scrub: 1,
-      anticipatePin: 0,
+      anticipatePin: 1,
       invalidateOnRefresh: true,
       onUpdate: (self) => place(self.progress),
       onRefresh: (self) => place(self.progress),
     });
 
-    let lastWidth = window.innerWidth;
-    let lastHeight = window.innerHeight;
     const onResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      if (width === lastWidth && Math.abs(height - lastHeight) < 140) return;
-      lastWidth = width;
-      lastHeight = height;
       trigger.refresh();
     };
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
 
-    // A flick's leftover momentum was sliding from this pin straight through the registry.
-    let hold = false;
-    const sectionVisible = () => {
-      const rect = section.getBoundingClientRect();
-      return rect.bottom > 0 && rect.top < window.innerHeight;
-    };
-    const onTouchStart = () => {
-      hold = false;
-    };
-    const onTouchEnd = () => {
-      if (!sectionVisible()) return;
-      const y = window.scrollY;
-      const until = performance.now() + 1400;
-      hold = true;
-      const tick = () => {
-        if (!hold) return;
-        if (Math.abs(window.scrollY - y) > 0.5) window.scrollTo(0, y);
-        if (performance.now() < until) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
-    window.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
     return () => {
-      hold = false;
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("touchcancel", onTouchEnd);
       trigger.kill();
     };
   }, []);
