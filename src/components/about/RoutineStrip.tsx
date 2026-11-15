@@ -214,7 +214,12 @@ export function RoutineStrip() {
     const trigger = ScrollTrigger.create({
       trigger: section,
       start: "top top",
-      end: () => `+=${window.innerHeight * (5 * 4) / 6}px`,
+      end: () => {
+        const slider = sliderContainer!.offsetWidth || 1;
+        const spans = Math.abs(calculateMaxTranslate()) / slider;
+        const screens = Math.max((5 * 4) / 6, spans * 2.4);
+        return `+=${window.innerHeight * screens}px`;
+      },
       pin: true,
       pinSpacing: true,
       scrub: 1,

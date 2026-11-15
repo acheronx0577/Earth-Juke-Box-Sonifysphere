@@ -487,8 +487,13 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper {
+  /* --land is 0 while the frame is portrait and reaches 1 on a landscape laptop.
+     Portrait cards take ~86% of the slider so the next card is only a peek.
+     Landscape keeps Orbit's ~58%, about one card and a half. */
+  --land: clamp(0, (100vw - 85svh) / 50vw, 1);
+  --frac: calc(0.86 - 0.28 * var(--land));
   position: relative;
-  width: calc(350% * 4 / 6);
+  width: calc(400% * var(--frac) + 3 * var(--routine-gap));
   height: 100%;
   transform: translateX(0%);
   display: flex;
@@ -587,7 +592,7 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="station"] {
-  object-position: center 46%;
+  object-position: center 52%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="sonar"] {
