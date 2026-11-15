@@ -1544,15 +1544,14 @@ html[data-signal-live="1"] body::before {
   .sonify-cta-centre {
     position: relative !important;
     top: auto !important;
-    left: auto !important;
+    left: 50% !important;
     right: auto !important;
     z-index: 2;
     width: min(440px, calc(100vw - 32px)) !important;
     max-width: calc(100vw - 32px) !important;
-    margin: 1.5rem auto !important;
+    margin: 1.5rem 0 !important;
     overflow: visible;
-    transform: none !important;
-    translate: none !important;
+    translate: -50% 0 !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
