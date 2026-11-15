@@ -584,8 +584,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const count = currentList.length;
       const { w, h, spacing } = measure();
       state.spacing = spacing;
-      const introEase = 1 - Math.pow(1 - state.intro, 3);
-      const scroll = state.scroll + (1 - introEase) * spacing * 1.6;
+      const scroll = state.scroll;
       const baseLabel = h * 0.072 * fontScale(fontRef.current);
       const openFrame = (item: GalleryItem) => {
         // Revert width back to wide aspect (landscape ~1.6) while keeping tall height
@@ -652,7 +651,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     // Shared by the card and its title. The fade covers 1.5 card-widths at each edge,
     // and a card halfway through that zone sits near 38% opacity.
     const positionFade = (centerX: number, cardW: number) => {
-      if (reduce) return 1;
       const span = Math.max(cardW, 1);
       const zone = span * 1.5;
       const lead = zone - span;
@@ -829,13 +827,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       view.ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(view.width * view.ratio));
       canvas.height = Math.max(1, Math.round(view.height * view.ratio));
-      const before = state.spacing;
       const { spacing } = measure();
-      if (before > 1 && spacing !== before) {
-        state.scroll = (state.scroll / before) * spacing;
-        state.target = (state.target / before) * spacing;
+      if (state.spacing <= 1) {
+        state.spacing = spacing;
+        state.scroll = state.active * spacing;
+        state.target = state.scroll;
+      } else if (spacing !== state.spacing) {
+        state.scroll = (state.scroll / state.spacing) * spacing;
+        state.target = (state.target / state.spacing) * spacing;
+        state.spacing = spacing;
       }
-      state.spacing = spacing;
     };
 
     const frame = (now: number) => {
