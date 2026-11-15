@@ -252,12 +252,12 @@ test("opening and closing history moves focus", async ({ page }) => {
   await expect(page.getByRole("button", { name: "HISTORY", exact: true })).toBeFocused();
 });
 
-test("starter searches do not invent result counts", async ({ page }) => {
+test("curated sources do not invent result counts", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/listen?sound=off");
   await expect(page.getByText("3 NASA MEDIA RESULTS")).toHaveCount(0);
   await expect(page.getByText("12 RESULTS")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /ocean currents/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Global currents & SST/i })).toBeVisible();
 });
 
 test("phone date attaches to the track and the sound sheet title is uppercase", async ({ page }) => {

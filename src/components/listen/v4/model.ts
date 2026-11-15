@@ -153,11 +153,7 @@ export const SEED_SOURCES: readonly ListenSource[] = [
   },
 ];
 
-export const SEED_SEARCHES: readonly SearchRecord[] = [
-  { id: "ocean-currents", term: "ocean currents", detail: "" },
-  { id: "carbon-dioxide", term: "carbon dioxide", detail: "" },
-  { id: "arctic-ice", term: "arctic sea ice 1979", detail: "" },
-];
+export const SEED_SEARCHES: readonly SearchRecord[] = [];
 
 export function layerFromParam(value: string | undefined): LayerId {
   if (value === "co2") return "co2";

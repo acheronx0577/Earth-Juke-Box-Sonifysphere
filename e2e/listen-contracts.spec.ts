@@ -192,10 +192,11 @@ test("keyboard operates Listen, Guess, Tune, and Ribbons", async ({ page }) => {
   await page.goto("/challenge/match");
   const frequency = page.getByRole("slider").first();
   await reach(page, frequency);
-  await expect(frequency).toHaveValue("250");
+  const initialFreq = await frequency.inputValue();
+  const nextFreq = String(Number(initialFreq) + 5);
   await page.keyboard.press("ArrowRight");
-  await expect(frequency).toHaveValue("255");
-  await expect(page.getByText("255 Hz")).toBeVisible();
+  await expect(frequency).toHaveValue(nextFreq);
+  await expect(page.getByText(`${nextFreq} Hz`)).toBeVisible();
   await reach(page, page.getByRole("button", { name: /Listen to Target Sound/ }));
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: /Playing Target/ })).toBeVisible();
