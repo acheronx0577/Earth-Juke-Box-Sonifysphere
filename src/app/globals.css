@@ -1540,6 +1540,19 @@ html[data-signal-live="1"] body::before {
   to { height: 100%; }
 }
 
+/* Fit the 1440 card stage to the viewport and keep its center on the screen.
+   Scale is around the top center; one -50% shift matches left: 50%. */
+.sonify-split-cta {
+  --cta-fit: clamp(0.42, 100vw / 1440px, 1);
+  height: calc(1240px * var(--cta-fit));
+}
+
+.sonify-split-cta .sonify-cta-cards {
+  transform: translateX(-50%) scale(var(--cta-fit));
+  transform-origin: top center;
+  translate: none;
+}
+
 @media (max-width: 1000px),
   (max-width: 1366px) and (orientation: portrait),
   (max-width: 1366px) and (hover: none),
@@ -1570,52 +1583,6 @@ html[data-signal-live="1"] body::before {
     visibility: visible !important;
     pointer-events: auto !important;
   }
-}
-
-@media (min-width: 1001px) and (max-width: 1366px) {
-  .sonify-split-cta {
-    height: 1178px;
-    min-height: 0;
-    overflow-x: clip;
-  }
-
-  .sonify-cta-cards {
-    display: block !important;
-    top: 0 !important;
-    transform: scale(0.95) translateX(-50%) !important;
-    translate: none !important;
-    transform-origin: top left;
-    z-index: 1 !important;
-  }
-
-  .sonify-cta-centre {
-    position: absolute !important;
-    top: 325px !important;
-    left: 50% !important;
-    right: auto !important;
-    width: min(440px, calc(100vw - 32px)) !important;
-    max-width: calc(100vw - 32px) !important;
-    margin: 0 !important;
-    transform: translateX(-50%) !important;
-    translate: none !important;
-    overflow: visible;
-    z-index: 0 !important;
-  }
-}
-
-@media (min-width: 1201px) and (max-width: 1280px) {
-  .sonify-split-cta { height: 1116px; }
-  .sonify-cta-cards { transform: scale(0.9) translateX(-50%) !important; }
-}
-
-@media (min-width: 1101px) and (max-width: 1200px) {
-  .sonify-split-cta { height: 1017px; }
-  .sonify-cta-cards { transform: scale(0.82) translateX(-50%) !important; }
-}
-
-@media (min-width: 1001px) and (max-width: 1100px) {
-  .sonify-split-cta { height: 942px; }
-  .sonify-cta-cards { transform: scale(0.76) translateX(-50%) !important; }
 }
 
 nextjs-portal {
