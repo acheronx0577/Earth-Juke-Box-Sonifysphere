@@ -891,7 +891,7 @@
 .lv-timeline {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 0;
   height: 44px;
   min-height: 44px;
 }
@@ -905,6 +905,7 @@
   height: 44px;
   padding: 0;
   background: transparent;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut));
 }
 
 .lv-timeline-face {
@@ -992,6 +993,7 @@
   margin: 0;
   padding: 0;
   background: #101616;
+  clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% var(--cut), 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
   color: var(--lv-cream);
   font-family: var(--font-geist-mono), monospace;
   font-size: 12px;

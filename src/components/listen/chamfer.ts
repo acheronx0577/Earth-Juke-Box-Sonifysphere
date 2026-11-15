@@ -40,12 +40,13 @@ export function chamferPoints(
     return {
       closed: false,
       points: fmt([
-        [right, top],
+        [w, top],
         [join, top],
         [left, join],
         [left, h - join],
         [join, bottom],
-        [right, bottom],
+        [w, bottom],
+        [w, top],
       ]),
     };
   }
@@ -54,12 +55,12 @@ export function chamferPoints(
     return {
       closed: false,
       points: fmt([
-        [left, bottom],
+        [0, bottom],
         [w - join, bottom],
         [right, h - join],
         [right, join],
         [w - join, top],
-        [left, top],
+        [0, top],
       ]),
     };
   }
