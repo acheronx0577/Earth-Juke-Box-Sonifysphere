@@ -104,7 +104,7 @@ export function readingFor(region: MapRegion, layer: LayerId): RegionReading {
       available: true,
       value: region.id === "arctic" ? "4.81 million km²" : "Included",
       metric: "SEA ICE",
-      source: region.id === "arctic" ? "NSIDC Sea Ice Index · Sept. extent" : "EXAMPLE · southern field lights up",
+      source: region.id === "arctic" ? "NSIDC Sea Ice Index · Sept. extent · example" : "EXAMPLE · southern field lights up",
     };
   }
   return {

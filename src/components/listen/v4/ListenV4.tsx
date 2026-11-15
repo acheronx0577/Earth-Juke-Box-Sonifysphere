@@ -724,6 +724,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <div className="lv-main">
         <div className="lv-fold">
         <div className="lv-search-stack">
+        <p className="lv-mono lv-eyebrow m-0 whitespace-normal">
+          NASA Image and Video Library search returns media, not measurements. Map figures are example data. Meteomatics readings load only when that server is configured.
+        </p>
         <form
           className="lv-search lv-cut"
           role="search"
