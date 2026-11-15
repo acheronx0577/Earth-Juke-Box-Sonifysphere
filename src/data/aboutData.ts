@@ -101,6 +101,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     linkHref: "https://epic.gsfc.nasa.gov/",
   },
   {
+    id: "eonet",
+    label: "Events",
+    text: "Open natural events come from NASA EONET v3. Each event in the chosen view is a pulse, and the same events are listed in text.",
+    linkLabel: "EONET ↗",
+    linkHref: "https://eonet.gsfc.nasa.gov/docs/v3",
+  },
+  {
     id: "meteomatics",
     label: "Weather",
     text: "Meteomatics readings appear only when the server is configured.",
