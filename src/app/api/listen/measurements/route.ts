@@ -34,7 +34,7 @@ class UpstreamFailure extends Error {
   }
 }
 
-async function loadMeteomatics(endpoint: string, unit: string, time: string, username: string, password: string) {
+async function loadMeteomatics(layer: Layer, endpoint: string, unit: string, time: string, username: string, password: string) {
   const response = await fetch(endpoint, {
     headers: { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}` },
     signal: AbortSignal.timeout(12000),
@@ -51,7 +51,10 @@ async function loadMeteomatics(endpoint: string, unit: string, time: string, use
   const body = await response.json() as { data?: Array<{ coordinates?: Array<{ dates?: Array<{ value?: number; date?: string }> }> }> };
   const reading = body.data?.[0]?.coordinates?.[0]?.dates?.[0];
   const value = reading?.value;
-  if (typeof value !== "number" || !Number.isFinite(value)) throw new UpstreamFailure(404, "No valid reading was returned.");
+  // Meteomatics uses negative ocean-current values, including -666, as missing-data sentinels.
+  if (typeof value !== "number" || !Number.isFinite(value) || (layer === "currents" && value < 0)) {
+    throw new UpstreamFailure(404, "No valid reading was returned.");
+  }
   return { value, unit, time: reading?.date ?? time };
 }
 
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
   const key = measurementCacheKey({ layer, lat, lon, time });
   const ttlMs = measurementTtlMs(time);
   try {
-    const reading = await measurementCache.getOrLoad(key, ttlMs, () => loadMeteomatics(endpoint, unit, time, username, password));
+    const reading = await measurementCache.getOrLoad(key, ttlMs, () => loadMeteomatics(layer as Layer, endpoint, unit, time, username, password));
     return NextResponse.json(
       { layer, value: reading.value, unit: reading.unit, time: reading.time, lat, lon, source: "Meteomatics" },
       { headers: { "Cache-Control": measurementCacheControl(ttlMs) } },

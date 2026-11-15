@@ -1069,7 +1069,7 @@ nav .nav-mobile-header p,
 
   nav .nav-bg,
   .sonify-nav .nav-bg {
-    clip-path: none;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   }
 
   nav .nav-mobile-header,
@@ -1107,7 +1107,7 @@ nav .nav-mobile-header p,
     width: 100%;
     height: 100%;
     background-color: #f2f2f0;
-    clip-path: polygon(0 0, 100% 0, 100% 0rem, 0 0rem);
+    clip-path: polygon(0 0, 100% 0, 100% 0, 100% 0, 100% 0, 0 0, 0 0, 0 0);
     transition: clip-path 0.3s ease;
     z-index: -1;
   }
@@ -1146,7 +1146,7 @@ nav .nav-mobile-header p,
 
   nav.nav-open .nav-overlay::before,
   .sonify-nav.nav-open .nav-overlay::before {
-    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   }
 
   nav.nav-open .nav-item,
@@ -2717,7 +2717,9 @@ footer a.sonify-text-link {
 
 .sonify-railcap { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
 
-.sonify-console { padding: 1px; background: var(--color-chrome-gray); clip-path: polygon(32px 0, 100% 0, 100% calc(100% - 32px), calc(100% - 32px) 100%, 0 100%, 0 32px); }
+.sonify-chamfer-panel { clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px); }
+
+.sonify-console { padding: 1px; background: var(--color-chrome-gray); clip-path: polygon(32px 0, calc(100% - 32px) 0, 100% 32px, 100% calc(100% - 32px), calc(100% - 32px) 100%, 32px 100%, 0 calc(100% - 32px), 0 32px); }
 
 .sonify-console-in { background: var(--color-panel-dark); clip-path: inherit; }
 
@@ -2937,7 +2939,7 @@ footer a.sonify-text-link {
   min-height: 64px;
 }
 
-.sonify-banner { margin: 0; border: 1px solid var(--color-chrome-gray); padding: 12px 16px; color: var(--sonify-label); }
+.sonify-banner { margin: 0; border: 1px solid var(--color-chrome-gray); padding: 12px 16px; color: var(--sonify-label); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px); }
 
 .sonify-stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0 0 28px; padding: 0; list-style: none; }
 
@@ -2948,6 +2950,7 @@ footer a.sonify-text-link {
   min-height: 52px;
   padding: 0 14px;
   border: 1px solid var(--color-chrome-gray);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   color: var(--sonify-label);
   font-size: 15px;
 }
@@ -2986,7 +2989,7 @@ footer a.sonify-text-link {
   justify-content: space-between;
   padding: 10px;
   background: var(--color-panel-dark);
-  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
   outline: 1px solid var(--color-chrome-gray);
 }
 
