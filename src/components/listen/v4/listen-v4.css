@@ -413,6 +413,10 @@
   border: 0;
 }
 
+.lv-more-icon {
+  display: none;
+}
+
 .lv-chip:focus-visible {
   outline: none;
   --lv-stroke: #fff3ea;
@@ -446,7 +450,9 @@
 }
 
 .lv-stage:focus-visible {
-  box-shadow: inset 0 0 0 2px #fff3ea;
+  outline: none;
+  box-shadow: none;
+  --lv-stroke: #fff3ea;
 }
 
 .lv-ring {
@@ -1179,7 +1185,25 @@
   .lv-card[data-id="co2"] { order: 4; }
   .lv-card[data-id="methane"] { order: 5; }
 
-  .lv-chip { flex: 0 0 auto; }
+  .lv-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    margin-right: -16px;
+    padding-right: 16px;
+  }
+  .lv-chips::-webkit-scrollbar { display: none; }
+  .lv-chip { flex: 0 0 auto; scroll-snap-align: start; }
+  .lv-chips > .is-more:not(.lv-more-icon) { display: none; }
+  .lv-more-icon {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    flex: 0 0 44px;
+  }
 
   .lv-count-short,
   .lv-layer-short,
@@ -1318,6 +1342,7 @@
 
 @media (min-width: 700px) and (max-width: 1099px) {
   .lv-page { padding-left: 24px; padding-right: 24px; }
+  .lv-chips { margin-right: -24px; padding-right: 24px; }
   .lv-collapse { flex: 1; }
   .lv-cards {
     display: grid;
@@ -1391,6 +1416,7 @@
   .lv-ticks > span > b { font-size: 9px; letter-spacing: 0; }
   .lv-date { width: 72px; font-size: 10px; }
   .lv-chip { height: 44px; padding: 0 10px; font-size: 11px; letter-spacing: 0.03em; }
+  .lv-more-icon { width: 44px; height: 44px; padding: 0; }
   .lv-card { min-height: 140px; padding: 10px; }
   .lv-card strong { font-size: 26px; margin-top: 8px; }
   .lv-card.is-empty strong,

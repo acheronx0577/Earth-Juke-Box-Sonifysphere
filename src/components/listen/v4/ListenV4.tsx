@@ -762,6 +762,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               <ChamferMark />
               MORE +
             </button>
+            <button type="button" className="lv-chip lv-cut lv-more-icon" aria-label="More data layers" aria-expanded={more} onClick={() => setMore((value) => !value)}>
+              <ChamferMark />
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                <path d="M1.5 2.5 H12.5 L8.4 7.1 V11.1 L5.6 12.2 V7.1 Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
+            </button>
           </div>
         </div>
         {savedOpen ? (
