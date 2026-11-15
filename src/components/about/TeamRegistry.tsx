@@ -120,8 +120,37 @@ export function TeamRegistry() {
 
     window.addEventListener("resize", onResize);
 
+    // Same finger-up stop as the data section, so a flick cannot keep sliding through the cards.
+    let hold = false;
+    const sectionVisible = () => {
+      const rect = stickySection.getBoundingClientRect();
+      return rect.bottom > 0 && rect.top < window.innerHeight;
+    };
+    const onTouchStart = () => {
+      hold = false;
+    };
+    const onTouchEnd = () => {
+      if (!sectionVisible()) return;
+      const y = window.scrollY;
+      const until = performance.now() + 1400;
+      hold = true;
+      const tick = () => {
+        if (!hold) return;
+        if (Math.abs(window.scrollY - y) > 0.5) window.scrollTo(0, y);
+        if (performance.now() < until) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
     return () => {
+      hold = false;
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       trigger.kill();
     };
   }, []);
