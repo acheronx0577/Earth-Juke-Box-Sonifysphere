@@ -771,7 +771,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                 <span className="lv-count-short">{reading.cards.length} · SWIPE →</span>
               </p>
             </div>
-            <div className="lv-cards">
+            <div className="lv-cards" data-count={reading.cards.length}>
               {reading.cards.map((card) => (
                 <article key={card.id} className={`lv-card lv-cut is-${card.state}`} data-id={card.id}>
                   <p className="lv-mono lv-card-label">

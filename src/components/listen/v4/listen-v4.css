@@ -563,6 +563,16 @@
   line-height: 1.05;
 }
 
+.lv-card.is-matched strong {
+  white-space: nowrap;
+}
+
+.lv-cards[data-count="5"] .lv-card.is-matched strong,
+.lv-cards[data-count="6"] .lv-card.is-matched strong {
+  font-size: 15px;
+  letter-spacing: -0.04em;
+}
+
 .lv-card.is-empty strong,
 .lv-card.is-image strong,
 .lv-card.is-loading strong {
