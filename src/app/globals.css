@@ -39,6 +39,7 @@
 }
 
 :root {
+  --font-geist: var(--font-geist-sans);
   --color-bg: #141414;
   --color-ink: #141414;
   --color-cream: #f2f2f0;
