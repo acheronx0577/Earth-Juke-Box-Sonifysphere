@@ -484,6 +484,9 @@
   height: calc(100% - clamp(4.5rem, 2.2rem + 4.5svh, 10rem));
   max-height: 100%;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper {
@@ -494,9 +497,12 @@
   --frac: calc(0.86 - 0.28 * var(--land));
   position: relative;
   width: calc(400% * var(--frac) + 3 * var(--routine-gap));
-  height: 100%;
+  height: auto;
+  max-height: 100%;
+  flex: 0 0 auto;
   transform: translateX(0%);
   display: flex;
+  align-items: stretch;
   gap: var(--routine-gap);
   will-change: transform;
 }
@@ -505,7 +511,8 @@
   position: relative;
   flex: 1;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 100%;
   min-width: 0;
   min-height: 0;
   background-color: #303030;
@@ -570,14 +577,16 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   width: 100%;
-  margin: 0.75rem 0;
+  aspect-ratio: 16 / 10;
+  margin: clamp(0.45rem, 0.2rem + 0.4svh, 0.75rem) 0;
   border: 0;
   border-radius: 0.75rem;
   overflow: hidden;
   background: transparent;
+  container-type: size;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img {
@@ -592,7 +601,18 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="station"] {
-  object-position: center 52%;
+  /* Window follows the slot. 0% shows the top of the photo.
+     The mast tip is source y=292 and the hut base is y=745 in the 1152px file.
+     Ideal centers that span; the clamp keeps 12px of air under the tip and the hut inside
+     whenever the slot is tall enough to hold both. */
+  --r: calc(100cqb / 100cqi);
+  --vis: calc(864 * var(--r));
+  --ideal: calc(518.5 - var(--vis) / 2);
+  --st-min: calc(745 - var(--vis));
+  --st-max: calc(292 - 10368px / 100cqi);
+  --st: min(var(--st-max), max(var(--st-min), var(--ideal)));
+  --den: calc(1152 - var(--vis));
+  object-position: center calc(100% * var(--st) / var(--den));
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="sonar"] {
