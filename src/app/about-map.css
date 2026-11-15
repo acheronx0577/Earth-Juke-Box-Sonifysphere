@@ -695,7 +695,7 @@
 
 /* observatory - team section */
 .team {
-  --crew-h: min(1100px, 64svh, calc((100vw - 2rem) * 575 / 425), max(36vw, calc(100svh - 64vw)));
+  --crew-h: min(1100px, 64svh, calc((100vw - 2.25rem) * 575 / 425), max(36vw, calc(100svh - 64vw)));
   --crew-w: calc(var(--crew-h) * 425 / 575);
   position: relative;
   width: 100%;
@@ -803,6 +803,8 @@
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  /* A fractional transform tiles this image on a 256px boundary and shifts the next tile by 1px. */
+  outline: 1px solid transparent;
   transition: transform 0.3s ease;
 }
 
