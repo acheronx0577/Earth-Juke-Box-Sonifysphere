@@ -1099,8 +1099,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         setSlot(card.slot);
         return;
       }
-      if ((state.openTarget > 0 || state.open > 0.1) && card.slot === state.active) close();
-      else openSlot(card.slot);
+      if ((state.openTarget > 0 || state.open > 0.1) && card.slot === state.active) return;
+      openSlot(card.slot);
     };
 
     const onPointerCancel = (event: PointerEvent) => {
@@ -1181,7 +1181,9 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (event.button !== 0) return;
       if (performance.now() - openTimestamp < 150) return;
 
-      if (container.contains(event.target as Node)) return;
+      const target = event.target;
+      if (target instanceof Node && container.contains(target)) return;
+      if (target instanceof Element && target.closest(".story-chapters-controls")) return;
 
       close();
     };
