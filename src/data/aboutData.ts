@@ -96,9 +96,16 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "image",
     label: "Image",
-    text: "NASA EPIC (DSCOVR) is a credited reference, not the hero or the GIBS globe.",
+    text: "Listen loads NASA EPIC (DSCOVR) whole-Earth frames. Sound from those frames is image-derived, not a measurement. Not the hero or the GIBS globe.",
     linkLabel: "EPIC ↗",
     linkHref: "https://epic.gsfc.nasa.gov/",
+  },
+  {
+    id: "eonet",
+    label: "Events",
+    text: "Open natural events come from NASA EONET v3. Each event in the chosen view is a pulse, and the same events are listed in text.",
+    linkLabel: "EONET ↗",
+    linkHref: "https://eonet.gsfc.nasa.gov/docs/v3",
   },
   {
     id: "meteomatics",
