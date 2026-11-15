@@ -61,6 +61,9 @@
 }
 
 .story-chapters-controls-row {
+  --story-play-font: clamp(14.4px, 0.456vw + 12px, 21.6px);
+  --story-play-pad-y: clamp(13px, 1.3vh, 23.4px);
+  --story-play-height: calc(var(--story-play-pad-y) * 2 + var(--story-play-font) * 1.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,7 +86,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(12px, 0.38vw + 10px, 18px);
+  font-size: var(--story-play-font);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0.08em;
@@ -282,8 +285,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: clamp(40px, 2.1vw + 16px, 72px);
-  height: clamp(40px, 2.1vw + 16px, 72px);
+  width: var(--story-play-height);
+  height: var(--story-play-height);
   padding: 0;
   background: transparent;
   border: none;
@@ -319,7 +322,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(10px, 1vh, 18px) clamp(16px, 1.8vw, 48px);
+  min-height: var(--story-play-height);
+  padding: var(--story-play-pad-y) clamp(20.8px, 2.34vw, 62.4px);
   background-color: #f2f2f0;
   cursor: pointer;
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
