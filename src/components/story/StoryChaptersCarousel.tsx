@@ -102,6 +102,24 @@ const CHAPTERS: ChapterData[] = [
  */
 const FLOW_SPEED = 0.8;
 
+function UpRightArrow({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="6" y1="18" x2="18" y2="6" />
+      <polyline points="9 6 18 6 18 15" />
+    </svg>
+  );
+}
+
 function useListenBadgeSize() {
   const [size, setSize] = useState(120);
   useEffect(() => {
@@ -337,7 +355,13 @@ export function StoryChaptersCarousel() {
             aria-label="Listen to the map"
           >
             <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
-            <span className="story-listen-pill-label">Listen to the map</span>
+            <span className="story-listen-pill-label">
+              Listen to the map
+              <span className="story-listen-pill-arrow">
+                <UpRightArrow className="story-listen-pill-arrow-out" />
+                <UpRightArrow className="story-listen-pill-arrow-in" />
+              </span>
+            </span>
           </Link>
 
           <Link
@@ -359,34 +383,8 @@ export function StoryChaptersCarousel() {
                 className="font-sans font-bold text-[#f2f2f0]/90 transition-colors group-hover:text-[#f2f2f0]"
               >
                 <div className="relative flex size-10 items-center justify-center overflow-hidden pointer-events-none">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="size-8 text-[#f2f2f0] transition-all duration-300 ease-out group-hover:translate-x-10 group-hover:-translate-y-10 group-hover:opacity-0"
-                  >
-                    <line x1="6" y1="18" x2="18" y2="6" />
-                    <polyline points="9 6 18 6 18 15" />
-                  </svg>
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="absolute size-8 -translate-x-10 translate-y-10 text-[#f2f2f0] opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100"
-                  >
-                    <line x1="6" y1="18" x2="18" y2="6" />
-                    <polyline points="9 6 18 6 18 15" />
-                  </svg>
+                  <UpRightArrow className="size-8 text-[#f2f2f0] transition-all duration-300 ease-out group-hover:translate-x-10 group-hover:-translate-y-10 group-hover:opacity-0" />
+                  <UpRightArrow className="absolute size-8 -translate-x-10 translate-y-10 text-[#f2f2f0] opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
                 </div>
               </CircularText>
             </div>
