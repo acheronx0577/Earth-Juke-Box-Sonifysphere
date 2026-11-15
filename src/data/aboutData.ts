@@ -83,7 +83,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     id: "library",
     label: "Media",
     text: "Listen searches the NASA Image and Video Library. Media, not measurements.",
-    linkLabel: "images.nasa.gov ↗",
+    linkLabel: "NASA images ↗",
     linkHref: "https://images.nasa.gov/",
   },
   {
@@ -97,14 +97,14 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     id: "image",
     label: "Image",
     text: "NASA EPIC (DSCOVR) is a credited reference, not the hero or the GIBS globe.",
-    linkLabel: "epic.gsfc.nasa.gov ↗",
+    linkLabel: "EPIC ↗",
     linkHref: "https://epic.gsfc.nasa.gov/",
   },
   {
     id: "meteomatics",
     label: "Weather",
     text: "Meteomatics readings appear only when the server is configured.",
-    linkLabel: "meteomatics.com ↗",
+    linkLabel: "Meteomatics ↗",
     linkHref: "https://www.meteomatics.com/en/api/",
   },
   {
