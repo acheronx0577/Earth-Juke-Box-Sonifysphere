@@ -2093,6 +2093,18 @@ nextjs-portal {
   letter-spacing: -0.02em;
 }
 
+.about-credits-flowing .flowing-menu__band {
+  container-type: size;
+}
+
+.about-credits-flowing .flowing-menu__image {
+  height: calc(100cqh - 6px);
+  width: auto;
+  aspect-ratio: 2.2 / 1;
+  margin-block: 0;
+  align-self: center;
+}
+
 @media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
   .about-credits[data-flowing-ready="true"] .about-credits-flowing-shell {
     position: relative;
