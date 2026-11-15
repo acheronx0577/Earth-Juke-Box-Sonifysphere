@@ -26,6 +26,8 @@
   width: 100%;
   height: 100%;
   background: transparent;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .circular-gallery-labels {
