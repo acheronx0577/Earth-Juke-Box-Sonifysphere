@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
+import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/components/listen/v4/eicSource";
 import { ListenMap } from "@/components/listen/v4/ListenMap";
 import {
   EXTRA_LAYERS,
@@ -397,7 +398,7 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
 export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const { setSoundEnabled } = useSonifyPlayer();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [sources, setSources] = useState<ListenSource[]>([...SEED_SOURCES]);
+  const [sources, setSources] = useState<ListenSource[]>([EIC_FRAME_SOURCE, ...SEED_SOURCES]);
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const [source, setSource] = useState<ListenSource>(MAP_SOURCE);
   const [query, setQuery] = useState("");
@@ -608,13 +609,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   };
 
   const openSource = (item: ListenSource) => {
-    setSource(item);
+    const next = item.id === EIC_FRAME_SOURCE.id ? { ...item, preview: EIC_FRAME_IMAGE } : item;
+    setSource(next);
     setPixelColor(null);
     setSavedOpen(false);
     setDrawer(false);
     setResultsOpen(false);
-    if (item.layer) chooseLayer(item.layer);
-    if (item.kind === "map") {
+    setStatus(next.id === EIC_FRAME_SOURCE.id ? EIC_FRAME_STATUS : "");
+    if (next.layer) chooseLayer(next.layer);
+    if (next.kind === "map") {
       setLat(0);
       setLng(-145);
     }
