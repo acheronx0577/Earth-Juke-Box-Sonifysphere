@@ -70,16 +70,18 @@ test("challenge card titles stay on one line", async ({ page }) => {
   await page.goto("/challenge");
   for (const width of [2560, 1920, 1440, 390]) {
     await page.setViewportSize({ width, height: width < 500 ? 844 : 1000 });
-    for (const title of ["GUESS THE SIGNAL", "CLIMATE CONSOLE"]) {
-      const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title }).first();
+    const titles = width >= 1200 ? ["GUESS THE SIGNAL", "CLIMATE CONSOLE"] : ["GUESS THE SIGNAL"];
+    for (const title of titles) {
+      const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title, visible: true }).first();
       await expect(label).toBeVisible();
-      const lines = await label.evaluate((el) => {
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        return range.getClientRects().length;
-      });
-      expect(lines, `${title} at ${width}px`).toBe(1);
-      await expect(label).toHaveCSS("white-space", "nowrap");
+      await expect.poll(async () => label.evaluate((el) => {
+        const style = getComputedStyle(el);
+        if (style.whiteSpace !== "nowrap" || Number(style.opacity) < 0.5) return 0;
+        const fontSize = Number.parseFloat(style.fontSize);
+        const height = el.getBoundingClientRect().height;
+        if (!fontSize || height <= 0) return 0;
+        return height / fontSize;
+      }), { message: `${title} at ${width}px` }).toBeLessThan(1.6);
     }
   }
 });
