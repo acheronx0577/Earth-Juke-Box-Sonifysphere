@@ -695,6 +695,8 @@
 
 /* observatory - team section */
 .team {
+  --crew-h: min(1100px, 64svh, calc((100vw - 2rem) * 575 / 425), max(36vw, calc(100svh - 64vw)));
+  --crew-w: calc(var(--crew-h) * 425 / 575);
   position: relative;
   width: 100%;
   height: 100svh;
@@ -764,7 +766,7 @@
 
 .team .cards {
   position: absolute;
-  top: 53%;
+  top: max(57%, calc(3.2rem + 1.76 * min(7.5vw, 7.5rem) + var(--crew-h) / 2));
   left: 50%;
   transform: translate(-50%, -50%);
   width: 150vw;
@@ -774,13 +776,13 @@
 
 .team .cards .card {
   position: absolute;
-  width: 425px;
-  height: 575px;
+  width: var(--crew-w);
+  height: var(--crew-h);
   left: 50%;
   top: 50%;
   transform-origin: center center;
-  margin-left: -212.5px;
-  margin-top: -287.5px;
+  margin-left: calc(var(--crew-w) / -2);
+  margin-top: calc(var(--crew-h) / -2);
   display: flex;
   flex-direction: column;
   gap: 1em;
@@ -852,17 +854,10 @@
 
 @media (min-width: 769px) {
   .team .cards {
-    top: 57%;
     height: min(80svh, 1200px);
   }
 
   .team .cards .card {
-    --crew-h: min(36vw, 64svh, 1100px);
-    --crew-w: calc(var(--crew-h) * 425 / 575);
-    width: var(--crew-w);
-    height: var(--crew-h);
-    margin-left: calc(var(--crew-w) / -2);
-    margin-top: calc(var(--crew-h) / -2);
     gap: calc(var(--crew-h) * 0.023);
   }
 
@@ -878,13 +873,6 @@
 
   .team .cards .card .card-content p {
     font-size: calc(var(--crew-h) * 0.028);
-  }
-}
-
-/* Portrait: 36vw binds and shrinks the card. Follow 64svh instead, still 425:575, never under 320×440. */
-@media (min-width: 769px) and (aspect-ratio < 1) {
-  .team .cards .card {
-    --crew-h: clamp(440px, 64svh, min(1100px, calc(100vw * 575 / 425)));
   }
 }
 
@@ -966,20 +954,6 @@
     height: var(--count-line);
   }
 
-}
-
-@media (max-width: 768px) {
-  .team .cards {
-    top: 59%;
-  }
-
-  .team .cards .card {
-    width: 320px;
-    height: 440px;
-    margin-left: -160px;
-    margin-top: -220px;
-    gap: 1em;
-  }
 }
 
 @media (max-width: 1000px) {
