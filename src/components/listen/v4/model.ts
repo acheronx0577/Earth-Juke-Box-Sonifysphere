@@ -1,6 +1,7 @@
 import { MAP_REGIONS, regionById, type MapRegion } from "@/data/exploreMap";
 import { regionIdAt } from "@/components/listen/regionGeometry";
 import type { LegendMetadata } from "@/components/listen/v4/legend";
+import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 
 export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
 export type SoundStyle = "synth" | "orchestra";
@@ -290,10 +291,18 @@ export function readProbe(input: {
   lng: number;
   source: ListenSource;
   pixelColor: string | null;
-  measured: { value: string; detail: string } | null;
+  measured: TaggedReading | null;
   measuring: boolean;
 }): ProbeReading {
   const { layer, year, lat, lng, source, pixelColor, measured, measuring } = input;
+  const currentContext: ReadingContext = {
+    source: source.id,
+    layer,
+    lat,
+    lon: lng,
+    time: probeInstant(year),
+  };
+  const accepted = acceptReading(currentContext, measured);
   const when = dateLabel(year);
   const region = source.kind === "map" ? regionAt(lng, lat) : null;
   const color = pixelColor ?? (source.kind === "map" ? paintColor(layer === "all" ? "temperature" : layer, lng, lat) : "#161311");
@@ -352,14 +361,14 @@ export function readProbe(input: {
         value: "Loading matched data…",
         detail: "CHECKING THE MEASUREMENT SOURCE",
       });
-    } else if (measured && layer === id) {
+    } else if (accepted && layer === id) {
       extras.set(id, {
         id,
         label: layerLabel(id),
         swatch: "#8a6248",
         state: "matched",
-        value: measured.value,
-        detail: measured.detail,
+        value: accepted.value,
+        detail: accepted.detail,
       });
     } else {
       extras.set(id, emptyCard(id, layerLabel(id), "NO MATCHED DATA FOR THIS POINT"));
