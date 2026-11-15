@@ -380,6 +380,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [legend, setLegend] = useState<LegendModel>(legendFromMetadata(legendMetaFor(initialLayer, MAP_SOURCE)));
   const [measured, setMeasured] = useState<{ value: string; detail: string } | null>(null);
   const [measuring, setMeasuring] = useState(false);
+  const [pixelColor, setPixelColor] = useState<string | null>(null);
+  const soundToggleRef = useRef<HTMLButtonElement>(null);
   const ready = useRef(false);
   const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
@@ -436,7 +438,10 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (sheet) setSheet(false);
+      if (sheet) {
+        setSheet(false);
+        soundToggleRef.current?.focus();
+      }
       else if (drawer) setDrawer(false);
       else if (resultsOpen) setResultsOpen(false);
     };
@@ -447,8 +452,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   useEffect(() => onPlaybackStopped(() => setPlaying(false)), []);
 
   const reading = useMemo(
-    () => readProbe({ layer, year, lat, lng, source, pixelColor: null, measured, measuring }),
-    [layer, year, lat, lng, source, measured, measuring],
+    () => readProbe({ layer, year, lat, lng, source, pixelColor, measured, measuring }),
+    [layer, year, lat, lng, source, pixelColor, measured, measuring],
   );
 
   const hearing = useMemo<HearingParams>(
@@ -502,6 +507,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   const openSource = (item: ListenSource) => {
     setSource(item);
+    setPixelColor(null);
     setSavedOpen(false);
     setDrawer(false);
     setResultsOpen(false);
@@ -532,9 +538,14 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`);
       const body = (await response.json()) as { items?: NasaHit[]; error?: string };
       if (!response.ok) throw new Error(body.error ?? "Search failed.");
-      setResults(body.items ?? []);
-      setSearches((previous) => [{ id: clean, term: clean, detail: `${body.items?.length ?? 0} NASA MEDIA RESULTS` }, ...previous.filter((item) => item.term !== clean)].slice(0, 12));
-      if (!body.items?.length) setStatus(`No NASA media for “${clean}”.`);
+      const items = body.items ?? [];
+      setResults(items);
+      if (!items.length) {
+        setResultsOpen(false);
+        setStatus(`No NASA media for “${clean}”.`);
+      } else {
+        setSearches((previous) => [{ id: clean, term: clean, detail: `${items.length} NASA MEDIA RESULTS` }, ...previous.filter((item) => item.term !== clean)].slice(0, 12));
+      }
     } catch (error) {
       setResults([]);
       setStatus(error instanceof Error ? error.message : "NASA search failed.");
@@ -591,6 +602,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     if (playing) {
       stopProbeAudio();
       setPlaying(false);
+      setStatus("");
       return;
     }
     setSoundEnabled(true);
@@ -635,21 +647,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   return (
     <main id="main-content" tabIndex={-1} className="lv-page">
       <h1 className="sr-only">Listen</h1>
-      <aside className={`lv-history lv-cut ${drawer ? "is-open" : ""}`} aria-label="History">
-        <div className="lv-history-face lv-cut">
-          <HistoryList
-            sources={sources}
-            searches={searches}
-            activeId={source.id}
-            drawer={drawer}
-            onClose={() => setDrawer(false)}
-            onOpen={openSource}
-            onSearch={(term) => void searchNASA(term)}
-            onNew={() => fileRef.current?.click()}
-          />
-        </div>
-      </aside>
-      <button type="button" className={`lv-scrim ${drawer ? "is-open" : ""}`} aria-label="Close history" onClick={() => setDrawer(false)} />
+      <a className="lv-skip" href="#nasa-search">Skip to search</a>
       <div className="lv-main">
         <form
           className="lv-search lv-cut"
@@ -741,6 +739,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             onLegend={onLegend}
             tip={reading.tip}
             coord={coord}
+            onPixel={setPixelColor}
             onProbe={(nextLat, nextLng) => {
               setLat(Math.max(-85, Math.min(85, nextLat)));
               setLng(Math.max(-180, Math.min(180, nextLng)));
@@ -751,7 +750,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           <section aria-label="Readings at probe">
             <div className="lv-read-head">
               <p className="lv-mono lv-eyebrow">
-                READINGS AT PROBE · <span className="lv-coord-inline">{coord} · </span>
+                READINGS AT {source.kind === "map" ? "PROBE" : "MEDIA"} · {source.kind === "map" ? <span className="lv-coord-inline">{coord} · </span> : null}
                 {when}
               </p>
               <p className="lv-mono lv-eyebrow">
@@ -777,9 +776,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           {sheet ? (
             <div className="lv-sheet lv-cut" id="sound-controls">
               <div className="lv-sheet-face lv-cut">
-                <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => setSheet(false)}>
+                <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => { setSheet(false); soundToggleRef.current?.focus(); }}>
                   <i />
-                  <span>SOUND PROFILE</span>
+                  <span>
+                    SOUND PROFILE
+                    <small>{layerLabel(layer)} · {instrument.replace("-", " ")}</small>
+                  </span>
                   <Chevron />
                 </button>
                 <SoundFields
@@ -796,7 +798,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                   onTempo={setTempo}
                 />
                 <div className="lv-sheet-actions">
-                  <button type="button" className="lv-play lv-cut" aria-pressed={playing} onClick={() => void togglePlay()}>
+                  <button type="button" className="lv-play lv-cut" onClick={() => void togglePlay()}>
                     <PlayGlyph stop={playing} />
                     {playing ? "Stop" : "Play sound"}
                   </button>
@@ -808,11 +810,11 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             </div>
           ) : (
             <div className="lv-sound-row">
-              <button type="button" className="lv-collapse lv-cut" aria-expanded="false" aria-controls="sound-controls" onClick={() => setSheet(true)}>
+              <button ref={soundToggleRef} type="button" className="lv-collapse lv-cut" aria-expanded="false" aria-controls="sound-controls" onClick={() => setSheet(true)}>
                 SOUND PROFILE
                 <Chevron up />
               </button>
-              <button type="button" className="lv-play lv-play-pill lv-cut" aria-pressed={playing} onClick={() => void togglePlay()}>
+              <button type="button" className="lv-play lv-play-pill lv-cut" onClick={() => void togglePlay()}>
                 <PlayGlyph stop={playing} />
                 {playing ? "Stop" : "Play sound"}
               </button>
@@ -825,6 +827,21 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           </p>
         ) : null}
       </div>
+      <aside className={`lv-history lv-cut ${drawer ? "is-open" : ""}`} aria-label="History">
+        <div className="lv-history-face lv-cut">
+          <HistoryList
+            sources={sources}
+            searches={searches}
+            activeId={source.id}
+            drawer={drawer}
+            onClose={() => setDrawer(false)}
+            onOpen={openSource}
+            onSearch={(term) => void searchNASA(term)}
+            onNew={() => fileRef.current?.click()}
+          />
+        </div>
+      </aside>
+      <button type="button" className={`lv-scrim ${drawer ? "is-open" : ""}`} aria-label="Close history" tabIndex={drawer ? 0 : -1} onClick={() => setDrawer(false)} />
       <aside className="lv-sound lv-cut" aria-label="Sound profile">
         <div className="lv-sound-face lv-cut">
           <div>
@@ -844,7 +861,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             onVolume={setVolume}
             onTempo={setTempo}
           />
-          <button type="button" className="lv-play lv-cut" aria-pressed={playing} onClick={() => void togglePlay()}>
+          <button type="button" className="lv-play lv-cut" onClick={() => void togglePlay()}>
             <PlayGlyph stop={playing} />
             {playing ? "Stop" : "Play sound"}
           </button>
@@ -865,6 +882,11 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           <button type="button" className="lv-save lv-cut" onClick={saveProfile}>
             SAVE PROFILE
           </button>
+          {profiles.length > 0 ? (
+            <button type="button" className="lv-saved-link" onClick={() => setSavedOpen(true)}>
+              View {profiles.length} saved {profiles.length === 1 ? "profile" : "profiles"}
+            </button>
+          ) : null}
         </div>
       </aside>
       <Timeline year={year} onYear={setYear} />
@@ -903,6 +925,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <input
         ref={fileRef}
         className="sr-only"
+        tabIndex={-1}
         type="file"
         accept="image/*,video/*"
         aria-label="Upload image or video"
@@ -912,7 +935,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         }}
       />
       <p className="sr-only" aria-live="polite">
-        {playing ? `Hearing ${hearTitle(layer)} with ${instrument} at volume ${Math.round(volume)} percent.` : "Sound is stopped."}
+        {playing ? `Hearing ${layerLabel(layer).toLowerCase()} as ${instrument.replaceAll("-", " ")}, volume ${Math.round(volume)} percent.` : "Sound is stopped."}
       </p>
     </main>
   );
