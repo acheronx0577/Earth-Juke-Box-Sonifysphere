@@ -9,6 +9,7 @@
   --lv-dim: rgba(255, 243, 234, 0.38);
   --lv-orange: #ff7a2e;
   --lv-focus: #ff7a2e;
+  --lv-nav-space: calc(1rem + 2rem + 12px);
   position: relative;
   min-height: 100dvh;
   color: var(--lv-cream);
@@ -82,7 +83,9 @@
 
 .lv-new {
   --cut: 8px;
+  flex: 0 0 58px;
   height: 58px;
+  min-height: 58px;
   border: 0;
   border-radius: 0;
   background: var(--lv-cream);
@@ -901,7 +904,7 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 16px 16px 118px;
+    padding: var(--lv-nav-space) 16px 118px;
   }
 
   .lv-history { display: none; }
@@ -912,7 +915,7 @@
     display: block;
     position: fixed;
     z-index: 40;
-    top: 0;
+    top: var(--lv-nav-space);
     bottom: 0;
     left: 0;
     width: min(320px, 100%);
@@ -1072,8 +1075,12 @@
   .lv-collapse { height: 52px; }
 }
 
+@media (max-width: 1000px) {
+  .lv-page { --lv-nav-space: calc(2rem + 2rem + 16px + env(safe-area-inset-top, 0px)); }
+}
+
 @media (min-width: 700px) and (max-width: 1099px) {
-  .lv-page { padding: 24px 24px 106px; }
+  .lv-page { padding: var(--lv-nav-space) 24px 106px; }
   .lv-stage { height: 420px; }
   .lv-collapse { flex: 1; }
 }
@@ -1092,7 +1099,7 @@
     grid-template-rows: minmax(0, 1fr) 44px;
     column-gap: 16px;
     row-gap: 12px;
-    padding: 32px 32px 16px;
+    padding: var(--lv-nav-space) 32px 16px;
   }
   .lv-history { grid-column: 1; grid-row: 1; min-height: 0; }
   .lv-main {
