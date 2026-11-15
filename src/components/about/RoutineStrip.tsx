@@ -16,8 +16,8 @@ const BLOCKS = [
     href: "https://gml.noaa.gov/ccgg/trends/",
     external: true,
     icon: "station" as const,
-    image: "/assets/landing/chapters/chapter-01.webp",
-    alt: "Observatory hut and instrument masts on the lava ridge above a cloud deck",
+    image: "/about/data/data-01-mauna-loa.jpg",
+    alt: "White observatory hut and instrument mast on lava above the clouds",
   },
   {
     num: "02",
@@ -29,8 +29,8 @@ const BLOCKS = [
     href: "/listen",
     external: false,
     icon: "sonar" as const,
-    image: "/assets/about/routine/routine_02_map.webp",
-    alt: "Earth at night with sonar rings over the oceans",
+    image: "/about/data/data-02-hear-the-map.jpg",
+    alt: "Dotted world map with an amber sonar ping over the Atlantic",
   },
   {
     num: "03",
@@ -42,8 +42,8 @@ const BLOCKS = [
     href: "/challenge",
     external: false,
     icon: "scope" as const,
-    image: "/assets/about/routine/routine_03_challenges.webp",
-    alt: "Synthesizer console with a waveform scope in a night lab",
+    image: "/about/data/data-03-challenges.jpg",
+    alt: "Scope panel with a waveform, knobs, and a slider",
   },
   {
     num: "04",
@@ -55,8 +55,8 @@ const BLOCKS = [
     href: "/listen",
     external: false,
     icon: "waves" as const,
-    image: "/assets/about/routine/routine_04_voices.webp",
-    alt: "Three glowing waveform ribbons crossing a star field",
+    image: "/about/data/data-04-three-voices.jpg",
+    alt: "Three waveform lines on a dark grid",
   },
 ] as const;
 
