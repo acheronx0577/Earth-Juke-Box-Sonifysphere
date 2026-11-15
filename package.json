@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts"
+    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts",
+    "test:planetary-computer": "node scripts/test-planetary-computer.mjs"
   },
   "dependencies": {
     "@hugeicons/core-free-icons": "^4.4.0",
