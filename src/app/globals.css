@@ -554,15 +554,15 @@ body::-webkit-scrollbar {
   }
 
   .sonify-footer-nav {
-    gap: 0;
-    padding-bottom: 4px;
+    gap: 15px;
+    padding-bottom: 16px;
   }
 
   .sonify-footer-nav-links {
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 12px;
-    row-gap: 12px;
+    row-gap: 22px;
     align-items: start;
     justify-items: start;
     width: 100%;
@@ -577,6 +577,11 @@ body::-webkit-scrollbar {
   .sonify-footer .sonify-footer-nav-links > a.sonify-footer-link {
     min-height: 0;
     line-height: 1.2;
+  }
+
+  .sonify-footer .sonify-footer-nav-links > a.sonify-footer-link:nth-child(even) {
+    justify-content: flex-end;
+    text-align: right;
   }
 
   .sonify-footer-fold {
