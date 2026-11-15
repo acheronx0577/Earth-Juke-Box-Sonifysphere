@@ -748,9 +748,13 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
           const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
+          const labelWidth = entry.el.offsetWidth || maxWidth;
+          const left = cssX - labelWidth / 2;
+          const right = cssX + labelWidth / 2;
+          const fullyInside = left >= 2 && right <= view.width - 2;
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
-          entry.el.style.opacity = String(card.alpha * card.labelAlpha * mix(edge, 1, card.focus));
+          entry.el.style.opacity = String(fullyInside ? card.alpha * card.labelAlpha * mix(edge, 1, card.focus) : 0);
         });
       }
       pool.forEach((entry) => {
