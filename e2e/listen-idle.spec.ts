@@ -26,7 +26,7 @@ test("wind remains sound-only and globe hover does not redraw the satellite canv
   await page.route("https://gibs.earthdata.nasa.gov/**", (route) => route.fulfill({
     contentType: "image/png", body: PNG.sync.write(tile),
   }));
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await expect(page.locator("canvas.maplibregl-canvas")).toBeVisible();
   const wind = page.getByRole("slider", { name: "WIND", exact: true });
   await wind.focus();
@@ -55,7 +55,7 @@ test("wind remains sound-only and globe hover does not redraw the satellite canv
 });
 
 test("the cursor sleeps after snapping and wakes on pointer movement", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   const temperature = page.getByRole("radio", { name: "TEMPERATURE", exact: true });
   const cursor = page.locator(".target-cursor");
   const corners = cursor.locator(".target-cursor__corner");
@@ -90,7 +90,7 @@ test("cursor springs stay on screen through repeated slow frames", async ({ page
     // Exercise the cursor's 50ms integration cap without making the test machine stall.
     window.requestAnimationFrame = (callback) => original((time) => callback(time * 4));
   });
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await page.getByRole("radio", { name: "TEMPERATURE", exact: true }).hover();
   await page.waitForTimeout(800);
   await page.mouse.move(650, 400);
@@ -121,7 +121,7 @@ test("the loading screen warms Listen assets without starting a map or audio", a
   expect([...urls].some((url) => url.startsWith("/api/wind") || /\.mp3$/.test(url))).toBe(false);
   await expect(page.locator(".preloader")).toHaveCount(0);
   await page.getByRole("link", { name: "Enter without audio", exact: true }).click();
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
-  await expect(page.getByRole("radio", { name: "TEMPERATURE", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "TEMPERATURE", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("slider", { name: "Timeline" })).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -71,10 +71,10 @@ test("dataset chips switch the listen record", async ({ page }) => {
   await expect(picks.nth(0)).toHaveAttribute("href", "/listen?data=temp");
 
   await page.goto("/listen?data=co2&sound=off");
-  await expect(page.getByRole("radio", { name: "CO₂" }).filter({ visible: true })).toBeChecked();
-  await page.getByRole("radio", { name: "METHANE" }).filter({ visible: true }).click();
+  await expect(page.getByRole("button", { name: "CO₂", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "METHANE", exact: true }).click();
   await expect(page).toHaveURL(/data=ch4/);
-  await expect(page.getByRole("radio", { name: "METHANE" }).filter({ visible: true })).toBeChecked();
+  await expect(page.getByRole("button", { name: "METHANE", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("sound off persists and blocks a new Hear", async ({ page }) => {
@@ -95,7 +95,7 @@ test("sound off persists and blocks a new Hear", async ({ page }) => {
 });
 
 test("listen regions open a place and link to the challenge", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await expect(page.getByRole("link", { name: "Skip to map regions" })).toHaveCount(1);
   const pacific = page.getByRole("button", { name: "Pacific Ocean", exact: true }).filter({ visible: true });
   await expect(pacific).toHaveCSS("opacity", "1");
@@ -114,7 +114,7 @@ test("listen regions open a place and link to the challenge", async ({ page }) =
 });
 
 test("place card Turn sound on accepts a pointer click", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   const europe = page.getByRole("button", { name: "Europe", exact: true }).filter({ visible: true });
   await europe.evaluate((el: HTMLButtonElement) => el.click());
   await page.getByRole("button", { name: "Hear it" }).filter({ visible: true }).click();
@@ -132,7 +132,7 @@ test("place card Turn sound on accepts a pointer click", async ({ page }) => {
 });
 
 test("share link records the open region", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await chooseRegion(page, "Europe");
   await page.getByRole("button", { name: "Share" }).filter({ visible: true }).click();
   const dialog = page.getByRole("dialog", { name: "Share this listen" });
@@ -146,7 +146,7 @@ test("share link records the open region", async ({ page }) => {
 });
 
 test("year slider steps from the keyboard and shows Turn sound on", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await expect(page.getByRole("button", { name: "Play timeline" })).toHaveCount(0);
   const yearSlider = page.getByRole("slider", { name: "Map year" }).filter({ visible: true });
   await expect(yearSlider).toHaveValue("2026");
@@ -178,7 +178,7 @@ test("year slider steps from the keyboard and shows Turn sound on", async ({ pag
 
 test("theme rail stays compact and its collapse tab is 44px", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 640 });
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   const panel = page.locator(".listen-theme-panel-open").filter({ visible: true });
   await expect(panel).toBeVisible();
   const rail = await panel.boundingBox();
@@ -201,14 +201,14 @@ test("theme rail stays compact and its collapse tab is 44px", async ({ page }) =
 test("wind sound remains available with reduced motion and calm", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await expect(liveMain(page).getByRole("slider", { name: "WIND" })).toHaveValue("28");
   await expect(liveMain(page).getByText("Motion reduced · particles stay still")).toHaveCount(0);
   await page.getByRole("button", { name: "Collapse theme rail" }).click();
   await expect(liveMain(page).getByText("Motion reduced · particles stay still")).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   const wind = liveMain(page).getByRole("slider", { name: "WIND" });
   await wind.focus();
   await page.keyboard.press("Home");
