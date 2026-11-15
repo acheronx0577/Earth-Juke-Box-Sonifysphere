@@ -200,12 +200,66 @@
 }
 
 .story-listen-pill-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.story-listen-pill-arrow {
+  position: relative;
+  display: inline-block;
+  width: 1cap;
+  height: 1cap;
+  overflow: hidden;
+  flex: none;
+  color: currentColor;
+}
+
+.story-listen-pill-arrow svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: transform 300ms ease-out, opacity 300ms ease-out;
+}
+
+.story-listen-pill-arrow-in {
+  transform: translate(-100%, 100%);
+  opacity: 0;
+}
+
+.story-listen-pill:hover .story-listen-pill-arrow-out,
+.story-listen-pill:active .story-listen-pill-arrow-out {
+  transform: translate(100%, -100%);
+  opacity: 0;
+}
+
+.story-listen-pill:hover .story-listen-pill-arrow-in,
+.story-listen-pill:active .story-listen-pill-arrow-in {
+  transform: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-listen-pill-arrow svg {
+    transition: none;
+  }
+
+  .story-listen-pill:hover .story-listen-pill-arrow-out,
+  .story-listen-pill:active .story-listen-pill-arrow-out {
+    transform: none;
+    opacity: 1;
+  }
+
+  .story-listen-pill-arrow-in {
+    display: none;
+  }
 }
 
 .story-listen-pill:hover {
