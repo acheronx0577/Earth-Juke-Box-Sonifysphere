@@ -1994,9 +1994,10 @@ nextjs-portal {
   scroll-margin-top: 6rem;
 }
 
-/* --credits-u is 1px at 1920×1080. Width sets the scale; svh caps short screens. */
+/* --credits-u is 1px at 1920×1080. Width sets the scale, svh caps short screens,
+   and the floor is a 1000px-wide frame so the desktop row never steps down. */
 .about-credits {
-  --credits-u: min(calc(100vw / 1920), calc(100svh / 1080));
+  --credits-u: max(calc(1000px / 1920), min(calc(100vw / 1920), calc(100svh / 1080)));
   margin-top: 120px;
   padding-bottom: 40px;
 }
@@ -2057,8 +2058,8 @@ nextjs-portal {
   }
 }
 
-/* Desktop credits share one proportion of the viewport. Phones keep the static list. */
-@media (min-width: 1200px) {
+/* Desktop row, from the 1001px layout up. Phones at 1000px and below keep the static list. */
+@media (min-width: 1001px) {
   .about-credits.about-wrap {
     width: calc(var(--credits-u) * 1400);
     max-width: calc(100% - var(--credits-u) * 64);
