@@ -411,9 +411,12 @@
 }
 
 .routine .routine-container .routine-copy .container {
+  box-sizing: border-box;
   width: 100%;
+  max-width: none;
   height: 100%;
-  padding: 5rem 6rem;
+  margin-inline: 0;
+  padding: clamp(4.5rem, 8vh, 6rem) clamp(1.5rem, 4vw, 6rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -460,6 +463,7 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider {
+  container-type: inline-size;
   width: 100%;
   height: calc(100% - 9rem);
   overflow: hidden;
@@ -477,8 +481,8 @@
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
   position: relative;
-  flex: 0 0 540px;
-  width: 540px;
+  flex: 0 0 min(540px, calc(100cqi - 2.5rem));
+  width: min(540px, calc(100cqi - 2.5rem));
   height: 100%;
   background-color: #262626;
   border: 1px solid rgba(242, 242, 240, 0.14);
@@ -791,6 +795,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
   transition: transform 0.3s ease;
 }
 
@@ -838,6 +843,37 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0;
+}
+
+@media (min-width: 769px) {
+  .team .cards {
+    top: 57%;
+    height: min(80svh, 1200px);
+  }
+
+  .team .cards .card {
+    --crew-h: min(36vw, 64svh, 1100px);
+    --crew-w: calc(var(--crew-h) * 425 / 575);
+    width: var(--crew-w);
+    height: var(--crew-h);
+    margin-left: calc(var(--crew-w) / -2);
+    margin-top: calc(var(--crew-h) / -2);
+    gap: calc(var(--crew-h) * 0.023);
+  }
+
+  .team .cards .card .card-content {
+    height: auto;
+    min-height: 0;
+  }
+
+  .team .cards .card .card-content h3 {
+    margin-bottom: calc(var(--crew-h) * 0.006);
+    font-size: calc(var(--crew-h) * 0.058);
+  }
+
+  .team .cards .card .card-content p {
+    font-size: calc(var(--crew-h) * 0.028);
+  }
 }
 
 @media (max-width: 1000px) {
@@ -922,6 +958,9 @@
     transform: translateY(100px);
   }
 
+}
+
+@media (max-width: 768px) {
   .team .cards {
     top: 59%;
   }
@@ -931,8 +970,11 @@
     height: 440px;
     margin-left: -160px;
     margin-top: -220px;
+    gap: 1em;
   }
+}
 
+@media (max-width: 1000px) {
   .record-notes {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -976,8 +1018,8 @@
   }
 
   .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
-    flex: 0 0 84vw;
-    width: 84vw;
+    flex: 0 0 min(84vw, calc(100cqi - 1.25rem));
+    width: min(84vw, calc(100cqi - 1.25rem));
     padding: 1.25rem;
   }
 
