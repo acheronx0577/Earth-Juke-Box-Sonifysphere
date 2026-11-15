@@ -20,9 +20,10 @@ export const viewport: Viewport = {
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.sonifysphere.earth";
+const shareImagePath = "/og-image.png?v=2";
 const shareImage = {
-  url: "/og-image.png",
-  secureUrl: new URL("/og-image.png", siteUrl).href,
+  url: shareImagePath,
+  secureUrl: new URL(shareImagePath, siteUrl).href,
   width: 1200,
   height: 630,
   alt: "SonifySphere hero — Earth breathes, the Earth information jukebox",
