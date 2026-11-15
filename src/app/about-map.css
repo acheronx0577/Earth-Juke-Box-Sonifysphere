@@ -744,8 +744,11 @@
 
 .team .team-counter .count-number {
   display: block;
-  width: 100%;
+  width: max-content;
   height: var(--count-line);
+  margin-left: auto;
+  padding-inline: 0.22em;
+  box-sizing: content-box;
   position: relative;
   text-transform: uppercase;
   font-size: calc(var(--count-line) * 0.82);
@@ -753,8 +756,7 @@
   font-family: var(--font-geist-mono), monospace;
   font-weight: 700;
   color: #f2f2f0;
-  margin: 0;
-  text-align: right;
+  text-align: center;
   letter-spacing: -0.06em;
 }
 
