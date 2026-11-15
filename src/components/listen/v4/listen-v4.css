@@ -129,6 +129,17 @@
   font-weight: 500;
 }
 
+.lv-upload-note {
+  margin: -2px 0 4px;
+  color: var(--lv-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.lv-upload-error {
+  color: var(--lv-cream);
+}
+
 .lv-icon-btn {
   width: 44px;
   height: 44px;

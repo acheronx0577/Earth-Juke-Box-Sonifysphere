@@ -3,6 +3,8 @@
 import { useReducer, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { PlayFrame } from "@/components/play/PlayFrame";
+import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
+import { encodeMatchResult, type SharedMatchResult } from "@/lib/challengeResults";
 
 interface MatchRound {
   id: string;
@@ -106,41 +108,70 @@ function playToneSnippet(ctx: AudioContext, freq: number, q: number) {
   osc.stop(ctx.currentTime + 1.8);
 }
 
-function GameCompleteView({ totalScore, onRestart }: { totalScore: number; onRestart: () => void }) {
+function GameCompleteView({
+  totalScore,
+  roundScores,
+  onRestart,
+  shared = false,
+}: {
+  readonly totalScore: number;
+  readonly roundScores: readonly number[];
+  readonly onRestart?: () => void;
+  readonly shared?: boolean;
+}) {
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const averageCoherence = roundScores.length ? Math.round(totalScore / roundScores.length / 10) : 0;
+  const feedback = averageCoherence >= 97
+    ? "Excellent tuning. Your carrier matched each signal's resonance closely."
+    : averageCoherence >= 92
+      ? "Strong listening. Compare the round scores to see which signal was hardest to match."
+      : "The score reflects how closely each carrier matched the target. Replay and tune one control at a time to improve it.";
+
+  useEffect(() => {
+    resultHeadingRef.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <PlayFrame title="Wave Match Complete">
-      <div className="mx-auto flex max-w-xl flex-col items-center justify-center gap-6 py-12 text-center">
-        <div className="flex size-20 items-center justify-center rounded-full border border-[#f2f2f0]/20 bg-[#f2f2f0]/5 text-3xl text-[#f2f2f0]">
-          ✓
-        </div>
-        <h2 className="font-sans text-3xl font-medium tracking-tight text-[#f2f2f0]">
-          All Planetary Signals Aligned
+      <div className="mx-auto flex max-w-3xl flex-col items-center justify-center gap-6 py-12 text-center" data-testid="match-result">
+        <div className="flex size-20 items-center justify-center rounded-full border border-[#f2f2f0]/20 bg-[#f2f2f0]/5 text-3xl text-[#f2f2f0]" aria-hidden="true">✓</div>
+        {shared ? <p className="about-kicker">A player shared this result</p> : null}
+        <h2 id="wave-match-result-title" ref={resultHeadingRef} tabIndex={-1} className="font-sans text-3xl font-medium tracking-tight text-[#f2f2f0]">
+          {shared ? "Wave Match result" : "All Planetary Signals Aligned"}
         </h2>
         <p className="font-mono text-sm text-[#f2f2f0]/70">
-          Total Atmospheric Resonance Score: <strong className="text-[#f2f2f0]">{totalScore} PTS</strong>
+          Total signal match score: <strong className="text-[#f2f2f0]">{Math.round(totalScore)} PTS</strong>
         </p>
+        <p className="max-w-2xl text-base leading-relaxed text-[rgba(242,242,240,0.72)]">
+          Average match: {averageCoherence}%. {feedback}
+        </p>
+        <div className="grid w-full max-w-2xl gap-3 text-left sm:grid-cols-3" role="list" aria-label="Signal match round scores">
+          {MATCH_ROUNDS.map((round, index) => (
+            <div key={round.id} role="listitem" className="border border-[rgba(242,242,240,0.14)] bg-[#262626] p-4">
+              <p className="m-0 font-mono text-[11px] uppercase tracking-wider text-[rgba(242,242,240,0.62)]">Signal {round.roundNumber} · {round.year}</p>
+              <p className="my-2 font-sans text-base font-medium text-[#f2f2f0]">{round.title}</p>
+              <p className="m-0 font-mono text-sm text-[#f2f2f0]">{roundScores[index] === undefined ? "Not shared" : `${Math.round(roundScores[index])} PTS`}</p>
+              <p className="mb-0 mt-2 text-xs leading-relaxed text-[rgba(242,242,240,0.65)]">{round.metric}</p>
+            </div>
+          ))}
+        </div>
+        <ChallengeShareActions
+          path="/challenge/match"
+          params={{ result: encodeMatchResult({ roundScores }) }}
+          title="Wave Match"
+          score={`${Math.round(totalScore)} PTS`}
+          detail={`Average match ${averageCoherence}% · ${roundScores.length} signals tuned`}
+          fileName="sonifysphere-wave-match-result.png"
+        />
         <div className="my-2 flex flex-wrap items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={onRestart}
-            className="inline-flex items-center justify-center bg-[#f2f2f0] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#141414] transition-transform hover:scale-105 active:scale-95"
-            style={{
-              clipPath:
-                "polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)",
-            }}
-          >
-            Play Again
-          </button>
-          <Link
-            href="/challenge"
-            className="inline-flex items-center justify-center border border-[#f2f2f0]/20 bg-[#262626] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#f2f2f0] transition-transform hover:scale-105 active:scale-95"
-            style={{
-              clipPath:
-                "polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)",
-            }}
-          >
-            Back to Challenges
-          </Link>
+          {onRestart ? (
+            <button type="button" onClick={onRestart} className="inline-flex items-center justify-center bg-[#f2f2f0] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#141414] transition-transform hover:scale-105 active:scale-95" style={{ clipPath: "polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)" }}>
+              Play Again
+            </button>
+          ) : (
+            <Link href="/challenge/match" className="inline-flex items-center justify-center bg-[#f2f2f0] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#141414]">Play Wave Match</Link>
+          )}
+          <Link href="/challenge" className="inline-flex items-center justify-center border border-[#f2f2f0]/20 bg-[#262626] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#f2f2f0]">Back to Challenges</Link>
         </div>
       </div>
     </PlayFrame>
@@ -376,6 +407,7 @@ interface MatchState {
   isPlayingUser: boolean;
   isLocked: boolean;
   totalScore: number;
+  roundScores: number[];
   gameFinished: boolean;
 }
 
@@ -397,6 +429,7 @@ const INITIAL_STATE: MatchState = {
   isPlayingUser: false,
   isLocked: false,
   totalScore: 0,
+  roundScores: [],
   gameFinished: false,
 };
 
@@ -411,7 +444,7 @@ function matchReducer(state: MatchState, action: MatchAction): MatchState {
     case "SET_PLAYING_USER":
       return { ...state, isPlayingUser: action.val };
     case "LOCK_SIGNAL":
-      return { ...state, isLocked: true, isPlayingUser: false, totalScore: state.totalScore + action.scoreGain };
+      return { ...state, isLocked: true, isPlayingUser: false, totalScore: state.totalScore + action.scoreGain, roundScores: [...state.roundScores, action.scoreGain] };
     case "NEXT_ROUND":
       return { ...state, roundIdx: state.roundIdx + 1, userFreq: 250, userQ: 2.0, isLocked: false };
     case "FINISH_GAME":
@@ -423,7 +456,7 @@ function matchReducer(state: MatchState, action: MatchAction): MatchState {
   }
 }
 
-export function SignalMatchGame() {
+export function SignalMatchGame({ sharedResult = null }: { readonly sharedResult?: SharedMatchResult | null }) {
   const [state, dispatch] = useReducer(matchReducer, INITIAL_STATE);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -514,7 +547,7 @@ export function SignalMatchGame() {
     if (coherence >= 88) {
       stopUserSynth();
       playSuccessChime(getAudioContext());
-      dispatch({ type: "LOCK_SIGNAL", scoreGain: coherence * 10 });
+      dispatch({ type: "LOCK_SIGNAL", scoreGain: Math.round(coherence * 10) });
     }
   };
 
@@ -526,8 +559,13 @@ export function SignalMatchGame() {
     }
   };
 
+  if (sharedResult) {
+    const totalScore = sharedResult.roundScores.reduce((sum, score) => sum + score, 0);
+    return <GameCompleteView totalScore={totalScore} roundScores={sharedResult.roundScores} shared />;
+  }
+
   if (state.gameFinished) {
-    return <GameCompleteView totalScore={state.totalScore} onRestart={() => dispatch({ type: "RESTART" })} />;
+    return <GameCompleteView totalScore={state.totalScore} roundScores={state.roundScores} onRestart={() => dispatch({ type: "RESTART" })} />;
   }
 
   return (

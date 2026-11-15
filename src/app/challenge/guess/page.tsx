@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { GuessGame } from "@/components/play/GuessGame";
+import { parseGuessResult } from "@/lib/challengeResults";
 
 export const metadata: Metadata = {
   title: "Guess the Signal — SonifySphere",
@@ -9,10 +10,10 @@ export const metadata: Metadata = {
 export default async function GuessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ seed?: string; resume?: string }>;
+  searchParams: Promise<{ seed?: string; resume?: string; result?: string }>;
 }) {
   const params = await searchParams;
   const parsed = Number(params.seed);
   const seed = Number.isInteger(parsed) ? parsed : undefined;
-  return <GuessGame seed={seed} />;
+  return <GuessGame seed={seed} sharedResult={parseGuessResult(params.result)} />;
 }
