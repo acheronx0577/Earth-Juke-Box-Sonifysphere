@@ -192,6 +192,11 @@ test("a different guess seed asks before replacing a saved round", async ({ page
 });
 
 test("compose plays a compiled mix and sound off stops it", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".preloader")).toHaveCount(0);
+  await page.getByRole("button", { name: "Sound on", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
+
   await page.goto("/challenge/compose");
   await expect(liveMain(page).getByTestId("compose-play")).toBeDisabled();
   await page.getByRole("button", { name: "Arctic", exact: true }).click();
@@ -201,16 +206,19 @@ test("compose plays a compiled mix and sound off stops it", async ({ page }) => 
 
   await liveMain(page).getByTestId("compose-compile").click();
   await liveMain(page).getByTestId("compose-play").click();
-  await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "playing");
-  await expect(liveMain(page).locator(".sonify-slot.is-playing")).toHaveCount(1);
-
-  await page.getByRole("button", { name: "Sound on", exact: true }).click();
+  await expect(liveMain(page).getByText("Sound is off.")).toBeVisible();
   await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "idle");
   await expect(liveMain(page).locator(".sonify-slot.is-playing")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Sound off", exact: true }).click();
+  await page.getByRole("button", { name: "Turn sound on" }).click();
+  await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "playing");
+  await expect(liveMain(page).locator(".sonify-slot.is-playing")).toHaveCount(1);
+  await liveMain(page).getByTestId("compose-stop").click();
+  await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "idle");
+  await expect(liveMain(page).locator(".sonify-slot.is-playing")).toHaveCount(0);
+
   await liveMain(page).getByTestId("compose-play").click();
-  await page.getByRole("button", { name: "Share" }).click();
+  await page.getByRole("button", { name: "Copy share link" }).click();
   const share = await page.getByTestId("compose-share-url").inputValue();
   expect(share).toContain("/challenge/compose?mix=");
   await page.goto(share);
