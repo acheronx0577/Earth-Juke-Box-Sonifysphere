@@ -93,6 +93,8 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     id: "audio-provenance",
     label: "Audio",
     text: "Tone.js/Web Audio synthesize from data/settings; not AI-made; WAVs carry provenance.",
+    linkLabel: "tonejs.github.io ↗",
+    linkHref: "https://tonejs.github.io",
   },
   {
     id: "video-provenance",
@@ -103,8 +105,8 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     id: "type",
     label: "Type",
     text: "Planet Kosmos by Mads Rydahl, The Planet",
-    linkLabel: "planet.dk ↗",
-    linkHref: "https://www.planet.dk/fonts/",
+    linkLabel: "dafont.com ↗",
+    linkHref: "https://www.dafont.com/planet-kosmos.font",
   },
   {
     id: "ui-type",
@@ -117,8 +119,8 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     id: "layout",
     label: "Layout",
     text: "Orbit Matter template by Codegrid",
-    linkLabel: "codegrid ↗",
-    linkHref: "https://www.codegridweb.com/",
+    linkLabel: "Codegrid on YouTube ↗",
+    linkHref: "https://www.youtube.com/@codegrid",
   },
   {
     id: "react-bits",

@@ -61,11 +61,11 @@ function FooterImageAndTypeColumns() {
           <span>{"Display: Planet Kosmos by Mads Rydahl, The Planet ("}</span>
           <a
             className="sonify-footer-inline-link"
-            href="https://www.planet.dk/fonts/"
+            href="https://www.dafont.com/planet-kosmos.font"
             target="_blank"
             rel="noreferrer"
           >
-            planet.dk
+            dafont.com
           </a>
           <span>{")"}</span>
         </p>
