@@ -847,12 +847,12 @@
 
 @media (min-width: 1280px) {
   .team .cards {
-    top: 56%;
-    height: min(72svh, 860px);
+    top: 60%;
+    height: min(74svh, 880px);
   }
 
   .team .cards .card {
-    --crew-h: min(58svh, 42vw, 700px);
+    --crew-h: min(64svh, 760px);
     --crew-w: calc(var(--crew-h) * 425 / 575);
     width: var(--crew-w);
     height: var(--crew-h);
@@ -871,6 +871,12 @@
 
   .team .cards .card .card-content p {
     font-size: clamp(0.95rem, 1vw, 1.2rem);
+  }
+}
+
+@media (min-width: 1280px) and (min-height: 1000px) {
+  .team .cards {
+    top: 57%;
   }
 }
 
@@ -962,9 +968,9 @@
 
   .team .cards .card {
     width: 320px;
-    height: calc(320px * 575 / 425);
+    height: 440px;
     margin-left: -160px;
-    margin-top: calc(320px * 575 / 425 / -2);
+    margin-top: -220px;
   }
 
   .record-notes {
