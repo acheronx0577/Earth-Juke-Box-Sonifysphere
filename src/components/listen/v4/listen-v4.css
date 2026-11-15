@@ -434,7 +434,7 @@
 }
 
 .lv-main:has(.lv-results) {
-  --lv-results-space: clamp(8rem, calc(100svh - 19rem - var(--lv-tab-space) - 11rem), 17.5rem);
+  --lv-results-space: clamp(8.75rem, calc(100svh - var(--lv-tab-space) - 38rem), 17.5rem);
 }
 
 .lv-stage:focus-visible {
@@ -497,7 +497,7 @@
   background: rgba(13, 20, 20, 0.62);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -533,10 +533,10 @@
 }
 .lv-field .lv-eyebrow { white-space: nowrap; }
 
-.lv-tag { top: 8px; left: 8px; max-width: min(220px, 44%); }
-.lv-hint { left: 8px; bottom: 8px; right: auto; max-width: min(348px, calc(100% - min(210px, 46%) - 28px)); }
-.lv-legend { top: auto; right: 8px; bottom: 8px; width: min(210px, 46%); }
-.lv-tip { min-width: 0; width: max-content; max-width: min(190px, 48%); }
+.lv-tag { top: 8px; left: 8px; max-width: min(220px, calc(50% - 16px)); }
+.lv-hint { left: 8px; bottom: 8px; right: auto; max-width: calc(50% - 16px); }
+.lv-legend { top: auto; right: 8px; bottom: 8px; width: min(210px, calc(50% - 16px)); }
+.lv-tip { min-width: 0; width: max-content; max-width: min(168px, calc(50% - 24px)); }
 
 .lv-tip .is-warm { color: #e08a3c; }
 .lv-tip .is-cool { color: #a593e6; }
@@ -1028,7 +1028,9 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-height: calc(100svh - var(--lv-nav-space) - var(--lv-tab-space) - 16px);
+    box-sizing: border-box;
+    min-height: calc(100svh - var(--lv-nav-space));
+    padding-bottom: var(--lv-tab-space);
   }
 
   .lv-fold .lv-stage {
@@ -1074,7 +1076,6 @@
     overflow-x: auto;
     padding-bottom: 4px;
     scroll-snap-type: x mandatory;
-    mask-image: linear-gradient(90deg, #000 calc(100% - 36px), transparent);
   }
   .lv-card { min-width: 168px; min-height: 140px; scroll-snap-align: start; }
   .lv-card[data-id="temperature"] { order: 1; }

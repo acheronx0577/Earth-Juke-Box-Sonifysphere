@@ -135,7 +135,8 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       const stageWidth = stage.clientWidth;
       const stageHeight = stage.clientHeight;
       if (width < 8 || height < 8 || stageWidth < 16 || stageHeight < 16) return;
-      const gap = 8;
+      const gap = 16;
+      const edge = 8;
       const stageBox = stage.getBoundingClientRect();
       const obstacles = [".lv-tag", ".lv-legend", ".lv-hint"]
         .map((selector) => stage.querySelector(selector))
@@ -157,7 +158,9 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           right: tipAnchor.x + x + width,
           bottom: tipAnchor.y + y + height,
         };
-        let room = Math.min(rect.left, rect.top, stageWidth - rect.right, stageHeight - rect.bottom);
+        const inside = Math.min(rect.left - edge, rect.top - edge, stageWidth - edge - rect.right, stageHeight - edge - rect.bottom);
+        if (inside < 0) return inside;
+        let room = Number.POSITIVE_INFINITY;
         for (const obstacle of obstacles) {
           const dx = Math.max(obstacle.left - rect.right, rect.left - obstacle.right);
           const dy = Math.max(obstacle.top - rect.bottom, rect.top - obstacle.bottom);
@@ -173,6 +176,11 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         { x: -width - 14, y: 12 },
         { x: -width - 14, y: -height - gap },
       ];
+      const topBand = obstacles.reduce((bottom, obstacle) => obstacle.top < stageHeight / 2 ? Math.max(bottom, obstacle.bottom) : bottom, 0);
+      const bottomBand = obstacles.reduce((top, obstacle) => obstacle.bottom > stageHeight / 2 ? Math.min(top, obstacle.top) : top, stageHeight);
+      if (bottomBand - topBand >= height + gap * 2) {
+        candidates.unshift({ x: edge - tipAnchor.x, y: topBand + gap - tipAnchor.y });
+      }
       for (const left of [gap, Math.round((stageWidth - width) / 2), stageWidth - width - gap]) {
         for (const top of [gap, Math.round((stageHeight - height) / 2), stageHeight - height - gap]) {
           candidates.push({ x: left - tipAnchor.x, y: top - tipAnchor.y });
@@ -189,8 +197,12 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         }
       }
 
-      const x = Math.min(Math.max(best.x, gap - tipAnchor.x), stageWidth - gap - width - tipAnchor.x);
-      const y = Math.min(Math.max(best.y, gap - tipAnchor.y), stageHeight - gap - height - tipAnchor.y);
+      const minX = edge - tipAnchor.x;
+      const maxX = stageWidth - edge - width - tipAnchor.x;
+      const minY = edge - tipAnchor.y;
+      const maxY = stageHeight - edge - height - tipAnchor.y;
+      const x = minX <= maxX ? Math.min(Math.max(best.x, minX), maxX) : best.x;
+      const y = minY <= maxY ? Math.min(Math.max(best.y, minY), maxY) : best.y;
       setTipShift((previous) => (previous.x === x && previous.y === y ? previous : { x, y }));
     };
 
