@@ -223,7 +223,7 @@ export function RoutineStrip() {
       pin: true,
       pinSpacing: true,
       scrub: 1,
-      anticipatePin: 1,
+      anticipatePin: 0,
       invalidateOnRefresh: true,
       onUpdate: (self) => place(self.progress),
       onRefresh: (self) => place(self.progress),
