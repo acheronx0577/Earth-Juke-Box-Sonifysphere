@@ -1110,7 +1110,7 @@
 @media (max-width: 1023px) {
   html.lv-lock,
   html.lv-lock body {
-    overflow: hidden;
+    overflow: auto;
   }
 
   .lv-page {
@@ -1118,23 +1118,23 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    height: 100svh;
-    max-height: 100svh;
-    min-height: 0;
-    overflow: hidden;
+    height: auto;
+    max-height: none;
+    min-height: 100svh;
+    overflow: visible;
     padding: var(--lv-nav-space) 16px var(--lv-tab-space);
   }
 
   .lv-main {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     gap: 12px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .lv-fold {
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     flex-direction: column;
     gap: 12px;
     box-sizing: border-box;
@@ -1143,9 +1143,9 @@
   }
 
   .lv-fold .lv-stage {
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 0;
+    flex: 0 0 auto;
+    height: clamp(11rem, calc(100svh - var(--lv-nav-space) - var(--lv-tab-space) - 11.25rem), 100svh);
+    min-height: 11rem;
   }
 
   .lv-status:empty {
