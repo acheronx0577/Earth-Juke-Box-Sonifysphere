@@ -443,6 +443,7 @@
   overflow: hidden;
   background: #100e0c;
   outline: none;
+  --lv-stroke: var(--lv-stroke-2);
 }
 
 .lv-main:has(.lv-results) {
