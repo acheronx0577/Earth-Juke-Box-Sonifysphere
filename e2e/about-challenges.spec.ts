@@ -66,14 +66,10 @@ test("about lists the team and sound off stops a voice", async ({ page }) => {
   }
 });
 
-test("the CO2 chart plots only the three published readings", async ({ page }) => {
+test("the About page no longer renders the Mauna Loa record chart", async ({ page }) => {
   await page.goto("/about");
-  const chart = liveMain(page).locator(".record");
-  await expect(chart).toContainText("315.71");
-  await expect(chart).toContainText("432.34");
-  await expect(chart).toContainText("426.07");
-  await expect(chart).not.toContainText("354");
-  await expect(chart).not.toContainText("1990");
+  await expect(page.locator(".record")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Record as music/i })).toHaveCount(0);
 });
 
 test("challenge carousel offers the three games", async ({ page }) => {
