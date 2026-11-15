@@ -253,18 +253,24 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           onSample={(pixels) => onLegend(legendFromPixels(pixels.data, pixels.width, pixels.height, "FRAME COLORS"))}
         />
       ) : null}
-      <p className="lv-glass lv-tag">
-        <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
-        <span className="lv-tag-short">MAP · NOAA CPC</span>
-      </p>
-      <p className="lv-glass lv-hint">
-        <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
-        <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
-      </p>
+      <div className="lv-glass lv-cut lv-tag">
+        <div className="lv-glass-face lv-cut">
+          <span className="lv-tag-long">MAP · EQUAL EARTH · NOAA CPC</span>
+          <span className="lv-tag-short">MAP · NOAA CPC</span>
+        </div>
+      </div>
+      <div className="lv-glass lv-cut lv-hint">
+        <div className="lv-glass-face lv-cut">
+          <span className="lv-hint-long">MOVE OVER THE MAP TO HEAR LOCAL CHANGE</span>
+          <span className="lv-hint-short">DRAG ON THE MAP TO HEAR CHANGE</span>
+        </div>
+      </div>
       {mapMode ? (
-        <div className="lv-glass lv-tip" style={{ left: tipPos.x, top: tipPos.y }}>
-          <p>PROBE · {coord}</p>
-          <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
+        <div className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y }}>
+          <div className="lv-glass-face lv-cut">
+            <p>PROBE · {coord}</p>
+            <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
+          </div>
         </div>
       ) : null}
       <LegendPanel legend={legend} />
@@ -297,24 +303,26 @@ function ExampleClip({ frame, onSample }: { readonly frame: number; readonly onS
 function LegendPanel({ legend }: { readonly legend: LegendModel }) {
   const ends = legend.stops.filter((stop) => stop.label);
   return (
-    <div className="lv-glass lv-legend">
-      <p className="lv-legend-title">{legend.title}</p>
-      {legend.stops.length > 0 ? (
-        <div className="lv-legend-scale">
-          <span>{ends[0]?.label ?? ""}</span>
-          <i style={{ background: legendGradient(legend.stops) }} />
-          <span>{ends[ends.length - 1]?.label ?? ""}</span>
-        </div>
-      ) : (
-        <p className="lv-legend-missing">NO SCALE DETECTED</p>
-      )}
-      {legend.noData ? (
-        <p className="lv-legend-none">
-          <i style={{ background: legend.noData.color }} />
-          {legend.noData.label}
-        </p>
-      ) : null}
-      <p className="lv-legend-source">{legend.source.toUpperCase()}</p>
+    <div className="lv-glass lv-cut lv-legend">
+      <div className="lv-glass-face lv-cut">
+        <p className="lv-legend-title">{legend.title}</p>
+        {legend.stops.length > 0 ? (
+          <div className="lv-legend-scale">
+            <span>{ends[0]?.label ?? ""}</span>
+            <i style={{ background: legendGradient(legend.stops) }} />
+            <span>{ends.at(-1)?.label ?? ""}</span>
+          </div>
+        ) : (
+          <p className="lv-legend-missing">NO SCALE DETECTED</p>
+        )}
+        {legend.noData ? (
+          <p className="lv-legend-none">
+            <i style={{ background: legend.noData.color }} />
+            {legend.noData.label}
+          </p>
+        ) : null}
+        <p className="lv-legend-source">{legend.source.toUpperCase()}</p>
+      </div>
     </div>
   );
 }
