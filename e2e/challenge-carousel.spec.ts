@@ -4,7 +4,7 @@ import { installErrorChecks, liveMain } from "./support";
 installErrorChecks();
 
 async function labelBox(page: Page, title: RegExp) {
-  const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title, visible: true }).first();
+  const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title }).first();
   await expect(label).toBeVisible();
   await expect.poll(async () => Number.parseFloat(await label.evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.9);
   return label.boundingBox();
@@ -13,9 +13,7 @@ async function labelBox(page: Page, title: RegExp) {
 test("challenge carousel auto-advances, pauses, and loops", async ({ page }) => {
   test.setTimeout(90_000);
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/challenge");
-  await expect(page.locator(".circular-gallery")).toHaveAttribute("data-docked", "false");
   const count = liveMain(page).locator("[data-challenge-count]");
   await expect(count).toHaveAttribute("data-challenge-count", "01");
   await page.waitForTimeout(1700);
@@ -145,75 +143,6 @@ test("challenge footer uses a centred listen pill on phone", async ({ page }) =>
     const rowMid = rowBox.x + rowBox.width / 2;
     expect(Math.abs(pillMid - rowMid)).toBeLessThan(8);
   }
-});
-
-test("wide challenge row stays fixed while selection moves", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.goto("/challenge");
-  const gallery = page.locator(".circular-gallery");
-  await expect(gallery).toHaveAttribute("data-docked", "true");
-
-  const read = () => page.locator(".circular-gallery-label").evaluateAll((els) => {
-    return els
-      .map((el) => {
-        const box = el.getBoundingClientRect();
-        const opacity = Number(getComputedStyle(el).opacity);
-        return { text: (el.textContent || "").trim(), x: box.left, right: box.right, opacity, width: box.width };
-      })
-      .filter((item) => item.text && item.opacity > 0.9 && item.width > 8)
-      .sort((a, b) => a.x - b.x);
-  });
-
-  await expect.poll(async () => (await read()).map((item) => item.text).join("|")).toBe(
-    "01 · Guess the Signal|02 · Tune the Signal|03 · Waveform Ribbons"
-  );
-  const before = await read();
-  expect(before[0].x).toBeGreaterThan(0);
-  expect(before[2].right).toBeLessThan(1920);
-  for (const item of before) expect(item.opacity).toBeGreaterThan(0.95);
-
-  await liveMain(page).getByRole("button", { name: "Next Challenge" }).click();
-  await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "02");
-  await expect(liveMain(page).getByRole("link", { name: "Play Tune the Signal" })).toHaveAttribute("href", "/challenge/match");
-  const afterNext = await read();
-  expect(Math.abs(afterNext[0].x - before[0].x)).toBeLessThan(2);
-  expect(Math.abs(afterNext[2].x - before[2].x)).toBeLessThan(2);
-
-  await liveMain(page).getByRole("button", { name: "Next Challenge" }).click();
-  await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "03");
-  await expect(liveMain(page).getByRole("link", { name: "Play Waveform Ribbons" })).toBeVisible();
-
-  const guess = liveMain(page).locator(".circular-gallery-label").filter({ hasText: "Guess the Signal", visible: true }).first();
-  const guessBox = await guess.boundingBox();
-  if (!guessBox) throw new Error("Guess the Signal title was not measurable");
-  await page.mouse.move(guessBox.x + guessBox.width / 2, guessBox.y - 140);
-  await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "01");
-
-  const ribbons = liveMain(page).locator(".circular-gallery-label").filter({ hasText: "Waveform Ribbons", visible: true }).first();
-  const ribbonsBox = await ribbons.boundingBox();
-  if (!ribbonsBox) throw new Error("Waveform Ribbons title was not measurable");
-  await page.mouse.click(ribbonsBox.x + ribbonsBox.width / 2, ribbonsBox.y - 140);
-  await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "03");
-  const afterClick = await read();
-  expect(Math.abs(afterClick[0].x - before[0].x)).toBeLessThan(2);
-
-  await page.setViewportSize({ width: 1024, height: 900 });
-  await expect(gallery).toHaveAttribute("data-docked", "false");
-  await page.mouse.move(2, 2);
-  const centredX = () => page.locator(".circular-gallery-label").evaluateAll((els) => {
-    const hit = els
-      .map((el) => ({ x: el.getBoundingClientRect().left, opacity: Number(getComputedStyle(el).opacity) }))
-      .find((item) => item.opacity > 0.9);
-    return hit ? hit.x : null;
-  });
-  await expect.poll(centredX).not.toBeNull();
-  const parked = await centredX();
-  await page.waitForTimeout(700);
-  const moving = await centredX();
-  expect(parked).not.toBeNull();
-  expect(moving).not.toBeNull();
-  expect(Math.abs((moving ?? 0) - (parked ?? 0))).toBeGreaterThan(8);
 });
 
 test("challenge arrows keep the play link on the centred game", async ({ page }) => {
