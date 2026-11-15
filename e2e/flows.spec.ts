@@ -50,7 +50,7 @@ test("play, about, listen, and unknown routes each load one page", async ({ page
   await expect(page.getByRole("region", { name: "Story Chapters Carousel" })).toBeVisible();
 
   await page.goto("/about");
-  await expect(page.locator("footer").getByRole("link", { name: "Challenges" })).toBeVisible();
+  await expect(page.locator("footer").getByRole("link", { name: "Challenge", exact: true })).toBeVisible();
   await expect(liveMain(page)).toHaveCount(1);
 
   await page.goto("/listen?sound=off");
