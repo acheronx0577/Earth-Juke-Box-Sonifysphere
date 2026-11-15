@@ -3,17 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MAP_REGIONS } from "@/data/exploreMap";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
-import { MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
+import { CENTRAL_MERIDIAN, MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
 import { legendFromMetadata, legendFromPixels, legendGradient, type LegendModel } from "@/components/listen/v4/legend";
 import { legendMetaFor, type LayerId, type ListenSource } from "@/components/listen/v4/model";
 
 function landFill(layer: LayerId, anomaly: number, seaIce: boolean, id: string): string {
   if (layer === "sea-ice") return seaIce || id === "antarctica" ? "#d5e6ee" : "#2a2a2a";
   if (layer === "co2" || layer === "methane" || layer === "air" || layer === "currents" || layer === "wind") return "#3a3a3a";
-  if (id === "antarctica") return "#4a3c38";
-  if (anomaly <= -0.7) return "#6a59b0";
-  if (anomaly < 0) return "#6e5a78";
-  return "#8d684c";
+  if (id === "oceania" || anomaly <= -0.7) return "#5c547c";
+  if (id === "antarctica") return "#2e2926";
+  return "#463c34";
 }
 
 const LAND_IDS = new Set(["north-america", "south-america", "europe", "africa", "asia", "oceania", "antarctica"]);
@@ -49,9 +48,9 @@ function graticule(): string[] {
   }
   for (let lat = -60; lat <= 60; lat += 30) {
     const pts: string[] = [];
-    for (let lng = -180; lng <= 180; lng += 8) {
-      const [x, y] = project(lng, lat);
-      pts.push(`${lng === -180 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
+    for (let shifted = -180; shifted <= 180; shifted += 8) {
+      const [x, y] = project(shifted + CENTRAL_MERIDIAN, lat);
+      pts.push(`${shifted === -180 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`);
     }
     lines.push(pts.join(""));
   }
@@ -224,13 +223,13 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         <svg ref={svgRef} className="lv-map" viewBox={`0 0 ${MAP_VIEW.width} ${MAP_VIEW.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Equal Earth map, NOAA CPC example">
           <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="#100e0c" />
           {GRID.map((d, index) => (
-            <path key={index} d={d} fill="none" stroke="rgba(255,243,234,0.08)" strokeWidth="1" />
+            <path key={index} d={d} fill="none" stroke="rgba(255,243,234,0.07)" strokeWidth="1" />
           ))}
           {land.map((shape) => (
             <path key={shape.id} d={shape.d} fill={landFill(layer, shape.anomaly, shape.seaIce, shape.id)} />
           ))}
           {(layer === "temperature" || layer === "all") && (
-            <polygon points={NINO.map(([x, y]) => `${x},${y}`).join(" ")} fill="#e08a3c" />
+            <polygon points={NINO.map(([x, y]) => `${x},${y}`).join(" ")} fill="#c56a32" />
           )}
           {(layer === "temperature" || layer === "all") && (
             <text x={NINO_LABEL[0]} y={NINO_LABEL[1]} fill="rgba(255,243,234,0.72)" fontSize="11" fontFamily="var(--font-geist-mono), monospace">

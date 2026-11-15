@@ -8,11 +8,25 @@ const SQRT3 = Math.sqrt(3);
 const SCALE = 158;
 const CX = 500;
 const CY = 262;
+/** Pacific-centred: 150°W, so the Niño 3.4 box sits near the middle of the stage. */
+export const CENTRAL_MERIDIAN = -150;
 
 export const MAP_VIEW = { width: 1000, height: 520 };
 
+export function shiftLongitude(lng: number): number {
+  let shifted = lng - CENTRAL_MERIDIAN;
+  if (shifted > 180) shifted -= 360;
+  if (shifted < -180) shifted += 360;
+  return shifted;
+}
+
+function wrapLongitude(lng: number): number {
+  const wrapped = ((lng + 180) % 360 + 360) % 360 - 180;
+  return wrapped === -180 ? 180 : wrapped;
+}
+
 export function project(lng: number, lat: number): [number, number] {
-  const lambda = (lng * Math.PI) / 180;
+  const lambda = (shiftLongitude(lng) * Math.PI) / 180;
   const phi = (Math.max(-89, Math.min(89, lat)) * Math.PI) / 180;
   const theta = Math.asin((SQRT3 / 2) * Math.sin(phi));
   const t2 = theta * theta;
@@ -43,7 +57,7 @@ export function unproject(x: number, y: number): [number, number] | null {
   const lambda = (px * 3 * denom) / (2 * SQRT3 * cos);
   const sinPhi = Math.sin(theta) * (2 / SQRT3);
   if (sinPhi < -1 || sinPhi > 1 || Math.abs(lambda) > Math.PI + 0.05) return null;
-  return [(lambda * 180) / Math.PI, (Math.asin(sinPhi) * 180) / Math.PI];
+  return [wrapLongitude((lambda * 180) / Math.PI + CENTRAL_MERIDIAN), (Math.asin(sinPhi) * 180) / Math.PI];
 }
 
 export function ringPath(ring: readonly (readonly number[])[], stride = 1): string {
@@ -53,10 +67,10 @@ export function ringPath(ring: readonly (readonly number[])[], stride = 1): stri
   for (let index = 0; index < ring.length; index += stride) {
     const point = ring[index];
     if (!point) continue;
-    const lng = point[0];
+    const lng = shiftLongitude(point[0]);
     const lat = point[1];
     if (open && Math.abs(lng - prevLng) > 180) open = false;
-    const [x, y] = project(lng, lat);
+    const [x, y] = project(point[0], lat);
     d += `${open ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
     open = true;
     prevLng = lng;
