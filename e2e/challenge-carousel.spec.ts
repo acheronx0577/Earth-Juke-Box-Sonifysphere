@@ -84,6 +84,18 @@ test("challenge card titles stay on one line", async ({ page }) => {
   }
 });
 
+test("challenge footer keeps the observatory chip and listen mark", async ({ page }) => {
+  await page.goto("/challenge");
+  const chip = liveMain(page).getByText("NOAA GML · Mauna Loa Observatory");
+  const badge = page.getByRole("link", { name: "823 months loaded - Listen to sonifications", exact: true });
+  await expect(chip).toBeVisible();
+  await expect(badge).toHaveAttribute("href", "/listen");
+  const chipBox = await chip.boundingBox();
+  const badgeBox = await badge.boundingBox();
+  if (!chipBox || !badgeBox) throw new Error("Challenge footer boxes were not measurable");
+  expect(chipBox.x + chipBox.width).toBeLessThan(badgeBox.x);
+});
+
 test("challenge arrows keep the play link on the centred game", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/challenge");

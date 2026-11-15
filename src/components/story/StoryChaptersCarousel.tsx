@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import gsap from "gsap";
 import CircularGallery, { type CircularGalleryRef, type GalleryItem } from "@/components/shared/CircularGallery";
 import { RollingText } from "@/components/shared/RollingText";
+import CircularText from "@/components/shared/CircularText";
 
 import type { VoiceId } from "@/lib/voiceSettings";
 
@@ -99,13 +102,53 @@ const CHAPTERS: ChapterData[] = [
  */
 const FLOW_SPEED = 0.8;
 
+function useListenBadgeSize() {
+  const [size, setSize] = useState(120);
+  useEffect(() => {
+    const apply = () => {
+      const next = Math.round(
+        Math.min(148, Math.max(84, Math.min(window.innerWidth * 0.078, window.innerHeight * 0.13)))
+      );
+      setSize(next);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+  return size;
+}
+
 export function StoryChaptersCarousel() {
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [reduced, setReduced] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const galleryRef = useRef<CircularGalleryRef>(null);
+  const badgeRef = useRef<HTMLDivElement | null>(null);
+  const badgeSize = useListenBadgeSize();
+
+  const handleBadgeClick = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+    if (isNavigating) return;
+    setIsNavigating(true);
+    if (!badgeRef.current) {
+      router.push("/listen");
+      return;
+    }
+    gsap.to(badgeRef.current, {
+      rotate: "+=360",
+      scale: 1.15,
+      duration: 0.5,
+      ease: "power2.inOut",
+      onComplete: () => {
+        router.push("/listen");
+      },
+    });
+  }, [isNavigating, router]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -279,13 +322,64 @@ export function StoryChaptersCarousel() {
           </p>
         </div>
 
-        {/* Bottom navigation link */}
-        <div className="story-chapters-bottom flex w-full justify-end pb-0">
-          <Link href="/listen" className="story-chip-glass story-listen-link inline-flex items-center gap-2 px-4 py-2">
-            <span className="size-1.5 rounded-full bg-[#f2f2f0]/40" />
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              Listen to the map ↗
+        <div className="story-chapters-bottom">
+          <div className="story-chip-glass story-hud-chip story-noaa-chip inline-flex items-center gap-2">
+            <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
+            <span className="story-noaa-label">
+              NOAA GML · Mauna Loa Observatory
             </span>
+          </div>
+
+          <Link
+            href="/listen"
+            onClick={handleBadgeClick}
+            className="story-listen-badge group"
+            aria-label="823 months loaded - Listen to sonifications"
+          >
+            <div ref={badgeRef} className="will-change-transform">
+              <CircularText
+                text="823 MONTHS * LOADED * LISTEN * "
+                onHover="speedUp"
+                direction="clockwise"
+                spinDuration={20}
+                size={badgeSize}
+                fontSize={Math.max(8, Math.round((badgeSize * 11) / 120))}
+                fontWeight={900}
+                hoverTilt={15}
+                className="font-sans font-bold text-[#f2f2f0]/90 transition-colors group-hover:text-[#f2f2f0]"
+              >
+                <div className="relative flex size-10 items-center justify-center overflow-hidden pointer-events-none">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="size-8 text-[#f2f2f0] transition-all duration-300 ease-out group-hover:translate-x-10 group-hover:-translate-y-10 group-hover:opacity-0"
+                  >
+                    <line x1="6" y1="18" x2="18" y2="6" />
+                    <polyline points="9 6 18 6 18 15" />
+                  </svg>
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.75"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="absolute size-8 -translate-x-10 translate-y-10 text-[#f2f2f0] opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100"
+                  >
+                    <line x1="6" y1="18" x2="18" y2="6" />
+                    <polyline points="9 6 18 6 18 15" />
+                  </svg>
+                </div>
+              </CircularText>
+            </div>
           </Link>
         </div>
       </div>
