@@ -720,9 +720,11 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             <ChamferMark />
             <div className="lv-layer-head">
               <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
-              <button type="button" className="lv-save lv-cut" onClick={() => setResultsOpen(false)}>
+              <button type="button" className="lv-results-close lv-cut" aria-label="Close results" onClick={() => setResultsOpen(false)}>
                 <ChamferMark />
-                CLOSE
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M2.4 2.4 L9.6 9.6 M9.6 2.4 L2.4 9.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
               </button>
             </div>
             <div className="lv-results-list">
