@@ -1576,6 +1576,7 @@ html[data-signal-live="1"] body::before {
   .sonify-split-cta {
     height: 1178px;
     min-height: 0;
+    overflow-x: clip;
   }
 
   .sonify-cta-cards {
