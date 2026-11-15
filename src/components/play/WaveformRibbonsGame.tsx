@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useId } from "react";
 import Link from "next/link";
 import { PlayFrame } from "@/components/play/PlayFrame";
+import { CutButton } from "@/components/play/CutControls";
 import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
 
@@ -148,9 +149,6 @@ function playSuccessChime() {
   } catch {}
 }
 
-const CHAMFER_CLIP =
-  "polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px), 0 12px)";
-
 export function WaveformRibbonsGame({
   sharedResult = null,
 }: {
@@ -254,7 +252,7 @@ export function WaveformRibbonsGame({
           data-testid="ribbons-result"
         >
           <div
-            className="flex size-20 items-center justify-center rounded-full border border-[#f2f2f0]/20 bg-[#f2f2f0]/5 text-3xl text-[#c8fa8b]"
+            className="flex size-20 items-center justify-center rounded-full border border-[#f2f2f0]/20 bg-[#f2f2f0]/5 text-3xl text-[#f2f2f0]"
             aria-hidden="true"
           >
             ✓
@@ -266,7 +264,7 @@ export function WaveformRibbonsGame({
 
           <p className="font-mono text-sm text-[#f2f2f0]/70">
             Total Score:{" "}
-            <strong className="text-[#c8fa8b]">{displayScore} PTS</strong>
+            <strong className="text-[#f2f2f0]">{displayScore} PTS</strong>
           </p>
 
           <p className="max-w-md font-sans text-sm text-[#f2f2f0]/80">
@@ -290,29 +288,24 @@ export function WaveformRibbonsGame({
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
             {!sharedResult ? (
-              <button
-                type="button"
+              <CutButton
+                solid
                 onClick={handleRestart}
-                className="inline-flex min-h-[44px] items-center justify-center bg-[#c8fa8b] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#132013] transition-all hover:bg-[#b2ee70] active:scale-95"
-                style={{ clipPath: CHAMFER_CLIP }}
+                className="font-mono text-xs font-bold uppercase tracking-wider"
               >
                 Play Again
-              </button>
+              </CutButton>
             ) : (
-              <Link
-                href="/challenge/ribbons"
-                className="inline-flex min-h-[44px] items-center justify-center bg-[#c8fa8b] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#132013]"
-                style={{ clipPath: CHAMFER_CLIP }}
-              >
-                Play Waveform Ribbons
+              <Link href="/challenge/ribbons">
+                <CutButton solid className="font-mono text-xs font-bold uppercase tracking-wider">
+                  Play Waveform Ribbons
+                </CutButton>
               </Link>
             )}
-            <Link
-              href="/challenge"
-              className="inline-flex min-h-[44px] items-center justify-center border border-[#f2f2f0]/20 bg-[#202a22] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wider text-[#f2f2f0] transition-colors hover:border-[#f2f2f0]/40"
-              style={{ clipPath: CHAMFER_CLIP }}
-            >
-              Back to Challenges
+            <Link href="/challenge">
+              <CutButton className="font-mono text-xs font-semibold uppercase tracking-wider">
+                Back to Challenges
+              </CutButton>
             </Link>
           </div>
         </div>
@@ -322,11 +315,11 @@ export function WaveformRibbonsGame({
 
   return (
     <PlayFrame
-      title={`Challenge 03 · Waveform Ribbons`}
+      title="Challenge 03 · Waveform Ribbons"
       toolbar={
         <div className="flex items-center gap-3 font-mono text-xs text-[#f2f2f0]/70">
           <span>
-            Score: <strong className="text-[#c8fa8b]">{score}</strong>
+            Score: <strong className="text-[#f2f2f0]">{score}</strong>
           </span>
           <span>·</span>
           <span>
@@ -337,25 +330,25 @@ export function WaveformRibbonsGame({
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-6 py-4">
         {/* Intro Banner */}
-        <div className="grid items-end gap-6 border-b border-[rgba(242,242,240,0.14)] pb-6 md:grid-cols-[1.4fr_0.6fr]">
+        <div className="grid items-end gap-6 border-b border-[#f2f2f0]/10 pb-6 md:grid-cols-[1.4fr_0.6fr]">
           <div>
-            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.17em] text-[#c8fa8b]">
+            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.17em] text-[#aaaaaa]">
               03 / Seasonal Pattern / Planetary Respiration
             </div>
             <h2 className="my-2 font-sans text-2xl font-semibold tracking-tight text-[#f2f2f0] sm:text-3xl">
               {pattern.title}
             </h2>
-            <p className="max-w-2xl font-sans text-sm leading-relaxed text-[#acbaac]">
+            <p className="max-w-2xl font-sans text-sm leading-relaxed text-[#f2f2f0]/70">
               {pattern.subtitle}. Tap the curve or move the slider to find where the annual acoustic
               profile turns.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2 md:justify-end">
-            <span className="rounded-lg border border-[rgba(242,242,240,0.14)] bg-[#172018] px-3 py-2 font-mono text-xs text-[#acbaac]">
+            <span className="sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#141414] px-3 py-2 font-mono text-xs text-[#f2f2f0]/70">
               <strong className="text-[#f2f2f0]">Input:</strong> Season + Point
             </span>
-            <span className="rounded-lg border border-[rgba(242,242,240,0.14)] bg-[#172018] px-3 py-2 font-mono text-xs text-[#acbaac]">
+            <span className="sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#141414] px-3 py-2 font-mono text-xs text-[#f2f2f0]/70">
               <strong className="text-[#f2f2f0]">Audio:</strong> Cycle Sweep
             </span>
           </div>
@@ -364,21 +357,15 @@ export function WaveformRibbonsGame({
         {/* Main Stage Grid */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           {/* Main Play Card */}
-          <div
-            className="flex flex-col gap-5 bg-[#171d19] p-5 sm:p-6"
-            style={{
-              border: "1px solid rgba(242,242,240,0.14)",
-              clipPath: CHAMFER_CLIP,
-            }}
-          >
+          <div className="flex flex-col gap-5 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-5 sm:p-6">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#c8fa8b]">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaaaaa]">
                 Explore the cycle
               </span>
               <h3 className="my-1 font-sans text-xl font-medium tracking-tight text-[#f2f2f0] sm:text-2xl">
                 Where does the line turn?
               </h3>
-              <p className="font-sans text-xs text-[#acbaac] sm:text-sm">
+              <p className="font-sans text-xs text-[#f2f2f0]/70 sm:text-sm">
                 Choose a season context, then tap the chart to place the marker. The audio follows
                 the selected point.
               </p>
@@ -393,10 +380,10 @@ export function WaveformRibbonsGame({
                     key={s}
                     type="button"
                     onClick={() => setSeason(s)}
-                    className={`min-h-[38px] rounded-md px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all ${
+                    className={`min-h-[38px] sonify-chamfer-panel px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all ${
                       isActive
-                        ? "bg-[#c8fa8b] text-[#132013]"
-                        : "border border-[rgba(242,242,240,0.14)] bg-[#202a22] text-[#acbaac] hover:text-[#f2f2f0]"
+                        ? "bg-[#f2f2f0] text-[#141414]"
+                        : "border border-[#f2f2f0]/15 bg-[#141414] text-[#aaaaaa] hover:border-[#f2f2f0]/30 hover:text-[#f2f2f0]"
                     }`}
                   >
                     {s}
@@ -407,12 +394,11 @@ export function WaveformRibbonsGame({
 
             {/* Interactive SVG Plot */}
             <div
-              className="relative h-[240px] w-full overflow-hidden rounded-lg sm:h-[270px]"
+              className="relative h-[240px] w-full overflow-hidden sonify-chamfer-panel border border-[#f2f2f0]/10 sm:h-[270px]"
               style={{
-                border: "1px solid rgba(242,242,240,0.14)",
                 background: `
-                  linear-gradient(180deg, transparent 24%, rgba(48,64,53,0.5) 25%, transparent 26%, transparent 49%, rgba(48,64,53,0.5) 50%, transparent 51%, transparent 74%, rgba(48,64,53,0.5) 75%, transparent 76%),
-                  linear-gradient(90deg, #18261c, #102017)
+                  linear-gradient(180deg, transparent 24%, rgba(242,242,240,0.04) 25%, transparent 26%, transparent 49%, rgba(242,242,240,0.04) 50%, transparent 51%, transparent 74%, rgba(242,242,240,0.04) 75%, transparent 76%),
+                  linear-gradient(90deg, #1b1b1b, #141414)
                 `,
               }}
             >
@@ -431,7 +417,7 @@ export function WaveformRibbonsGame({
                   y1="220"
                   x2="600"
                   y2="220"
-                  stroke="rgba(82,102,83,0.6)"
+                  stroke="rgba(242,242,240,0.18)"
                   strokeWidth="1"
                 />
 
@@ -443,7 +429,7 @@ export function WaveformRibbonsGame({
                     y1="40"
                     x2={x}
                     y2="220"
-                    stroke={idx === pointIdx ? "rgba(200,250,139,0.35)" : "rgba(82,102,83,0.2)"}
+                    stroke={idx === pointIdx ? "rgba(242,242,240,0.4)" : "rgba(242,242,240,0.08)"}
                     strokeWidth={idx === pointIdx ? "2" : "1"}
                     strokeDasharray={idx === pointIdx ? "4 4" : undefined}
                   />
@@ -453,7 +439,7 @@ export function WaveformRibbonsGame({
                 <polyline
                   points={polylinePoints}
                   fill="none"
-                  stroke="#c8fa8b"
+                  stroke="#f2f2f0"
                   strokeWidth="4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -464,16 +450,16 @@ export function WaveformRibbonsGame({
                   cx={currentCoord[0]}
                   cy={currentCoord[1]}
                   r="9"
-                  fill="#c8fa8b"
-                  stroke="#101813"
-                  strokeWidth="2"
+                  fill="#f2f2f0"
+                  stroke="#141414"
+                  strokeWidth="2.5"
                 />
               </svg>
             </div>
 
             {/* Accessible slider */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between font-mono text-xs text-[#acbaac]">
+              <div className="flex items-center justify-between font-mono text-xs text-[#f2f2f0]/70">
                 <label htmlFor={sliderId}>Point in cycle:</label>
                 <span className="font-semibold text-[#f2f2f0]">
                   Point {pointIdx + 1} of {pattern.points.length} ({currentFreq} Hz)
@@ -486,77 +472,66 @@ export function WaveformRibbonsGame({
                 max={pattern.points.length - 1}
                 value={pointIdx}
                 onChange={(e) => handleSelectPoint(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer accent-[#c8fa8b]"
+                className="h-2 w-full cursor-pointer accent-[#f2f2f0]"
                 aria-valuetext={`Point ${pointIdx + 1} of 7, ${directionText}, frequency ${currentFreq} hertz`}
               />
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-2">
-              <button
-                type="button"
+              <CutButton
                 onClick={() => playToneSnippet(currentFreq)}
-                className="inline-flex min-h-[44px] items-center justify-center bg-[#c8fa8b] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#132013] transition-all hover:bg-[#b2ee70] active:scale-95"
-                style={{ clipPath: CHAMFER_CLIP }}
+                className="font-mono text-xs font-semibold uppercase tracking-wider"
               >
                 ▶ Hear selected point
-              </button>
+              </CutButton>
 
               {!checked || !isCorrect ? (
-                <button
-                  type="button"
+                <CutButton
                   onClick={handleCheckAnswer}
-                  className="inline-flex min-h-[44px] items-center justify-center border border-[rgba(242,242,240,0.16)] bg-[#202a22] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#f2f2f0] transition-colors hover:border-[#f2f2f0]/30 active:scale-95"
-                  style={{ clipPath: CHAMFER_CLIP }}
+                  className="font-mono text-xs font-semibold uppercase tracking-wider"
                 >
                   Check my answer
-                </button>
+                </CutButton>
               ) : (
-                <button
-                  type="button"
+                <CutButton
+                  solid
                   onClick={handleNextPattern}
-                  className="inline-flex min-h-[44px] items-center justify-center bg-[#f2f2f0] px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#132013] transition-transform hover:scale-105 active:scale-95"
-                  style={{ clipPath: CHAMFER_CLIP }}
+                  className="font-mono text-xs font-bold uppercase tracking-wider"
                 >
                   {patternIdx < PATTERNS.length - 1 ? "Next Pattern →" : "See Result ↗"}
-                </button>
+                </CutButton>
               )}
             </div>
           </div>
 
           {/* Side Context & Feedback Card */}
-          <aside
-            className="flex flex-col gap-4 bg-[#171d19] p-5 text-[#f2f2f0]"
-            style={{
-              border: "1px solid rgba(242,242,240,0.14)",
-              clipPath: CHAMFER_CLIP,
-            }}
-          >
+          <aside className="flex flex-col gap-4 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-5 text-[#f2f2f0]">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#c8fa8b]">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaaaaa]">
                 Read the signal
               </span>
               <h3 className="my-1 font-sans text-xl font-medium tracking-tight text-[#f2f2f0]">
                 {season} Context
               </h3>
-              <p className="font-sans text-xs leading-relaxed text-[#acbaac]">
+              <p className="font-sans text-xs leading-relaxed text-[#f2f2f0]/70">
                 {pattern.seasonClues[season] ?? pattern.subtitle}
               </p>
             </div>
 
-            <div className="flex flex-col border-t border-[rgba(242,242,240,0.14)] pt-3 text-xs">
-              <div className="flex items-center justify-between border-b border-[rgba(242,242,240,0.14)] py-2">
-                <span className="text-[#acbaac]">Point</span>
+            <div className="flex flex-col border-t border-[#f2f2f0]/10 pt-3 text-xs">
+              <div className="flex items-center justify-between border-b border-[#f2f2f0]/10 py-2">
+                <span className="text-[#aaaaaa]">Point</span>
                 <b className="font-mono text-[#f2f2f0]">
                   {pointIdx + 1} of {pattern.points.length}
                 </b>
               </div>
-              <div className="flex items-center justify-between border-b border-[rgba(242,242,240,0.14)] py-2">
-                <span className="text-[#acbaac]">Direction</span>
-                <b className="font-mono text-[#c8fa8b]">{directionText}</b>
+              <div className="flex items-center justify-between border-b border-[#f2f2f0]/10 py-2">
+                <span className="text-[#aaaaaa]">Direction</span>
+                <b className="font-mono text-[#f2f2f0]">{directionText}</b>
               </div>
               <div className="flex items-center justify-between py-2">
-                <span className="text-[#acbaac]">Acoustic Pitch</span>
+                <span className="text-[#aaaaaa]">Acoustic Pitch</span>
                 <b className="font-mono text-[#f2f2f0]">{currentFreq} Hz</b>
               </div>
             </div>
@@ -565,12 +540,12 @@ export function WaveformRibbonsGame({
             <div
               role="status"
               aria-live="polite"
-              className={`rounded-lg p-3 text-xs leading-relaxed transition-all ${
+              className={`sonify-chamfer-panel p-3.5 text-xs leading-relaxed transition-all ${
                 checked
                   ? isCorrect
-                    ? "border border-[#789e57] bg-[#223324] text-[#f2f2f0]"
-                    : "border border-[#96665f] bg-[#352423] text-[#f2f2f0]"
-                  : "border border-[rgba(242,242,240,0.14)] bg-[#111713] text-[#acbaac]"
+                    ? "border border-[#f2f2f0]/30 bg-[#141414] text-[#f2f2f0]"
+                    : "border border-[#f2f2f0]/20 bg-[#1a1a1a] text-[#f2f2f0]/80"
+                  : "border border-[#f2f2f0]/10 bg-[#141414] text-[#aaaaaa]"
               }`}
             >
               {checked
@@ -580,7 +555,7 @@ export function WaveformRibbonsGame({
                 : "Find the point where the pattern changes direction, then test your answer."}
             </div>
 
-            <p className="mt-auto font-sans text-[11px] leading-relaxed text-[#acbaac]/70">
+            <p className="mt-auto font-sans text-[11px] leading-relaxed text-[#f2f2f0]/50">
               {pattern.scientificFact}
             </p>
           </aside>

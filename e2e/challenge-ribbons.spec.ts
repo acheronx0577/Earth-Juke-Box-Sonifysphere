@@ -14,7 +14,7 @@ test("waveform ribbons challenge plays audio, tracks points, and resolves rounds
   // Switch season context
   const summerBtn = liveMain(page).getByRole("button", { name: "Summer" });
   await summerBtn.click();
-  await expect(summerBtn).toHaveClass(/bg-\[#c8fa8b\]/);
+  await expect(summerBtn).toHaveClass(/bg-\[#f2f2f0\]/);
   await expect(liveMain(page).getByText("Summer Context")).toBeVisible();
 
   // Test slider adjustment
