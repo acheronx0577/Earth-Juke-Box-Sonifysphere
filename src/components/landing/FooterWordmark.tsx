@@ -74,6 +74,7 @@ export function FooterWordmark() {
           sweep={true}
           speed={0.5}
           guides={false}
+          scaleWithSize
           bleedTop={Math.round(frame.h * 1.15)}
           bleedBottom={Math.round(frame.h * 0.55)}
           bleedX={Math.round(frame.w * 0.05)}
