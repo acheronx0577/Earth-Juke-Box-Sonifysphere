@@ -3398,3 +3398,25 @@ footer a.sonify-text-link {
     }
   }
 }
+
+@media (max-width: 699px) {
+  .theme-picker-track {
+    padding-inline: max(0px, calc((100% - 320px) / 2));
+  }
+
+  .theme-picker-track > .snap-start {
+    scroll-snap-align: center;
+  }
+}
+
+@media (max-width: 351px) {
+  .theme-picker-track [data-name^="ThemeCard"] {
+    width: calc(100vw - 32px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 699px) {
+  .theme-picker-track {
+    padding-inline: max(0px, calc((100% - 350px) / 2));
+  }
+}
