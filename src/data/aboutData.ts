@@ -115,6 +115,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     linkHref: "https://www.meteomatics.com/en/api/",
   },
   {
+    id: "planetary-computer",
+    label: "Satellite",
+    text: "Microsoft Planetary Computer. MODIS daily land surface temperature, with scale and offset applied.",
+    linkLabel: "Planetary Computer ↗",
+    linkHref: "https://planetarycomputer.microsoft.com/dataset/modis-11A1-061",
+  },
+  {
     id: "hero-image",
     label: "Hero image",
     text: "AI-generated illustration, not a real photo of Earth.",
