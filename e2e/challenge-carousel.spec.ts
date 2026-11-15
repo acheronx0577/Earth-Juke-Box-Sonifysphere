@@ -83,6 +83,13 @@ test("challenge card titles stay on one line", async ({ page }) => {
         return height / fontSize;
       }), { message: `${title} at ${width}px` }).toBeLessThan(1.6);
     }
+    if (width >= 1280) {
+      await expect.poll(async () => page.locator(".circular-gallery-label").evaluateAll((els) => els.filter((el) => {
+        const style = getComputedStyle(el);
+        const box = el.getBoundingClientRect();
+        return Number(style.opacity) > 0.4 && style.whiteSpace === "nowrap" && box.width > 8 && box.right > 8 && box.left < window.innerWidth - 8;
+      }).length), { message: `visible titles at ${width}px` }).toBeGreaterThan(3);
+    }
   }
 });
 
