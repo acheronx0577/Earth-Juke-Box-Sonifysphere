@@ -86,16 +86,47 @@ test("challenge card titles stay on one line", async ({ page }) => {
   }
 });
 
-test("challenge footer keeps the observatory chip and listen mark", async ({ page }) => {
+test("challenge footer keeps the observatory chip and listen mark on tablet and desktop", async ({ page }) => {
   await page.goto("/challenge");
   const chip = liveMain(page).getByText("NOAA GML · Mauna Loa Observatory");
   const badge = page.getByRole("link", { name: "823 months loaded - Listen to sonifications", exact: true });
-  await expect(chip).toBeVisible();
-  await expect(badge).toHaveAttribute("href", "/listen");
-  const chipBox = await chip.boundingBox();
-  const badgeBox = await badge.boundingBox();
-  if (!chipBox || !badgeBox) throw new Error("Challenge footer boxes were not measurable");
-  expect(chipBox.x + chipBox.width).toBeLessThan(badgeBox.x);
+  const pill = liveMain(page).getByRole("link", { name: "Listen to the map", exact: true });
+
+  for (const width of [1440, 768]) {
+    await page.setViewportSize({ width, height: width === 768 ? 1024 : 900 });
+    await expect(chip).toBeVisible();
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveAttribute("href", "/listen");
+    await expect(pill).toBeHidden();
+    const chipBox = await chip.boundingBox();
+    const badgeBox = await badge.boundingBox();
+    if (!chipBox || !badgeBox) throw new Error("Challenge footer boxes were not measurable");
+    expect(chipBox.x + chipBox.width).toBeLessThan(badgeBox.x);
+  }
+});
+
+test("challenge footer uses a centred listen pill on phone", async ({ page }) => {
+  await page.goto("/challenge");
+  const chip = liveMain(page).getByText("NOAA GML · Mauna Loa Observatory");
+  const badge = page.getByRole("link", { name: "823 months loaded - Listen to sonifications", exact: true });
+  const pill = liveMain(page).getByRole("link", { name: "Listen to the map", exact: true });
+  const row = liveMain(page).locator(".story-chapters-bottom");
+
+  for (const width of [430, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect(chip).toBeHidden();
+    await expect(badge).toBeHidden();
+    await expect(pill).toBeVisible();
+    await expect(pill).toHaveAttribute("href", "/listen");
+    await expect(pill).toContainText("« Listen to the map »");
+    const pillBox = await pill.boundingBox();
+    const rowBox = await row.boundingBox();
+    if (!pillBox || !rowBox) throw new Error("Phone listen pill was not measurable");
+    expect(pillBox.height).toBeGreaterThanOrEqual(44);
+    const pillMid = pillBox.x + pillBox.width / 2;
+    const rowMid = rowBox.x + rowBox.width / 2;
+    expect(Math.abs(pillMid - rowMid)).toBeLessThan(8);
+  }
 });
 
 test("challenge arrows keep the play link on the centred game", async ({ page }) => {

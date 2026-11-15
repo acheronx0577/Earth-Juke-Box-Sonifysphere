@@ -324,7 +324,7 @@ export function StoryChaptersCarousel() {
         </div>
 
         <div className="story-chapters-bottom">
-          <div className="story-chip-glass story-hud-chip story-noaa-chip inline-flex items-center gap-2">
+          <div className="story-chip-glass story-hud-chip story-noaa-chip story-bottom-wide inline-flex items-center gap-2">
             <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
             <span className="story-noaa-label">
               NOAA GML · Mauna Loa Observatory
@@ -333,8 +333,17 @@ export function StoryChaptersCarousel() {
 
           <Link
             href="/listen"
+            className="story-chip-glass story-listen-pill"
+            aria-label="Listen to the map"
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
+            <span className="story-listen-pill-label">« Listen to the map »</span>
+          </Link>
+
+          <Link
+            href="/listen"
             onClick={handleBadgeClick}
-            className="story-listen-badge group"
+            className="story-listen-badge story-bottom-wide group"
             aria-label="823 months loaded - Listen to sonifications"
           >
             <div ref={badgeRef} className="will-change-transform">
