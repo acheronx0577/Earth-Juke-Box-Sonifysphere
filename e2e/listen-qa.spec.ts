@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { liveMain } from "./support";
 
 const SIZES = [
   { name: "1440", width: 1440, height: 900 },
@@ -117,8 +118,8 @@ test("the history drawer leaves the phone tab bar tappable", async ({ page }) =>
   const savedBox = await saved.boundingBox();
   if (!savedBox) throw new Error("saved tab has no box");
   expect(await topControl(page, savedBox.x + savedBox.width / 2, savedBox.y + savedBox.height / 2)).toMatch(/SAVED/);
-  const drawer = await page.locator(".lv-history.is-open").boundingBox();
-  const tabs = await page.locator(".lv-tabs").boundingBox();
+  const drawer = await liveMain(page).locator(".lv-history.is-open").boundingBox();
+  const tabs = await liveMain(page).locator(".lv-tabs").boundingBox();
   if (!drawer || !tabs) throw new Error("drawer or tabs missing");
   expect(drawer.y + drawer.height).toBeLessThanOrEqual(tabs.y + 1);
   await saved.click();
@@ -162,7 +163,7 @@ test("status text does not cover a readings card", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: "SAVE PROFILE" }).click();
-  await expect(page.locator(".lv-status")).toHaveText("Profile saved.");
+  await expect(liveMain(page).locator(".lv-status")).toHaveText("Profile saved.");
   const overlaps = await page.evaluate(() => {
     const status = document.querySelector(".lv-status")?.getBoundingClientRect();
     const card = document.querySelector(".lv-card")?.getBoundingClientRect();
@@ -231,7 +232,7 @@ test("a six-card temperature value stays on one line", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: "MORE +" }).click();
-  const strong = page.locator(".lv-card[data-id='temperature'] strong");
+  const strong = liveMain(page).locator(".lv-card[data-id='temperature'] strong");
   await expect(strong).toBeVisible();
   const oneLine = await strong.evaluate((el) => {
     const style = getComputedStyle(el);
