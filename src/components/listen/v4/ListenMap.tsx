@@ -378,7 +378,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
 
   return (
     <div
-      className="lv-stage"
+      className="lv-stage lv-cut"
       data-kind={source.kind}
       ref={stageRef}
       tabIndex={0}
@@ -396,6 +396,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       }}
       onPointerUp={(event) => move(event.clientX, event.clientY, true)}
     >
+      <ChamferMark />
       {mapMode ? (
         <svg ref={svgRef} className="lv-map" viewBox={`0 0 ${MAP_VIEW.width} ${MAP_VIEW.height}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Equal Earth map, NOAA CPC example">
           <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="#100e0c" />
