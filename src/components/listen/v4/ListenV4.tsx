@@ -265,7 +265,7 @@ function SoundFields({
       <div className="lv-field">
         <p className="lv-mono lv-eyebrow">INSTRUMENT</p>
         <div className="lv-chip-grid" role="group" aria-label="Instrument">
-          {INSTRUMENTS.map((item) => (
+          {INSTRUMENTS.map((item) => item.id === "strings" ? null : (
             <Chip key={item.id} pressed={instrument === item.id} onClick={() => onInstrument(item.id)}>
               {item.label}
             </Chip>
@@ -380,6 +380,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [year, setYear] = useState(YEAR_END);
   const [styleId, setStyleId] = useState<SoundStyle>("synth");
   const [instrument, setInstrument] = useState<InstrumentId>("soft-synth");
+  const chooseInstrument = useCallback((id: InstrumentId) => {
+    setInstrument(id === "strings" ? "soft-synth" : id);
+  }, []);
   const [variation, setVariation] = useState<VariationId>("soft");
   const [volume, setVolume] = useState(80);
   const [tempo, setTempo] = useState(1);
@@ -671,7 +674,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const applyProfile = (profile: SavedProfile) => {
     chooseLayer(profile.layer);
     setStyleId(profile.style);
-    setInstrument(profile.instrument);
+    chooseInstrument(profile.instrument);
     setVariation(profile.variation);
     setVolume(profile.volume);
     setTempo(profile.tempo);
@@ -857,7 +860,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                   volume={volume}
                   tempo={tempo}
                   onStyle={setStyleId}
-                  onInstrument={setInstrument}
+                  onInstrument={chooseInstrument}
                   onVariation={setVariation}
                   onVolume={setVolume}
                   onTempo={setTempo}
@@ -923,7 +926,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             volume={volume}
             tempo={tempo}
             onStyle={setStyleId}
-            onInstrument={setInstrument}
+            onInstrument={chooseInstrument}
             onVariation={setVariation}
             onVolume={setVolume}
             onTempo={setTempo}
