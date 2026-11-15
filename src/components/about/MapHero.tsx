@@ -73,7 +73,7 @@ export function MapHero() {
           </p>
         </div>
         <div className="hm-stat">
-          <p className="hm-stat-lbl am-label">Mauna Loa CO₂ · Mar 1958 → May 2026</p>
+          <p className="hm-stat-lbl am-label">Mauna Loa CO₂ · embedded example, not a live feed</p>
           <p className="hm-stat-num">
             <span className="hm-s1">315.71 →</span>
             <span>432.34 ppm</span>

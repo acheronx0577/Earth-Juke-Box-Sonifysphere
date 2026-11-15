@@ -20,7 +20,7 @@ export const HERO_MARKERS: readonly HeroMarker[] = [
     y: 37.25,
     caption: "Mauna Loa · 432.34 ppm",
     name: "CO₂ in the air · Keeling curve",
-    detail: "432.34 ppm record, May 2026 · NOAA GML Mauna Loa",
+    detail: "432.34 ppm, May 2026 · NOAA GML Mauna Loa · embedded example, not a live feed",
     phone: true,
   },
   {
@@ -31,7 +31,7 @@ export const HERO_MARKERS: readonly HeroMarker[] = [
     y: 48.55,
     caption: "Niño 3.4 · +2.84 °C",
     name: "Global surface temperature · Niño 3.4",
-    detail: "+2.84 °C sea-surface anomaly · NOAA CPC, Sept 2026",
+    detail: "+2.84 °C sea-surface anomaly · NOAA CPC, Sept 2026 · example, not a live feed",
     phone: true,
   },
   {
@@ -42,7 +42,7 @@ export const HERO_MARKERS: readonly HeroMarker[] = [
     y: 12.1,
     caption: "Arctic · 4.81M km²",
     name: "Arctic sea ice",
-    detail: "4.81 million km², Sept. extent 2026 · NSIDC Sea Ice Index",
+    detail: "4.81 million km², Sept. extent 2026 · NSIDC Sea Ice Index · example, not a live feed",
     phone: true,
   },
   { id: "north-america", tag: "02", tier: "b", x: 60.1, y: 22.7, name: "Global surface temperature · North America" },
