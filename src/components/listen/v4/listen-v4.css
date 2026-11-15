@@ -127,32 +127,39 @@
 
 .lv-hist {
   --cut: 8px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
   width: 100%;
   min-height: 60px;
-  padding: 8px;
+  padding: 1px;
   border: 0;
-  background: #101616;
+  border-radius: 0;
+  background: rgba(255, 243, 234, 0.28);
   color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .lv-hist[aria-current="true"] {
-  background: #1a2424;
-  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.45);
+  background: var(--lv-cream);
+}
+
+.lv-hist-face {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 8px;
+  background: #101616;
 }
 
 .lv-thumb {
   --cut: 4px;
   position: relative;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex: none;
   overflow: hidden;
-  background: #2a211c;
+  border-radius: 0;
+  background: #241c18;
 }
 
 .lv-thumb img,
@@ -165,25 +172,34 @@
 
 .lv-thumb-badge {
   position: absolute;
-  left: 4px;
-  bottom: 3px;
+  left: 3px;
+  bottom: 2px;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.04em;
   color: var(--lv-cream);
 }
 
-.lv-kind {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 18px;
-  margin-right: 6px;
-  background: #6a59b0;
+.lv-play-badge {
+  position: absolute;
+  top: 4px;
+  left: 8px;
   color: var(--lv-cream);
-  font-size: 9px;
+}
+
+.lv-kind {
+  margin-right: 6px;
+  color: #e08a3c;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 11px;
+  font-weight: 500;
   letter-spacing: 0.06em;
+}
+
+.lv-hist-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lv-hist-copy {
@@ -192,7 +208,8 @@
 
 .lv-hist-copy strong,
 .lv-result strong {
-  display: block;
+  display: flex;
+  min-width: 0;
   font-size: 13px;
   font-weight: 500;
   line-height: 1.25;
@@ -216,12 +233,15 @@
 }
 
 .lv-search-glyph {
+  --cut: 4px;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   flex: none;
   color: var(--lv-cream);
+  background: #101616;
+  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.28);
 }
 
 .lv-main {
