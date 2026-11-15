@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MAP_REGIONS } from "@/data/exploreMap";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import { CENTRAL_MERIDIAN, MAP_VIEW, project, ringPath, unproject } from "@/components/listen/v4/equalEarth";
@@ -118,6 +118,24 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const [px, py] = project(lng, lat);
   const mapMode = source.kind === "map";
   const [ring, setRing] = useState<{ x: number; y: number } | null>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const [tipShift, setTipShift] = useState({ x: 26, y: -18 });
+  const tipAnchor = mapMode ? tipPos : ring;
+
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    const stage = stageRef.current;
+    if (!tip || !stage || !tipAnchor) return;
+    const width = tip.offsetWidth;
+    const height = tip.offsetHeight;
+    let nextX = 26;
+    let nextY = -Math.round(height * 0.42);
+    if (tipAnchor.x + nextX + width > stage.clientWidth - 8) nextX = -width - 12;
+    if (tipAnchor.x + nextX < 8) nextX = 8 - tipAnchor.x;
+    if (tipAnchor.y + nextY < 8) nextY = 8 - tipAnchor.y;
+    if (tipAnchor.y + nextY + height > stage.clientHeight - 8) nextY = stage.clientHeight - 8 - height - tipAnchor.y;
+    setTipShift({ x: nextX, y: nextY });
+  }, [tipAnchor, tip]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -332,14 +350,14 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         </div>
       </div> : null}
       {mapMode ? (
-        <div className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y }}>
+        <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: tipPos.x, top: tipPos.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
           <div className="lv-glass-face lv-cut">
             <p>PROBE · {coord}</p>
             <p className={tip.includes("COOLER") ? "is-cool" : "is-warm"}>{tip}</p>
           </div>
         </div>
       ) : ring ? (
-        <div className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y }}>
+        <div ref={tipRef} className="lv-glass lv-cut lv-tip" style={{ left: ring.x, top: ring.y, transform: `translate(${tipShift.x}px, ${tipShift.y}px)` }}>
           <div className="lv-glass-face lv-cut">
             <p>{tip}</p>
           </div>
