@@ -2259,7 +2259,7 @@ nextjs-portal {
 /* Desktop row, from the 1001px layout up. Phones at 1000px and below keep the static list. */
 @media (min-width: 1001px) {
   .about-credits.about-wrap {
-    width: calc(var(--credits-u) * 1400);
+    width: min(1400px, max(calc(var(--credits-u) * 1400), 82vw));
     max-width: calc(100% - var(--credits-u) * 64);
     padding-inline: calc(var(--credits-u) * 48);
   }
@@ -2283,7 +2283,7 @@ nextjs-portal {
   }
 
   .about-credits .about-crow {
-    grid-template-columns: calc(var(--credits-u) * 220) minmax(0, 1fr) calc(var(--credits-u) * 176);
+    grid-template-columns: calc(var(--credits-u) * 190) minmax(0, 1fr) calc(var(--credits-u) * 150);
   }
 
   .about-credits .about-credit-value,
@@ -2323,7 +2323,7 @@ nextjs-portal {
 
   .about-credits-flowing.flowing-menu[data-align="left"] .flowing-menu__link {
     padding-inline: 0;
-    grid-template-columns: calc(var(--credits-u) * 220) minmax(0, 1fr) calc(var(--credits-u) * 176);
+    grid-template-columns: calc(var(--credits-u) * 190) minmax(0, 1fr) calc(var(--credits-u) * 150);
   }
 
   .about-credits .about-credit-link {
@@ -2332,7 +2332,7 @@ nextjs-portal {
   }
 
   .about-credits-flowing .flowing-menu__index {
-    width: calc(var(--credits-u) * 220);
+    width: calc(var(--credits-u) * 190);
     min-width: 0;
     letter-spacing: 0.08em;
     text-transform: uppercase;
