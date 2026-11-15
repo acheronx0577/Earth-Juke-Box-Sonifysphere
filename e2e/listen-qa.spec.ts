@@ -21,7 +21,7 @@ for (const size of SIZES) {
   test(`search and history close stay clear of the site nav at ${size.name}`, async ({ page }) => {
     await page.setViewportSize({ width: size.width, height: size.height });
     await page.goto("/listen?sound=off");
-    const search = page.locator("#nasa-search");
+    const search = liveMain(page).locator("#nasa-search").locator("visible=true");
     await expect(search).toBeVisible();
     const box = await search.boundingBox();
     if (!box) throw new Error("search has no box");
@@ -64,7 +64,7 @@ test("search results have room for several rows and empty searches are not saved
     });
   });
   await page.goto("/listen?sound=off");
-  await page.locator("#nasa-search").fill("ocean currents");
+  await liveMain(page).locator("#nasa-search").locator("visible=true").fill("ocean currents");
   await page.keyboard.press("Enter");
   const tray = page.getByRole("region", { name: "NASA search results" });
   await expect(tray).toBeVisible();
@@ -72,7 +72,7 @@ test("search results have room for several rows and empty searches are not saved
   expect(height).toBeGreaterThan(240);
   await expect(tray.getByRole("button")).toHaveCount(7);
 
-  await page.locator("#nasa-search").fill("zzzz-no-such-media");
+  await liveMain(page).locator("#nasa-search").locator("visible=true").fill("zzzz-no-such-media");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: /zzzz-no-such-media/ })).toHaveCount(0);
   await expect(tray).toHaveCount(0);
@@ -138,7 +138,7 @@ test("a failed NASA open clears the previous media and shows the error", async (
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: /Ocean currents animation/ }).click();
   await expect(page.locator("canvas.lv-media")).toBeVisible();
-  await page.locator("#nasa-search").fill("earth");
+  await liveMain(page).locator("#nasa-search").locator("visible=true").fill("earth");
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /Introducing NASA/ }).click();
   await expect(page.getByRole("region", { name: "NASA search results" })).toHaveCount(0);
