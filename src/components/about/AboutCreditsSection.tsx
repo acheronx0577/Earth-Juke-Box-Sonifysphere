@@ -12,11 +12,13 @@ const FlowingMenu = dynamic(() => import("@/components/shared/FlowingMenu"), {
 const DESKTOP_MENU_QUERY = "(min-width: 1200px) and (hover: hover) and (pointer: fine)";
 const FLOWING_MARQUEES: Record<string, string> = {
   data: "CO₂ · NOAA MAUNA LOA · EMBEDDED",
-  gibs: "IMAGERY · NASA GIBS BLUE MARBLE",
+  gibs: "IMAGERY · NASA GIBS · BLUE MARBLE AND COLOUR MAP",
   library: "MEDIA · NASA IMAGE AND VIDEO LIBRARY",
   gistemp: "TEMPERATURE · NASA GISTEMP V4 · EXAMPLE",
-  image: "REFERENCE · NASA EPIC / DSCOVR",
+  image: "FRAMES · NASA EPIC / DSCOVR · IMAGE-DERIVED",
+  eonet: "EVENTS · NASA EONET · OPEN EVENTS IN VIEW",
   meteomatics: "WEATHER · METEOMATICS · WHEN CONFIGURED",
+  "planetary-computer": "SATELLITE · MICROSOFT PLANETARY COMPUTER · MODIS",
   "hero-image": "AI HERO IMAGE · CHATGPT",
   "si-tools": "SI TOOLS · GROK BOT, CHATGPT, CLAUDE, ANTIGRAVITY, CODEX",
   "audio-provenance": "AUDIO · TONE.JS / WEB AUDIO",

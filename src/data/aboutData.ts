@@ -75,7 +75,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "gibs",
     label: "Imagery",
-    text: "Classic globe requests NASA GIBS Blue Marble tiles.",
+    text: "Classic globe requests NASA GIBS Blue Marble tiles. A MERRA-2 air-temperature colour map can be read back to kelvin and is labeled image-derived.",
     linkLabel: "GIBS ↗",
     linkHref: "https://nasa-gibs.github.io/gibs-api-docs/",
   },
@@ -96,9 +96,16 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "image",
     label: "Image",
-    text: "NASA EPIC (DSCOVR) is a credited reference, not the hero or the GIBS globe.",
+    text: "Listen loads NASA EPIC (DSCOVR) whole-Earth frames. Sound from those frames is image-derived, not a measurement. Not the hero or the GIBS globe.",
     linkLabel: "EPIC ↗",
     linkHref: "https://epic.gsfc.nasa.gov/",
+  },
+  {
+    id: "eonet",
+    label: "Events",
+    text: "Open natural events come from NASA EONET v3. Each event in the chosen view is a pulse, and the same events are listed in text.",
+    linkLabel: "EONET ↗",
+    linkHref: "https://eonet.gsfc.nasa.gov/docs/v3",
   },
   {
     id: "meteomatics",
@@ -106,6 +113,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     text: "Meteomatics readings appear only when the server is configured.",
     linkLabel: "Meteomatics ↗",
     linkHref: "https://www.meteomatics.com/en/api/",
+  },
+  {
+    id: "planetary-computer",
+    label: "Satellite",
+    text: "Microsoft Planetary Computer. MODIS daily land surface temperature, with scale and offset applied.",
+    linkLabel: "Planetary Computer ↗",
+    linkHref: "https://planetarycomputer.microsoft.com/dataset/modis-11A1-061",
   },
   {
     id: "hero-image",

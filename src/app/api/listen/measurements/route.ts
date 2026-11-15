@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { measurementCache, measurementCacheControl, measurementCacheKey, measurementTtlMs } from "@/lib/listen/measurementCache";
 import { isPowerLayer, readPowerPoint } from "@/lib/listen/power";
+import { RATE_LIMIT_MESSAGE, clientIp, measurementsRateLimit } from "@/lib/listen/rateLimit";
 
 const PARAMETERS = {
   "air-temp": { parameter: "t_2m:C", unit: "°C" },
@@ -22,6 +24,37 @@ async function powerFallback(lat: number, lon: number, time: string, layer: stri
   return NextResponse.json(result.body, { headers: { "Cache-Control": result.cacheControl } });
 }
 
+class UpstreamFailure extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "UpstreamFailure";
+    this.status = status;
+  }
+}
+
+async function loadMeteomatics(endpoint: string, unit: string, time: string, username: string, password: string) {
+  const response = await fetch(endpoint, {
+    headers: { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}` },
+    signal: AbortSignal.timeout(12000),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new UpstreamFailure(
+      502,
+      response.status === 401
+        ? "Meteomatics credentials were rejected."
+        : "No matched reading is available for this layer, place, and time.",
+    );
+  }
+  const body = await response.json() as { data?: Array<{ coordinates?: Array<{ dates?: Array<{ value?: number; date?: string }> }> }> };
+  const reading = body.data?.[0]?.coordinates?.[0]?.dates?.[0];
+  const value = reading?.value;
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new UpstreamFailure(404, "No valid reading was returned.");
+  return { value, unit, time: reading?.date ?? time };
+}
+
 export async function GET(request: NextRequest) {
   if (!request.nextUrl.searchParams.has("lat") || !request.nextUrl.searchParams.has("lon")) return jsonError("Provide a latitude and longitude.", 400);
   const lat = Number(request.nextUrl.searchParams.get("lat"));
@@ -41,28 +74,27 @@ export async function GET(request: NextRequest) {
     return jsonError("Meteomatics is not configured on this server.", 503);
   }
 
+  const decision = measurementsRateLimit.check(clientIp((name) => request.headers.get(name)));
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: RATE_LIMIT_MESSAGE },
+      { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds), "Cache-Control": "no-store" } },
+    );
+  }
+
   const { parameter, unit } = PARAMETERS[layer as Layer];
   const endpoint = `https://api.meteomatics.com/${encodeURIComponent(time)}/${parameter}/${lat.toFixed(4)},${lon.toFixed(4)}/json`;
+  const key = measurementCacheKey({ layer, lat, lon, time });
+  const ttlMs = measurementTtlMs(time);
   try {
-    const response = await fetch(endpoint, {
-      headers: { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}` },
-      signal: AbortSignal.timeout(12000),
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      if (isPowerLayer(layer)) return powerFallback(lat, lon, time, layer);
-      return jsonError(response.status === 401 ? "Meteomatics credentials were rejected." : "No matched reading is available for this layer, place, and time.", 502);
-    }
-    const body = await response.json() as { data?: Array<{ coordinates?: Array<{ dates?: Array<{ value?: number; date?: string }> }> }> };
-    const reading = body.data?.[0]?.coordinates?.[0]?.dates?.[0];
-    const value = reading?.value;
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      if (isPowerLayer(layer)) return powerFallback(lat, lon, time, layer);
-      return jsonError("No valid reading was returned.", 404);
-    }
-    return NextResponse.json({ layer, value, unit, time: reading?.date ?? time, lat, lon, source: "Meteomatics" });
-  } catch {
+    const reading = await measurementCache.getOrLoad(key, ttlMs, () => loadMeteomatics(endpoint, unit, time, username, password));
+    return NextResponse.json(
+      { layer, value: reading.value, unit: reading.unit, time: reading.time, lat, lon, source: "Meteomatics" },
+      { headers: { "Cache-Control": measurementCacheControl(ttlMs) } },
+    );
+  } catch (error) {
     if (isPowerLayer(layer)) return powerFallback(lat, lon, time, layer);
+    if (error instanceof UpstreamFailure) return jsonError(error.message, error.status);
     return jsonError("The measurement service could not be reached.", 502);
   }
 }

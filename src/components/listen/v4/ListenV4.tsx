@@ -31,7 +31,9 @@ import {
   type SoundStyle,
   type VariationId,
 } from "@/components/listen/v4/model";
+import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
+import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
@@ -421,10 +423,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [savedOpen, setSavedOpen] = useState(false);
   const [profiles, setProfiles] = useState<SavedProfile[]>([]);
   const [legend, setLegend] = useState<LegendModel>(legendFromMetadata(legendMetaFor(initialLayer, MAP_SOURCE)));
-  const [measured, setMeasured] = useState<{ value: string; detail: string } | null>(null);
+  const [measured, setMeasured] = useState<TaggedReading | null>(null);
   const [measuring, setMeasuring] = useState(false);
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
+  const nasaSearchRequests = useRef(createLatestRequest());
+  const nasaAssetRequests = useRef(createLatestRequest());
   const ready = useRef(false);
   const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
@@ -522,6 +526,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   useEffect(() => onPlaybackStopped(() => setPlaying(false)), []);
 
+  useEffect(() => {
+    const search = nasaSearchRequests.current;
+    const asset = nasaAssetRequests.current;
+    return () => {
+      search.abort();
+      asset.abort();
+    };
+  }, []);
+
   const reading = useMemo(
     () => readProbe({ layer, year, lat, lng, source, pixelColor, measured, measuring }),
     [layer, year, lat, lng, source, pixelColor, measured, measuring],
@@ -537,36 +550,54 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     updateProbeAudio(hearing);
   }, [hearing, playing]);
 
+  const readingContextRef = useRef<ReadingContext | null>(null);
   useEffect(() => {
-    if (layer !== "air" && layer !== "currents" && layer !== "wind") {
-      setMeasured(null);
+    const context: ReadingContext = {
+      source: source.id,
+      layer,
+      lat,
+      lon: lng,
+      time: probeInstant(year),
+    };
+    readingContextRef.current = context;
+    setMeasured(null);
+    if (source.kind !== "map" || (layer !== "air" && layer !== "currents" && layer !== "wind")) {
       setMeasuring(false);
       return;
     }
     const controller = new AbortController();
-    const time = `${year}-09-15T12:00:00.000Z`;
     const apiLayer = layer === "air" ? "air-temp" : layer;
     setMeasuring(true);
     const timer = window.setTimeout(() => {
-      void fetch(`/api/listen/measurements?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&time=${encodeURIComponent(time)}&layer=${apiLayer}`, {
-        signal: controller.signal,
-      })
+      void fetch(
+        `/api/listen/measurements?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}&time=${encodeURIComponent(context.time)}&layer=${apiLayer}`,
+        { signal: controller.signal },
+      )
         .then(async (response) => {
           const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
           if (!response.ok || typeof body.value !== "number") throw new Error(body.error ?? "No reading");
-          setMeasured({ value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(), detail: `${body.source ?? "Matched"} · ${dateLabel(year)}` });
+          setMeasured({
+            context,
+            value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
+            detail: `${body.source ?? "Matched"} · ${dateLabel(year)}`,
+          });
         })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === "AbortError") return;
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
           setMeasured(null);
         })
-        .finally(() => setMeasuring(false));
+        .finally(() => {
+          if (!readingContextsMatch(readingContextRef.current, context)) return;
+          setMeasuring(false);
+        });
     }, 350);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [layer, lat, lng, year]);
+  }, [source.id, source.kind, layer, lat, lng, year]);
 
   const chooseLayer = (id: LayerId) => {
     setLayer(id);
@@ -600,14 +631,17 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       setStatus(`Probe moved to ${place.name}.`);
     }
     if (clean.length < 2) {
+      nasaSearchRequests.current.abort();
       setStatus("Enter at least two characters to search NASA media.");
       return;
     }
+    const ticket = nasaSearchRequests.current.start();
     setResultsOpen(true);
     setStatus("");
     try {
-      const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`);
+      const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`, { signal: ticket.signal });
       const body = (await response.json()) as { items?: NasaHit[]; error?: string };
+      if (!nasaSearchRequests.current.isCurrent(ticket.id)) return;
       if (!response.ok) throw new Error(body.error ?? "Search failed.");
       const items = body.items ?? [];
       setResults(items);
@@ -618,16 +652,19 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         setSearches((previous) => [{ id: clean, term: clean, detail: `${items.length} NASA MEDIA RESULTS` }, ...previous.filter((item) => item.term !== clean)].slice(0, 12));
       }
     } catch (error) {
+      if (isAbortError(error) || !nasaSearchRequests.current.isCurrent(ticket.id)) return;
       setResults([]);
       setStatus(error instanceof Error ? error.message : "NASA search failed.");
     }
   };
 
   const chooseHit = async (item: NasaHit) => {
+    const ticket = nasaAssetRequests.current.start();
     setStatus("Loading NASA media…");
     try {
-      const response = await fetch(`/api/listen/nasa/asset?id=${encodeURIComponent(item.id)}`);
+      const response = await fetch(`/api/listen/nasa/asset?id=${encodeURIComponent(item.id)}`, { signal: ticket.signal });
       const body = (await response.json()) as { image?: string | null; video?: string | null; error?: string };
+      if (!nasaAssetRequests.current.isCurrent(ticket.id)) return;
       if (!response.ok) throw new Error(body.error ?? "NASA media could not be opened.");
       const next: ListenSource = {
         id: item.id,
@@ -639,10 +676,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         video: body.video ?? undefined,
         legend: null,
       };
+      if (!nasaAssetRequests.current.isCurrent(ticket.id)) return;
       setSources((previous) => [next, ...previous.filter((old) => old.id !== next.id)].slice(0, 20));
       openSource(next);
       setStatus("");
     } catch (error) {
+      if (isAbortError(error) || !nasaAssetRequests.current.isCurrent(ticket.id)) return;
       setResultsOpen(false);
       openSource(MAP_SOURCE);
       setStatus(error instanceof Error ? error.message : "NASA media could not be opened.");
@@ -714,6 +753,10 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   const coord = formatCoord(lat, lng);
   const when = dateLabel(year);
+  const announced =
+    layer === "air" || layer === "currents" || layer === "wind"
+      ? reading.cards.find((card) => card.id === layer)
+      : undefined;
   const layers = more ? [...PRIMARY_LAYERS, ...EXTRA_LAYERS] : PRIMARY_LAYERS;
   const summary = `${reading.matched} MATCHED · ${reading.imageDerived} IMAGE-DERIVED · ${reading.empty} NO DATA`;
 
@@ -1043,6 +1086,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       />
       <p className="sr-only" aria-live="polite">
         {playing ? `Hearing ${layerLabel(layer).toLowerCase()} as ${instrument.replaceAll("-", " ")}, volume ${Math.round(volume)} percent.` : "Sound is stopped."}
+      </p>
+      <p className="sr-only" aria-live="polite">
+        {announced ? `${announced.label}: ${announced.value}. ${announced.detail}` : ""}
       </p>
     </main>
   );
