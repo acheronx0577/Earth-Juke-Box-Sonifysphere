@@ -84,11 +84,18 @@ test("challenge card titles stay on one line", async ({ page }) => {
       }), { message: `${title} at ${width}px` }).toBeLessThan(1.6);
     }
     if (width >= 1280) {
-      await expect.poll(async () => page.locator(".circular-gallery-label").evaluateAll((els) => els.filter((el) => {
-        const style = getComputedStyle(el);
-        const box = el.getBoundingClientRect();
-        return Number(style.opacity) > 0.4 && style.whiteSpace === "nowrap" && box.width > 8 && box.right > 8 && box.left < window.innerWidth - 8;
-      }).length), { message: `visible titles at ${width}px` }).toBeGreaterThan(3);
+      await expect.poll(async () => page.locator(".circular-gallery-label").evaluateAll((els) => {
+        const texts = new Set<string>();
+        for (const el of els) {
+          const style = getComputedStyle(el);
+          const box = el.getBoundingClientRect();
+          if (Number(style.opacity) < 0.9 || style.whiteSpace !== "nowrap" || box.width < 8) continue;
+          if (box.left < 1 || box.right > window.innerWidth - 1) continue;
+          const text = (el.textContent || "").trim();
+          if (text) texts.add(text);
+        }
+        return texts.size;
+      }), { message: `fully visible titles at ${width}px` }).toBe(5);
     }
   }
 });
