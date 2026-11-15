@@ -1989,10 +1989,14 @@ nextjs-portal {
   letter-spacing: -0.04em;
 }
 
+.about-credits,
+#credits-h {
+  scroll-margin-top: 6rem;
+}
+
 .about-credits {
   margin-top: 120px;
   padding-bottom: 40px;
-  scroll-margin-top: 6rem;
 }
 
 .about-credits-flowing-shell {
@@ -2133,13 +2137,13 @@ nextjs-portal {
   }
 
   .about-credits[data-flowing-ready="true"] .about-credits-flowing-shell,
-  .about-credits-flowing,
+  .about-credits-flowing.flowing-menu,
   .about-credits-flowing .flowing-menu__list {
     height: auto;
-    overflow: visible;
   }
 
   .about-credits-flowing .flowing-menu__item {
+    container-type: normal;
     flex: 0 0 auto;
     height: auto;
     min-height: 72px;
