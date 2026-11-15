@@ -361,8 +361,9 @@
     width: 100%;
     max-width: 100%;
     gap: 12px;
-    --story-play-font: clamp(12px, 3.35vw, 14.4px);
-    --story-play-height: 52px;
+    --story-play-font: clamp(11px, 3vw, 13px);
+    --story-play-height: calc(52px * 0.85);
+    --story-play-pad-y: calc((var(--story-play-height) - var(--story-play-font) * 1.25) / 2);
   }
 
   .story-btn-round {
@@ -370,9 +371,10 @@
   }
 
   .story-btn-pill {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
-    padding-inline: 10px;
+    max-width: 100%;
+    padding-inline: 8px;
   }
 
   .story-btn-label {
