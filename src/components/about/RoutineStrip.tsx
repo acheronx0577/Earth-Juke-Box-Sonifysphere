@@ -229,7 +229,14 @@ export function RoutineStrip() {
       onRefresh: (self) => place(self.progress),
     });
 
+    let lastWidth = window.innerWidth;
+    let lastHeight = window.innerHeight;
     const onResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      if (width === lastWidth && Math.abs(height - lastHeight) < 140) return;
+      lastWidth = width;
+      lastHeight = height;
       trigger.refresh();
     };
     window.addEventListener("resize", onResize);

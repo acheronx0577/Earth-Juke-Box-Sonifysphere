@@ -107,13 +107,24 @@ export function TeamRegistry() {
       pinSpacing: true,
       anticipatePin: 0,
       onUpdate: (self) => {
+        // A refresh can report progress 0 for one frame while still at the credits boundary.
+        if (self.progress === 0 && self.scroll() > self.start + 2) return;
         const progress = self.progress * progressWhenCardCentered(totalCards - 1);
         positionCards(progress);
         updateTeamCounter(progress);
       },
+      onLeave: () => positionCards(progressWhenCardCentered(totalCards - 1)),
     });
 
+    let lastWidth = window.innerWidth;
+    let lastHeight = window.innerHeight;
     const onResize = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      // The mobile URL bar changes height without a real layout change and jumps the pin.
+      if (width === lastWidth && Math.abs(height - lastHeight) < 140) return;
+      lastWidth = width;
+      lastHeight = height;
       lastCounterY = null;
       ScrollTrigger.refresh();
     };
