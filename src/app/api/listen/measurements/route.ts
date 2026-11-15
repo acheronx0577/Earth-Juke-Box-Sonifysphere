@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { measurementCache, measurementCacheControl, measurementCacheKey, measurementTtlMs } from "@/lib/listen/measurementCache";
+import { isPowerLayer, readPowerPoint } from "@/lib/listen/power";
 import { RATE_LIMIT_MESSAGE, clientIp, measurementsRateLimit } from "@/lib/listen/rateLimit";
 
 const PARAMETERS = {
@@ -15,6 +16,12 @@ const NO_STORE = { "Cache-Control": "no-store" };
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status, headers: NO_STORE });
+}
+
+async function powerFallback(lat: number, lon: number, time: string, layer: string) {
+  const result = await readPowerPoint({ layer, lat, lon, time });
+  if (!result.ok) return jsonError(result.error, result.status);
+  return NextResponse.json(result.body, { headers: { "Cache-Control": result.cacheControl } });
 }
 
 class UpstreamFailure extends Error {
@@ -61,7 +68,11 @@ export async function GET(request: NextRequest) {
   }
   const username = process.env.METEOMATICS_USERNAME;
   const password = process.env.METEOMATICS_PASSWORD;
-  if (!username || !password) return jsonError("Meteomatics is not configured on this server.", 503);
+  // Air temperature and wind use NASA POWER when Meteomatics is absent or fails.
+  if (!username || !password) {
+    if (isPowerLayer(layer)) return powerFallback(lat, lon, time, layer);
+    return jsonError("Meteomatics is not configured on this server.", 503);
+  }
 
   const decision = measurementsRateLimit.check(clientIp((name) => request.headers.get(name)));
   if (!decision.ok) {
@@ -82,6 +93,7 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": measurementCacheControl(ttlMs) } },
     );
   } catch (error) {
+    if (isPowerLayer(layer)) return powerFallback(lat, lon, time, layer);
     if (error instanceof UpstreamFailure) return jsonError(error.message, error.status);
     return jsonError("The measurement service could not be reached.", 502);
   }
