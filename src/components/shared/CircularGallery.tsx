@@ -752,9 +752,13 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const left = cssX - labelWidth / 2;
           const right = cssX + labelWidth / 2;
           const fullyInside = left >= 2 && right <= view.width - 2;
+          // Wide screens keep a title on every card that is on screen, even when the
+          // viewport clips the ends. Narrow screens still hide a title that would be cut.
+          const showTitle = view.width >= 1280 || fullyInside;
+          const titleOpacity = showTitle ? card.alpha * card.labelAlpha * (view.width >= 1280 ? 1 : mix(edge, 1, card.focus)) : 0;
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
-          entry.el.style.opacity = String(fullyInside ? card.alpha * card.labelAlpha * mix(edge, 1, card.focus) : 0);
+          entry.el.style.opacity = String(titleOpacity);
         });
       }
       pool.forEach((entry) => {
