@@ -548,8 +548,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const count = currentList.length;
       const { w, h, spacing } = measure();
       state.spacing = spacing;
-      const introEase = 1 - Math.pow(1 - state.intro, 3);
-      const scroll = state.scroll + (1 - introEase) * spacing * 1.6;
+      const scroll = state.scroll;
       const baseLabel = h * 0.072 * fontScale(fontRef.current);
       const openFrame = (item: GalleryItem) => {
         // Revert width back to wide aspect (landscape ~1.6) while keeping tall height
@@ -712,7 +711,11 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssY = view.height / 2 - y;
           const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
           entry.el.style.fontSize = `${size}px`;
-          entry.el.style.width = `${Math.max(120, Math.min(card.w * 0.94, metrics.spacing - 12))}px`;
+          entry.el.style.width = 'auto';
+          entry.el.style.maxWidth = `${Math.max(160, metrics.spacing * 0.95)}px`;
+          entry.el.style.overflow = 'hidden';
+          entry.el.style.textOverflow = 'ellipsis';
+          entry.el.style.whiteSpace = 'nowrap';
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
           entry.el.style.opacity = String(card.alpha * card.labelAlpha * mix(edge, 1, card.focus));
@@ -773,13 +776,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       view.ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(view.width * view.ratio));
       canvas.height = Math.max(1, Math.round(view.height * view.ratio));
-      const before = state.spacing;
       const { spacing } = measure();
-      if (before > 1 && spacing !== before) {
-        state.scroll = (state.scroll / before) * spacing;
-        state.target = (state.target / before) * spacing;
+      if (state.spacing <= 1) {
+        state.spacing = spacing;
+        state.scroll = state.active * spacing;
+        state.target = state.scroll;
+      } else if (spacing !== state.spacing) {
+        state.scroll = (state.scroll / state.spacing) * spacing;
+        state.target = (state.target / state.spacing) * spacing;
+        state.spacing = spacing;
       }
-      state.spacing = spacing;
     };
 
     const frame = (now: number) => {
