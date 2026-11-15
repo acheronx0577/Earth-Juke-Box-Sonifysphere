@@ -290,6 +290,7 @@ export function StoryChaptersCarousel() {
             dpr={1.25}
             scrollSpeed={2}
             scrollEase={0.08}
+            // The gallery keeps this row fixed at >=1280 and only loops below that.
             autoScroll={paused ? 0 : FLOW_SPEED}
             snap={false}
             openOnClick={true}
