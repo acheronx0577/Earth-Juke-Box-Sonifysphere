@@ -118,6 +118,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const land = useMemo(() => getLandPaths(), []);
   const [px, py] = project(lng, lat);
   const mapMode = source.kind === "map";
+  const zoomable = mapMode || source.kind === "image";
   const [ring, setRing] = useState<{ x: number; y: number } | null>(null);
   const [probeRadius, setProbeRadius] = useState(14);
   const [mapZoom, setMapZoom] = useState(1);
@@ -135,9 +136,14 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   };
 
   const changeZoom = (amount: number) => {
-    setMapCenter({ x: px, y: py });
+    if (mapMode) setMapCenter({ x: px, y: py });
     setMapZoom((zoom) => Math.min(4, Math.max(1, Number((zoom + amount).toFixed(1)))));
   };
+
+  useEffect(() => {
+    setMapZoom(1);
+    setMapCenter({ x: MAP_VIEW.width / 2, y: MAP_VIEW.height / 2 });
+  }, [source.id]);
 
   useLayoutEffect(() => {
     const tip = tipRef.current;
@@ -325,8 +331,12 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const drawnHeight = naturalHeight * scale;
     const left = (stageRect.width - drawnWidth) / 2;
     const top = (stageRect.height - drawnHeight) / 2;
-    const x = (clientX - stageRect.left - left) / drawnWidth;
-    const y = (clientY - stageRect.top - top) / drawnHeight;
+    const centerX = stageRect.width / 2;
+    const centerY = stageRect.height / 2;
+    const unscaledX = centerX + (clientX - stageRect.left - centerX) / mapZoom;
+    const unscaledY = centerY + (clientY - stageRect.top - centerY) / mapZoom;
+    const x = (unscaledX - left) / drawnWidth;
+    const y = (unscaledY - top) / drawnHeight;
     setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
     setPixel({
       x: Math.min(1, Math.max(0, (clientX - stageRect.left) / stageRect.width)),
@@ -395,6 +405,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     <div
       className="lv-stage lv-cut"
       data-kind={source.kind}
+      data-hide-target-cursor="true"
       ref={stageRef}
       tabIndex={0}
       role="group"
@@ -421,7 +432,6 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
         <svg
           ref={svgRef}
           className="lv-map"
-          data-hide-target-cursor="true"
           viewBox={mapViewBox}
           preserveAspectRatio="xMidYMid meet"
           role="img"
@@ -460,37 +470,47 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       ) : source.kind === "video" && source.video ? (
         <video ref={videoRef} className="lv-media" src={source.video} poster={source.preview} controls playsInline crossOrigin="anonymous" aria-label={source.title} />
       ) : (
-        <img ref={imageRef} className="lv-media" src={source.preview} alt={source.title} />
+        <img
+          ref={imageRef}
+          className="lv-media"
+          src={source.preview}
+          alt={source.title}
+          draggable={false}
+          onDragStart={(event) => event.preventDefault()}
+          style={{ transform: `scale(${mapZoom})` }}
+        />
       )}
-      {mapMode ? (
-        <div className="lv-map-controls" role="group" aria-label="Map and probe controls">
-          <div className="lv-map-control-group" role="group" aria-label="Probe circle size">
-            <span className="lv-map-control-label" aria-hidden="true">CIRCLE</span>
-            <button
-              type="button"
-              className="lv-map-control-btn"
-              aria-label="Make probe circle smaller"
-              disabled={probeRadius <= 6}
-              onClick={() => resizeProbe(-2)}
-            >
-              −
-            </button>
-            <button
-              type="button"
-              className="lv-map-control-btn"
-              aria-label="Make probe circle larger"
-              disabled={probeRadius >= 30}
-              onClick={() => resizeProbe(2)}
-            >
-              +
-            </button>
-          </div>
-          <div className="lv-map-control-group" role="group" aria-label="Map zoom">
+      {zoomable ? (
+        <div className="lv-map-controls" role="group" aria-label={mapMode ? "Map and probe controls" : "Image controls"}>
+          {mapMode ? (
+            <div className="lv-map-control-group" role="group" aria-label="Probe circle size">
+              <span className="lv-map-control-label" aria-hidden="true">CIRCLE</span>
+              <button
+                type="button"
+                className="lv-map-control-btn"
+                aria-label="Make probe circle smaller"
+                disabled={probeRadius <= 6}
+                onClick={() => resizeProbe(-2)}
+              >
+                −
+              </button>
+              <button
+                type="button"
+                className="lv-map-control-btn"
+                aria-label="Make probe circle larger"
+                disabled={probeRadius >= 30}
+                onClick={() => resizeProbe(2)}
+              >
+                +
+              </button>
+            </div>
+          ) : null}
+          <div className="lv-map-control-group" role="group" aria-label={mapMode ? "Map zoom" : "Image zoom"}>
             <span className="lv-map-control-label" aria-hidden="true">ZOOM {mapZoom.toFixed(1)}×</span>
             <button
               type="button"
               className="lv-map-control-btn"
-              aria-label="Zoom out map"
+              aria-label={`Zoom out ${mapMode ? "map" : "image"}`}
               disabled={mapZoom <= 1}
               onClick={() => changeZoom(-0.5)}
             >
@@ -499,7 +519,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
             <button
               type="button"
               className="lv-map-control-btn"
-              aria-label="Zoom in map"
+              aria-label={`Zoom in ${mapMode ? "map" : "image"}`}
               disabled={mapZoom >= 4}
               onClick={() => changeZoom(0.5)}
             >
