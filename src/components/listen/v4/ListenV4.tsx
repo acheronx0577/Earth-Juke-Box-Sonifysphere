@@ -572,6 +572,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       openSource(next);
       setStatus("");
     } catch (error) {
+      setResultsOpen(false);
+      openSource(MAP_SOURCE);
       setStatus(error instanceof Error ? error.message : "NASA media could not be opened.");
     }
   };
