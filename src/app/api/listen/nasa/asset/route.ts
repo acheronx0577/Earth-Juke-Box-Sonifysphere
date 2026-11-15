@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+/** Real NASA ids include punctuation such as curly apostrophes. Reject only characters that could change the request path. */
+function isSafeNasaId(id: string): boolean {
+  if (id.length < 1 || id.length > 240) return false;
+  if (id !== id.trim() || id.includes("..")) return false;
+  if (/[\u0000-\u001f\u007f\\/?#%]/.test(id)) return false;
+  return /\p{L}|\p{N}/u.test(id);
+}
+
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get("id") ?? "";
-  if (!/^[A-Za-z0-9_-]{3,160}$/.test(id)) return NextResponse.json({ error: "Invalid NASA ID." }, { status: 400 });
+  if (!isSafeNasaId(id)) return NextResponse.json({ error: "Invalid NASA ID." }, { status: 400 });
   try {
     const response = await fetch(`https://images-api.nasa.gov/asset/${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(12000), next: { revalidate: 3600 } });
     if (!response.ok) return NextResponse.json({ error: "NASA media is unavailable." }, { status: 502 });

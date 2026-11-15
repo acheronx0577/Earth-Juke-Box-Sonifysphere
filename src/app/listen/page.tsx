@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { ListenWorkspace } from "@/components/listen/ListenWorkspace";
+import { ListenV4 } from "@/components/listen/v4/ListenV4";
+import { layerFromParam } from "@/components/listen/v4/model";
 
 export const metadata: Metadata = {
   title: "Listen — SonifySphere",
-  description: "Upload or search NASA Earth media, explore data layers, and hear the image or video respond to your touch.",
+  description: "Move across an Equal Earth map or open NASA media, pick one data layer, and hear the point under the probe.",
 };
 
-export default function ListenPage() { return <ListenWorkspace />; }
+export default async function ListenPage({ searchParams }: { searchParams: Promise<{ data?: string }> }) {
+  const params = await searchParams;
+  return <ListenV4 initialLayer={layerFromParam(params.data)} />;
+}

@@ -43,7 +43,7 @@ test("grid navigation warms the destination and preserves the document cache", a
   await page.getByRole("link", { name: "Enter without audio", exact: true }).click();
   await expect(page).toHaveURL(/\/listen\?sound=off$/);
   await expect(overlay).toBeHidden();
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "Timeline" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
