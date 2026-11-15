@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { measurementCache, measurementCacheControl, measurementCacheKey, measurementTtlMs } from "@/lib/listen/measurementCache";
+import { RATE_LIMIT_MESSAGE, clientIp, measurementsRateLimit } from "@/lib/listen/rateLimit";
 
 const PARAMETERS = {
   "air-temp": { parameter: "t_2m:C", unit: "°C" },
@@ -61,6 +62,14 @@ export async function GET(request: NextRequest) {
   const username = process.env.METEOMATICS_USERNAME;
   const password = process.env.METEOMATICS_PASSWORD;
   if (!username || !password) return jsonError("Meteomatics is not configured on this server.", 503);
+
+  const decision = measurementsRateLimit.check(clientIp((name) => request.headers.get(name)));
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: RATE_LIMIT_MESSAGE },
+      { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds), "Cache-Control": "no-store" } },
+    );
+  }
 
   const { parameter, unit } = PARAMETERS[layer as Layer];
   const endpoint = `https://api.meteomatics.com/${encodeURIComponent(time)}/${parameter}/${lat.toFixed(4)},${lon.toFixed(4)}/json`;
