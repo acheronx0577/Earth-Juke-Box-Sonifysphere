@@ -68,16 +68,44 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "data",
     label: "Data",
-    text: "CO₂: NOAA Global Monitoring Laboratory, Mauna Loa Observatory",
+    text: "NOAA GML Mauna Loa. Shown CO₂ figures are embedded, not a live feed.",
     linkLabel: "gml.noaa.gov ↗",
     linkHref: "https://gml.noaa.gov/ccgg/trends/",
   },
   {
+    id: "gibs",
+    label: "Imagery",
+    text: "Classic globe requests NASA GIBS Blue Marble tiles.",
+    linkLabel: "GIBS ↗",
+    linkHref: "https://nasa-gibs.github.io/gibs-api-docs/",
+  },
+  {
+    id: "library",
+    label: "Media",
+    text: "Listen searches the NASA Image and Video Library. Media, not measurements.",
+    linkLabel: "NASA images ↗",
+    linkHref: "https://images.nasa.gov/",
+  },
+  {
+    id: "gistemp",
+    label: "Temperature",
+    text: "NASA GISTEMP v4 is credited. Shown figures are examples, not a live feed.",
+    linkLabel: "GISTEMP ↗",
+    linkHref: "https://data.giss.nasa.gov/gistemp/",
+  },
+  {
     id: "image",
     label: "Image",
-    text: "Earth image: NASA EPIC Team (DSCOVR)",
-    linkLabel: "epic.gsfc.nasa.gov ↗",
+    text: "NASA EPIC (DSCOVR) is a credited reference, not the hero or the GIBS globe.",
+    linkLabel: "EPIC ↗",
     linkHref: "https://epic.gsfc.nasa.gov/",
+  },
+  {
+    id: "meteomatics",
+    label: "Weather",
+    text: "Meteomatics readings appear only when the server is configured.",
+    linkLabel: "Meteomatics ↗",
+    linkHref: "https://www.meteomatics.com/en/api/",
   },
   {
     id: "hero-image",
@@ -87,7 +115,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "si-tools",
     label: "SI tools",
-    text: "ChatGPT: hero art. Codex: code/optimization/docs. Project data/presets aren't AI-generated.",
+    text: "Grok Bot, ChatGPT, Claude, Antigravity, Codex. Hero is AI-generated; data is not.",
   },
   {
     id: "audio-provenance",

@@ -136,7 +136,7 @@ function ThemePickerHeader({ dataset }: Readonly<{ dataset: string }>) {
     <div className="content-stretch flex flex-col md:flex-row items-start md:items-end justify-between gap-6 relative shrink-0 w-full">
       <div className="content-stretch flex flex-col font-medium gap-3 xl:gap-4 items-start relative shrink-0 text-[#f2f2f0]">
         <p className="font-mono font-medium leading-[1.2] relative shrink-0 text-[13px] xl:text-[15px] 2xl:text-[16px] tracking-[0.52px] uppercase">
-          Earth themes · 4 real datasets
+          Earth themes · 4 example figures
         </p>
         <h2 className="font-sans font-medium leading-[1.02] relative shrink-0 text-[36px] sm:text-[48px] xl:text-[56px] 2xl:text-[68px] tracking-[-0.03em]">
           Pick what Earth plays

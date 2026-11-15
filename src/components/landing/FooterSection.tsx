@@ -43,7 +43,16 @@ function Co2Body() {
 function EarthBody() {
   return (
     <>
-      <p className="sonify-footer-copy">NASA EPIC Team (DSCOVR)</p>
+      <p className="sonify-footer-copy">Classic globe: NASA GIBS Blue Marble</p>
+      <a
+        className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
+        href="https://nasa-gibs.github.io/gibs-api-docs/"
+        target="_blank"
+        rel="noreferrer"
+      >
+        NASA GIBS
+      </a>
+      <p className="sonify-footer-copy">NASA EPIC (DSCOVR) is a separate credit, not the hero</p>
       <a
         className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
         href="https://epic.gsfc.nasa.gov/"
@@ -108,7 +117,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
                 <Co2Body />
               </div>
               <div className="sonify-footer-col">
-                <p className="sonify-footer-kicker">Earth image</p>
+                <p className="sonify-footer-kicker">NASA imagery</p>
                 <EarthBody />
               </div>
               <div className="sonify-footer-col">
@@ -127,7 +136,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
               <FooterCredit title="CO₂ data">
                 <Co2Body />
               </FooterCredit>
-              <FooterCredit title="Earth image">
+              <FooterCredit title="NASA imagery">
                 <EarthBody />
               </FooterCredit>
               <FooterCredit title="Type">
@@ -141,7 +150,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
           <div className="sonify-footer-legal">
             <p>Space Apps 2026 · The Earth Information Jukebox</p>
             <p>
-              Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth · CO₂: NOAA GML Mauna Loa
+              Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth. SI tools: Grok Bot, ChatGPT, Claude, Antigravity, and Codex. NASA: Image and Video Library, GIBS, GISTEMP example figures, and EPIC as a separate credit. Meteomatics only when configured. CO₂: NOAA GML Mauna Loa, embedded, not a live feed.
             </p>
           </div>
         </div>

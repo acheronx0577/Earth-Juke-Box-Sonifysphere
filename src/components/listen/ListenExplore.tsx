@@ -62,11 +62,19 @@ interface SessionProps {
 }
 
 function MapLegend({ layer }: Readonly<{ layer: LayerId }>) {
+  const imagery = (
+    <p className="m-0 mt-2 max-w-[220px] font-mono text-[9px] leading-[1.35] tracking-[0.36px] text-[rgba(242,242,240,0.7)]">
+      Imagery: NASA GIBS Blue Marble
+    </p>
+  );
   if (layer !== "temperature") {
     return (
-      <p className="m-0 max-w-[260px] font-mono text-[9px] tracking-[0.36px] text-[rgba(242,242,240,0.7)]">
-        GREY = NO DATA FOR THIS LAYER HERE
-      </p>
+      <div className="max-w-[260px]">
+        <p className="m-0 font-mono text-[9px] tracking-[0.36px] text-[rgba(242,242,240,0.7)]">
+          GREY = NO DATA FOR THIS LAYER HERE
+        </p>
+        {imagery}
+      </div>
     );
   }
   return (
@@ -81,6 +89,7 @@ function MapLegend({ layer }: Readonly<{ layer: LayerId }>) {
         <span className="mr-2 inline-block h-1.5 w-2.5 bg-[#454545]" />
         GREY = NO DATA FOR THIS LAYER HERE
       </p>
+      {imagery}
     </div>
   );
 }
