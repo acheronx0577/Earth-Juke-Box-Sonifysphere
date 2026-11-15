@@ -20,9 +20,12 @@ test("phone menu sound toggle stops the about hero", async ({ page }) => {
   await page.goto("/about");
   await page.getByRole("button", { name: "Hear it" }).click();
   await expect(page.getByRole("button", { name: "Playing" })).toBeVisible();
-  await page.getByRole("button", { name: "Sound on", exact: true }).click();
+  const player = page.locator("aside[aria-label='Persistent mini-player']");
+  await expect(player).toHaveAttribute("data-open", "true");
+  await page.getByRole("button", { name: "Mute audio" }).click();
   await expect(page.getByRole("button", { name: "Playing" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: "Hear it" })).toBeVisible();
+  await expect(player).toHaveAttribute("data-open", "false");
 });
 
 test("phone theme sheet leads with the year slider", async ({ page }) => {
