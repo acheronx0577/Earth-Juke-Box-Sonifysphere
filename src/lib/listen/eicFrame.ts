@@ -76,9 +76,12 @@ export function allowedFrameUrl(raw: string): URL | null {
   } catch {
     return null;
   }
-  if (url.protocol !== "https:" || url.username || url.password) return null;
+  if (url.username || url.password) return null;
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
   if (url.hostname !== FRAME_HOST) return null;
   if (!url.pathname.startsWith("/vis/") || !url.pathname.endsWith(`/${EIC_FRAME_FILE}`)) return null;
+  // SVS publishes these file links as HTTP. The same host is requested over HTTPS.
+  url.protocol = "https:";
   return url;
 }
 

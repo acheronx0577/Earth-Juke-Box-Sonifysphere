@@ -63,13 +63,16 @@ function assertNoSecrets(payload) {
   }
 }
 
-assert.equal(eic.allowedFrameUrl("http://svs.gsfc.nasa.gov/vis/a/sst_mur_print.jpg"), null);
+assert.equal(eic.allowedFrameUrl("http://svs.gsfc.nasa.gov/vis/a/sst_mur_print.jpg")?.toString(), "https://svs.gsfc.nasa.gov/vis/a/sst_mur_print.jpg");
 assert.equal(eic.allowedFrameUrl("https://user:pass@svs.gsfc.nasa.gov/vis/a/sst_mur_print.jpg"), null);
 assert.equal(eic.allowedFrameUrl("https://evil.test/vis/a/sst_mur_print.jpg"), null);
 assert.equal(eic.allowedFrameUrl(PRINT)?.hostname, "svs.gsfc.nasa.gov");
 
 const selected = eic.selectPrintFrame(page());
 assert.equal(selected.url, PRINT);
+const httpOnly = page();
+httpOnly.media_groups = [{ items: [{ media: still(PRINT.replace("https://", "http://"), "sst_mur_print.jpg", 1024, 512, "http link") }] }];
+assert.equal(eic.selectPrintFrame(httpOnly).url, PRINT);
 assert.equal(selected.width, 1024);
 assert.equal(selected.date, "2023-05-08");
 assert.equal(eic.selectPrintFrame({ title: "", release_date: "2023-05-08T00:00:00Z" }), null);
