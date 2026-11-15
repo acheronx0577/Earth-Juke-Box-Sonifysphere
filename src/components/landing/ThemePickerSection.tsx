@@ -220,7 +220,8 @@ export function ThemePickerSection() {
     const el = trackRef.current;
     const card = el?.children[index] as HTMLElement | undefined;
     if (!el || !card) return;
-    el.scrollTo({ left: card.offsetLeft - el.offsetLeft, behavior: "smooth" });
+    const centeredLeft = card.offsetLeft - el.offsetLeft - (el.clientWidth - card.offsetWidth) / 2;
+    el.scrollTo({ left: centeredLeft, behavior: "smooth" });
     setPage(index);
   };
 
@@ -254,7 +255,7 @@ export function ThemePickerSection() {
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
           onScroll={syncPage}
-          className="no-scrollbar flex flex-row gap-6 items-stretch w-full overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-2 select-none cursor-grab active:cursor-grabbing"
+          className="theme-picker-track no-scrollbar flex flex-row gap-6 items-stretch w-full overflow-x-auto scroll-smooth snap-x snap-mandatory py-4 px-2 select-none cursor-grab active:cursor-grabbing"
         >
           {THEME_CARDS.map((card) => (
             <div key={card.id} className="snap-start shrink-0">
