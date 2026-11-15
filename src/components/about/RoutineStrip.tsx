@@ -57,7 +57,7 @@ type RoutineBlock = (typeof BLOCKS)[number];
 const stroke = {
   fill: "none",
   stroke: "currentColor",
-  strokeWidth: 1.5,
+  strokeWidth: 1.15,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
 };
@@ -66,50 +66,64 @@ function RoutineIcon({ kind }: { kind: RoutineBlock["icon"] }) {
   const paths: Record<RoutineBlock["icon"], ReactNode> = {
     station: (
       <>
-        <path d="M10 54h44" />
-        <path d="M18 54V34h28v20" />
-        <path d="M16 34l16-8 16 8" />
-        <path d="M29 54V42h6v12" />
-        <path d="M32 26V10" />
-        <path d="M32 14h10" />
-        <circle cx="42" cy="14" r="2" />
-        <path d="M26 18h6" />
-        <circle cx="24" cy="18" r="1.6" />
-        <path d="M32 10l6 3" />
+        <path d="M5 88h90" />
+        <path d="M4 82C16 81 26 68 32 68h6" />
+        <path d="M50 68h22C80 68 88 81 96 82" />
+        <path d="M18 78q10-3.2 20 0t20 0 18 0" strokeDasharray="2.3 2.5" />
+        <path d="M32 68V58h18v10" />
+        <path d="M30 58h22" />
+        <path d="M37 68v-5h3.4V68" />
+        <path d="M42.4 60.4h2.8v2.6h-2.8z" />
+        <path d="M60 68V32" />
+        <path d="M55.5 48h9M56.6 42h6.8" />
+        <path d="M60 44 54 68M60 44l8 24" />
+        <path d="M60 34h14" />
+        <circle cx="76.2" cy="34" r="2.45" />
+        <path d="M60 32v-2.2" />
+        <circle cx="57.4" cy="29.4" r="1.45" />
+        <circle cx="62.6" cy="29.4" r="1.45" />
       </>
     ),
     sonar: (
       <>
-        <circle cx="32" cy="32" r="18" />
-        <circle cx="32" cy="32" r="11" />
-        <circle cx="32" cy="32" r="4" />
-        <circle cx="32" cy="32" r="1.2" fill="currentColor" stroke="none" />
-        <path d="M32 8v6M32 50v6M8 32h6M50 32h6" />
+        <circle cx="46" cy="50" r="20" />
+        <ellipse cx="46" cy="50" rx="20" ry="6.6" />
+        <ellipse cx="46" cy="50" rx="7.4" ry="20" />
+        <path d="M32 40c2-6 6-8 10-4 3 3 2 8-1 11" />
+        <path d="M48 36c5-2 10 1 11 6 1 5 4 8 8 8" />
+        <path d="M46 30v3.2M46 66.8V70M26 50h3.2M62.8 50H66" />
+        <circle cx="62" cy="46" r="1.7" />
+        <path d="M62 34.5a11.5 11.5 0 0 1 11.5 11.5 11.5 11.5 0 0 1-11.5 11.5" strokeDasharray="1.7 2.3" />
+        <path d="M62 26a20 20 0 0 1 20 20 20 20 0 0 1-20 20" strokeDasharray="1.7 2.6" />
+        <path d="M62 17.5a28.5 28.5 0 0 1 28.5 28.5 28.5 28.5 0 0 1-28.5 28.5" strokeDasharray="1.7 3" />
       </>
     ),
     scope: (
       <>
-        <circle cx="32" cy="32" r="18" />
-        <path d="M16 36c4-10 8-10 12 0s8 10 12 0 8-10 8-4" />
-        <path d="M32 14v4M32 46v4M18 32h3M43 32h3" />
-        <circle cx="46" cy="46" r="3" />
+        <path d="M22 18h52l8 8v48l-8 8H22l-8-8V26z" />
+        <path d="M26 26h44l4 4v28l-4 4H26l-4-4V30z" />
+        <path d="M22 48h6M68 48h6M48 26v5M48 57v5" />
+        <path d="M24 44h4M32 44h4M40 44h4M56 44h4M64 44h4" />
+        <path d="M48 30v4M48 52v4M30 48h4M62 48h4" />
+        <path d="M24 50h6c3 0 4-16 9-16s6 20 11 14 5-16 10-10 4 8 12 8" />
+        <circle cx="30" cy="74" r="3.4" />
+        <circle cx="42" cy="74" r="3.4" />
+        <path d="M52 74h22" />
+        <circle cx="64" cy="74" r="2.3" />
       </>
     ),
     waves: (
       <>
-        <path d="M8 22c6-8 10-8 16 0s10 8 16 0 10-8 16 0" />
-        <path d="M8 32c6-6 10-6 16 0s10 6 16 0 10-6 16 0" />
-        <path d="M8 42c6-4 10-4 16 0s10 4 16 0 10-4 16 0" />
-        <circle cx="24" cy="32" r="1.3" fill="currentColor" stroke="none" />
-        <circle cx="40" cy="32" r="1.3" fill="currentColor" stroke="none" />
-        <circle cx="32" cy="42" r="1.3" fill="currentColor" stroke="none" />
+        <path d="M12 36c6 0 8-14 16-14s8 18 16 12 8-16 16-8 8 10 16 6" />
+        <path d="M12 54c10 0 12-10 22-10s12 10 22 10 12-10 22-8" />
+        <path d="M12 72h12l3.2-12L30.4 72H44l3-8 3 8h14l3.2-13L67.4 72H82l2.6-7 2.6 7H90" />
       </>
     ),
   };
 
   return (
     <div className="routine-icon" aria-hidden="true">
-      <svg viewBox="0 0 64 64" {...stroke}>
+      <svg viewBox="0 0 100 100" {...stroke}>
         {paths[kind]}
       </svg>
     </div>
