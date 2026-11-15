@@ -36,7 +36,7 @@ test("layer chips retarget the sound and the address", async ({ page }) => {
   await expect(page).toHaveURL(/data=sea-ice/);
   await expect(page.getByText("Hear Sea ice as")).toBeVisible();
   await expect(page.getByText("SEA ICE COVER")).toBeVisible();
-  await expect(page.getByText("FROM METADATA")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Readings at probe" })).toContainText("EXAMPLE DATA");
 });
 
 test("the probe and timeline change the reading", async ({ page }) => {
@@ -90,7 +90,7 @@ test("nasa search and a recent search reopen a source", async ({ page }) => {
   await page.keyboard.press("Enter");
   await page.getByRole("button", { name: /Test coral reef/ }).click();
   await expect(page.getByRole("img", { name: "Test coral reef" })).toBeVisible();
-  await expect(page.getByText("ESTIMATED FROM PIXELS")).toBeVisible();
+  await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT")).toBeVisible();
   await page.getByRole("button", { name: /ocean currents/ }).click();
   await expect(page.getByRole("region", { name: "NASA search results" })).toBeVisible();
 });
@@ -99,7 +99,7 @@ test("an image source replaces the metadata legend", async ({ page }) => {
   await page.goto("/listen?sound=off");
   await page.getByRole("button", { name: /OCO-2/ }).click();
   await expect(page.getByRole("img", { name: /OCO-2/ })).toBeVisible();
-  await expect(page.getByText("ESTIMATED FROM PIXELS")).toBeVisible();
+  await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT")).toBeVisible();
 });
 
 test("saving a profile lists it on the phone Saved tab", async ({ page }) => {

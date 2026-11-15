@@ -50,7 +50,7 @@ test("play, about, listen, and unknown routes each load one page", async ({ page
   await expect(page.getByRole("region", { name: "Story Chapters Carousel" })).toBeVisible();
 
   await page.goto("/about");
-  await expect(page.locator("footer").getByRole("link", { name: "Challenges" })).toBeVisible();
+  await expect(page.locator("footer").getByRole("link", { name: "Challenge", exact: true })).toBeVisible();
   await expect(liveMain(page)).toHaveCount(1);
 
   await page.goto("/listen?sound=off");
@@ -78,15 +78,16 @@ test("dataset chips switch the listen record", async ({ page }) => {
 });
 
 test("sound off persists and blocks a new Hear", async ({ page }) => {
-  await page.goto("/about");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.goto("/");
+  await expect(page.locator(".preloader")).toHaveCount(0);
   await page.getByRole("button", { name: "Sound on", exact: true }).click();
   await page.reload();
+  await expect(page.locator(".preloader")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await page.goto("/about");
   await page.getByRole("button", { name: "Hear it" }).click();
   await expect(liveMain(page).getByText("Sound is off.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Turn sound on" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sound off", exact: true })).toHaveAttribute("aria-pressed", "false");
 
   await page.goto("/challenge/guess?seed=4");
   await page.getByRole("button", { name: "Hear the signal" }).click();

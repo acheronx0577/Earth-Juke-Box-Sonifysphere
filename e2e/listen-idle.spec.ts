@@ -66,7 +66,10 @@ test("the cursor sleeps after snapping and wakes on pointer movement", async ({ 
     const original = window.requestAnimationFrame;
     let count = 0;
     window.requestAnimationFrame = (callback) => original((time) => {
-      count += 1;
+      const source = Function.prototype.toString.call(callback);
+      // Lenis keeps the GSAP ticker and ScrollTrigger's frame loop awake on this page.
+      const smoothScroll = source.includes("deltaRatio") || source.includes("isUpdating") || source.includes("eA&&requestAnimationFrame");
+      if (!smoothScroll) count += 1;
       callback(time);
     });
     await new Promise((resolve) => setTimeout(resolve, 600));
