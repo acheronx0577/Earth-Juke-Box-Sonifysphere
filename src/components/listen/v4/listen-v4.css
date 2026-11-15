@@ -7,7 +7,7 @@
   --lv-cream: #fff3ea;
   --lv-stroke-1: #555555;
   --lv-stroke-2: #2d3131;
-  --lv-stroke-3: transparent;
+  --lv-stroke-3: #1f2525;
   --lv-muted: rgba(255, 243, 234, 0.62);
   --lv-dim: rgba(255, 243, 234, 0.38);
   --lv-tab-space: 0px;
@@ -1240,7 +1240,7 @@
   }
   .lv-tab {
     --cut: 8px;
-    --lv-stroke: transparent;
+    --lv-stroke: var(--lv-stroke-3);
     display: flex;
     flex-direction: column;
     align-items: center;
