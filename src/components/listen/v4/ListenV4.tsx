@@ -128,7 +128,7 @@ function Chip({
 }) {
   return (
     <button type="button" className={`lv-chip lv-cut ${pressed ? "is-on" : ""} ${dashed ? "is-more" : ""}`} aria-pressed={pressed} onClick={onClick}>
-      <span className="lv-cut">{children}</span>
+      {children}
     </button>
   );
 }
@@ -698,7 +698,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               </Chip>
             ))}
             <button type="button" className="lv-chip lv-cut is-more" aria-expanded={more} onClick={() => setMore((value) => !value)}>
-              <span className="lv-cut">MORE +</span>
+              MORE +
             </button>
           </div>
         </div>
