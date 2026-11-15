@@ -371,7 +371,7 @@ export function readProbe(input: {
         label: layerLabel(id),
         swatch: "#3a3a3a",
         state: "empty",
-        value: "No data for this date",
+        value: accepted.value,
         detail: accepted.detail,
       });
     } else if (accepted && layer === id) {
