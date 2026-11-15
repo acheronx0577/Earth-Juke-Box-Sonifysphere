@@ -375,6 +375,17 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
 
     const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    const labelProbe = document.createElement('canvas').getContext('2d');
+    const fitLabel = (text: string, size: number, family: string, maxWidth: number) => {
+      const upper = text.toUpperCase();
+      const widthAt = (px: number) => {
+        if (!labelProbe) return upper.length * px * 0.62;
+        labelProbe.font = `600 ${px}px ${family}`;
+        return labelProbe.measureText(upper).width + Math.max(0, upper.length - 1) * px * 0.05;
+      };
+      if (widthAt(size) <= maxWidth) return size;
+      return Math.max(9, Math.min(size, size * (maxWidth / Math.max(widthAt(size), 1))));
+    };
     const colorCache = new Map<string, number[]>();
     const parse = (value: string): number[] => {
       const key = String(value);
@@ -717,7 +728,18 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
             entry.font = font;
             entry.el.style.font = font;
           }
-          const size = card.labelSize;
+          const family = getComputedStyle(entry.el).fontFamily || 'monospace';
+          const maxWidth = Math.max(72, card.w);
+          let size = fitLabel(card.item.text || '', card.labelSize, family, maxWidth);
+          entry.el.style.whiteSpace = 'nowrap';
+          entry.el.style.width = 'max-content';
+          entry.el.style.maxWidth = 'none';
+          entry.el.style.fontSize = `${size}px`;
+          const rendered = entry.el.scrollWidth;
+          if (rendered > maxWidth) {
+            size = Math.max(9, size * (maxWidth / rendered));
+            entry.el.style.fontSize = `${size}px`;
+          }
           const closedOffset = card.h / 2 + Math.max(size * 1.3, 34);
           const openOffset = card.h / 2 + 58;
           const offset = mix(closedOffset, openOffset, card.focus);
@@ -726,8 +748,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
           const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
-          entry.el.style.fontSize = `${size}px`;
-          entry.el.style.width = `${Math.max(120, Math.min(card.w * 0.94, metrics.spacing - 12))}px`;
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
           entry.el.style.opacity = String(card.alpha * card.labelAlpha * mix(edge, 1, card.focus));

@@ -65,6 +65,25 @@ test("challenge carousel stays still when motion is reduced", async ({ page }) =
   await expect(liveMain(page).locator("[data-challenge-count]")).toHaveAttribute("data-challenge-count", "01");
 });
 
+test("challenge card titles stay on one line", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/challenge");
+  for (const width of [2560, 1920, 1440, 390]) {
+    await page.setViewportSize({ width, height: width < 500 ? 844 : 1000 });
+    for (const title of ["GUESS THE SIGNAL", "CLIMATE CONSOLE"]) {
+      const label = liveMain(page).locator(".circular-gallery-label").filter({ hasText: title }).first();
+      await expect(label).toBeVisible();
+      const lines = await label.evaluate((el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return range.getClientRects().length;
+      });
+      expect(lines, `${title} at ${width}px`).toBe(1);
+      await expect(label).toHaveCSS("white-space", "nowrap");
+    }
+  }
+});
+
 test("challenge arrows keep the play link on the centred game", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/challenge");
