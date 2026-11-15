@@ -520,6 +520,17 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     const measure = () => {
       const s = settingsRef.current;
       const gap = 1 + s.gap;
+      const maxH = Math.max(120, view.height * 0.66);
+      // Wide screens show all five cards at once, centred, with their titles fully
+      // inside. The side pad keeps the outer titles clear of the edge fade.
+      if (view.width >= 1280) {
+        // Largest card that keeps five fully inside a 20px margin, which also
+        // parks the looping sixth card completely off-screen while one is centred.
+        const pad = 20;
+        const w = (view.width - pad * 2) / (4 * gap + 1);
+        const h = Math.min(maxH, w / Math.max(s.itemAspect, 0.2));
+        return { w, h, spacing: Math.max(w * gap, w + 8) };
+      }
       // Grow cards with the gallery, but slower than its width, so 1920 and 2560
       // get larger cards and still show more than a fixed trio. Short viewports
       // shrink the card so the title still fits under it.
@@ -527,7 +538,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const across = clamp(view.width / ((500 + view.width * 0.045) * sizeBias), 1.25, 5.5);
       let w = view.width / (across * gap);
       let h = w / Math.max(s.itemAspect, 0.2);
-      const maxH = Math.max(120, view.height * 0.66);
       if (h > maxH) {
         h = maxH;
         w = h * s.itemAspect;
@@ -654,7 +664,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (u.uResolution) gl.uniform2f(u.uResolution, canvas.width, canvas.height);
       if (u.uFocal) gl.uniform1f(u.uFocal, view.height * 1.207 * ratio);
       if (u.uWaveTime) gl.uniform1f(u.uWaveTime, state.waveTime);
-      if (u.uFade) gl.uniform1f(u.uFade, s.fadeEdges);
+      const fadeAmount = view.width >= 1280 ? Math.min(s.fadeEdges, 10 / Math.max(view.width, 1)) : s.fadeEdges;
+      if (u.uFade) gl.uniform1f(u.uFade, fadeAmount);
       if (u.uPlaceholder) gl.uniform3fv(u.uPlaceholder, parse(s.textColor));
       if (u.uRingColor) gl.uniform3fv(u.uRingColor, parse(s.textColor));
       if (u.uRingWidth) gl.uniform1f(u.uRingWidth, 2 * ratio);
@@ -709,9 +720,10 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       ensurePool(metrics.spacing);
       const used = new Set<PoolEntry>();
       const font = fontRef.current;
+      const fadeAmount = view.width >= 1280 ? Math.min(s.fadeEdges, 10 / Math.max(view.width, 1)) : s.fadeEdges;
       const fade = (value: number) => {
-        if (s.fadeEdges <= 0) return 1;
-        const t = clamp(value / s.fadeEdges, 0, 1);
+        if (fadeAmount <= 0) return 1;
+        const t = clamp(value / fadeAmount, 0, 1);
         return t * t * t * (t * (t * 6 - 15) + 10);
       };
       if (s.showTitles) {
@@ -752,10 +764,11 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const left = cssX - labelWidth / 2;
           const right = cssX + labelWidth / 2;
           const fullyInside = left >= 2 && right <= view.width - 2;
-          // Wide screens keep a title on every card that is on screen, even when the
-          // viewport clips the ends. Narrow screens still hide a title that would be cut.
-          const showTitle = view.width >= 1280 || fullyInside;
-          const titleOpacity = showTitle ? card.alpha * card.labelAlpha * (view.width >= 1280 ? 1 : mix(edge, 1, card.focus)) : 0;
+          // Wide screens fade a title only while its card is entering or leaving.
+          // At rest the five cards are sized to sit fully inside, so every title stays readable.
+          const titleOpacity = view.width >= 1280
+            ? card.alpha * card.labelAlpha * edge
+            : (fullyInside ? card.alpha * card.labelAlpha * mix(edge, 1, card.focus) : 0);
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
           entry.el.style.opacity = String(titleOpacity);
