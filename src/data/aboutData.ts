@@ -82,7 +82,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "hero-image",
     label: "Hero image",
-    text: "AI-generated art, not a real Earth photo; the home image shows its watermark.",
+    text: "AI-generated illustration, not a real photo of Earth.",
   },
   {
     id: "si-tools",
