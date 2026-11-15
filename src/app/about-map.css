@@ -731,7 +731,9 @@
 
 .team .team-counter .count {
   position: relative;
+  flex-shrink: 0;
   width: max-content;
+  min-width: max-content;
   height: var(--count-line);
   overflow: hidden;
   line-height: var(--count-line);
