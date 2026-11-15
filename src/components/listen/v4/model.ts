@@ -331,8 +331,8 @@ export function readProbe(input: {
       label: "SEA ICE",
       swatch: "#d5e6ee",
       state: "matched",
-      value: region.id === "arctic" ? "4.81 million km²" : "Included",
-      detail: region.id === "arctic" ? `NSIDC · ${when} · EXAMPLE DATA` : "EXAMPLE · SOUTHERN FIELD",
+      value: "EXAMPLE",
+      detail: `EXAMPLE DATA · no measured extent · ${when}`,
     };
   } else {
     seaIce = emptyCard("sea-ice", "SEA ICE", "SEA ICE IS ARCTIC + ANTARCTIC ONLY");
@@ -393,7 +393,7 @@ export function readProbe(input: {
   if (active.state === "matched" && source.kind === "map" && region && (layer === "temperature" || layer === "all")) {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && layer === "sea-ice") {
-    normalized = 0.72;
+    normalized = null;
   } else if (layer === "all") {
     const raw = color.replace("#", "");
     const r = Number.parseInt(raw.slice(0, 2), 16);
