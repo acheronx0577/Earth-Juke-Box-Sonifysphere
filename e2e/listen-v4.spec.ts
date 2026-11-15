@@ -31,10 +31,10 @@ test.beforeEach(async ({ page }) => {
 test("layer chips retarget the sound and the address", async ({ page }) => {
   await page.goto("/listen?sound=off");
   await expect(page.getByRole("button", { name: "TEMPERATURE", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByText("Hear Temperature as")).toBeVisible();
+  await expect(page.getByText("Hear Temperature as").first()).toBeVisible();
   await page.getByRole("button", { name: "SEA ICE", exact: true }).click();
   await expect(page).toHaveURL(/data=sea-ice/);
-  await expect(page.getByText("Hear Sea ice as")).toBeVisible();
+  await expect(page.getByText("Hear Sea ice as").first()).toBeVisible();
   await expect(page.getByText("SEA ICE COVER")).toBeVisible();
   await expect(page.getByRole("region", { name: "Readings at probe" })).toContainText("EXAMPLE DATA");
 });

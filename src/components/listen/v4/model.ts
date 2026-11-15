@@ -209,25 +209,25 @@ export function formatCoord(lat: number, lng: number): string {
   return `${ns} ${ew}`;
 }
 
-export function inNino(lng: number, lat: number): boolean {
+function inNino(lng: number, lat: number): boolean {
   const x = ((lng + 180) % 360 + 360) % 360 - 180;
   return x <= -120 && x >= -170 && lat <= 5 && lat >= -5;
 }
 
-export function regionAt(lng: number, lat: number): MapRegion | null {
+function regionAt(lng: number, lat: number): MapRegion | null {
   if (inNino(lng, lat)) return regionById("nino34");
   const id = regionIdAt(lng, lat);
   if (!id) return null;
   return MAP_REGIONS.find((item) => item.id === id) ?? null;
 }
 
-export function scaleAnomaly(value: number, year: number): number {
+function scaleAnomaly(value: number, year: number): number {
   if (year >= YEAR_END) return value;
   const t = (year - YEAR_START) / (YEAR_END - YEAR_START);
   return value * (0.4 + 0.6 * t);
 }
 
-export function formatAnomaly(value: number, precise: boolean): string {
+function formatAnomaly(value: number, precise: boolean): string {
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(precise ? 2 : 1)} °C`;
 }
@@ -257,12 +257,19 @@ function emptyCard(id: string, label: string, detail: string): ReadingCard {
   return { id, label, swatch: "#3a3a3a", state: "empty", value: "No matched data for this point", detail };
 }
 
-export function bandName(hexColor: string): string {
+function parseHexRgb(hexColor: string): [number, number, number] | null {
   const raw = hexColor.replace("#", "");
   const r = Number.parseInt(raw.slice(0, 2), 16);
   const g = Number.parseInt(raw.slice(2, 4), 16);
   const b = Number.parseInt(raw.slice(4, 6), 16);
-  if ([r, g, b].some((part) => Number.isNaN(part))) return "No data";
+  if ([r, g, b].some((part) => Number.isNaN(part))) return null;
+  return [r, g, b];
+}
+
+function bandName(hexColor: string): string {
+  const rgb = parseHexRgb(hexColor);
+  if (!rgb) return "No data";
+  const [r, g, b] = rgb;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   if (max < 48) return "No data";
@@ -275,7 +282,7 @@ export function bandName(hexColor: string): string {
   return "Muted band";
 }
 
-export function paintColor(layer: LayerId, lng: number, lat: number): string {
+function paintColor(layer: LayerId, lng: number, lat: number): string {
   const region = regionAt(lng, lat);
   if (layer === "sea-ice") {
     if (region?.seaIce || region?.id === "arctic" || region?.id === "antarctica") return "#d5e6ee";
@@ -330,7 +337,47 @@ export function readProbe(input: {
   };
 
   let temperature: ReadingCard;
-  if (measuring && layer === "temperature") {
+  if (accepted && accepted.status === "reading" && layer === "temperature") {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#e08a3c",
+      state: "matched",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
+  } else if (accepted && accepted.status === "no-data" && layer === "temperature" && !accepted.value.includes("could not be reached")) {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#3a3a3a",
+      state: "empty",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
+  } else if (source.kind === "map" && region) {
+    const anomaly = scaleAnomaly(region.anomaly, year);
+    const nino = region.id === "nino34";
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#e08a3c",
+      state: "matched",
+      value: formatAnomaly(anomaly, nino),
+      detail: nino
+        ? `SST ANOMALY · NOAA CPC · ${when} · EXAMPLE DATA`
+        : `SURFACE TEMP · ANOMALY · ${when} · EXAMPLE DATA`,
+    };
+  } else if (source.id === "eic-svs-5101" || source.id === "default-eic" || (source.kind === "image" && source.layer === "all")) {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: source.kind !== "map" && !pixelColor ? "#3a3a3a" : color,
+      state: "image",
+      value: source.kind !== "map" && !pixelColor ? "No data" : bandName(color),
+      detail: "FROM PIXELS · NOT A MEASUREMENT",
+    };
+  } else if (measuring && layer === "temperature") {
     temperature = {
       id: "temperature",
       label: "TEMPERATURE",
@@ -356,19 +403,6 @@ export function readProbe(input: {
       state: "matched",
       value: accepted.value,
       detail: accepted.detail,
-    };
-  } else if (source.kind === "map" && region) {
-    const anomaly = scaleAnomaly(region.anomaly, year);
-    const nino = region.id === "nino34";
-    temperature = {
-      id: "temperature",
-      label: "TEMPERATURE",
-      swatch: "#e08a3c",
-      state: "matched",
-      value: formatAnomaly(anomaly, nino),
-      detail: nino
-        ? `SST ANOMALY · NOAA CPC · ${when} · EXAMPLE DATA`
-        : `SURFACE TEMP · ANOMALY · ${when} · EXAMPLE DATA`,
     };
   } else {
     temperature = emptyCard("temperature", "TEMPERATURE", "NO TEMPERATURE FIELD ON THIS SOURCE");
@@ -475,14 +509,9 @@ export function readProbe(input: {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && isSoundLayer(layer)) {
     normalized = mapLayerToSound(layer, readingNumber(accepted?.value ?? measured?.value));
-  } else if (layer === "all" && (source.kind === "map" || pixelColor !== null)) {
-    const raw = color.replace("#", "");
-    const r = Number.parseInt(raw.slice(0, 2), 16);
-    const g = Number.parseInt(raw.slice(2, 4), 16);
-    const b = Number.parseInt(raw.slice(4, 6), 16);
-    if (![r, g, b].some((part) => Number.isNaN(part))) normalized = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  } else if (active.state === "image" && (source.kind === "map" || pixelColor !== null)) {
-    normalized = 0.45;
+  } else if (layer === "all" || active.state === "image") {
+    const rgb = parseHexRgb(color);
+    normalized = rgb ? (0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]) / 255 : 0.45;
   }
 
   const warmer = region ? scaleAnomaly(region.anomaly, year) : 0;

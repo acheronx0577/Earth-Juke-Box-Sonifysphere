@@ -107,7 +107,7 @@ test("new source stays full height and the file input is not a tab stop", async 
   const button = page.getByRole("button", { name: "+ New source" });
   const box = await button.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(58);
-  await expect(page.locator("input[type=file]")).toHaveAttribute("tabindex", "-1");
+  await expect(liveMain(page).locator("input[type=file]")).toHaveAttribute("tabindex", "-1");
 });
 
 test("the history drawer leaves the phone tab bar tappable", async ({ page }) => {

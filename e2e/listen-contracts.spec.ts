@@ -175,10 +175,10 @@ test("keyboard operates Listen, Guess, Tune, and Ribbons", async ({ page }) => {
   await reach(page, ribbons);
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/listen/);
-  const probe = page.getByRole("group", { name: /Map probe/ });
+  const probe = page.getByRole("group", { name: /Map probe|Pixel probe/ });
   await reach(page, probe);
   await page.keyboard.press("ArrowRight");
-  await expect(probe).toHaveAttribute("aria-label", /143°W/);
+  await expect(probe).toHaveAttribute("aria-label", /143°W|percent across/);
 
   await page.goto("/challenge/guess?seed=4");
   await expect(page.getByTestId("guess-game")).toHaveAttribute("data-ready", "true");

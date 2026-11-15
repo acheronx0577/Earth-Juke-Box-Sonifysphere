@@ -12,8 +12,8 @@
 import { MeasurementCache, MEASUREMENT_PAST_TTL_MS } from "@/lib/listen/measurementCache";
 import { createHmac } from "node:crypto";
 
-export const SATELLITE_CONTAINER = "satellite-cache";
-export const SATELLITE_CACHE_MAX_ENTRIES = 256;
+const SATELLITE_CONTAINER = "satellite-cache";
+const SATELLITE_CACHE_MAX_ENTRIES = 256;
 
 export interface SatelliteCacheKeyInput {
   readonly collection: string;
@@ -92,7 +92,7 @@ export function parseAzureStorageConfig(env = process.env): AzureParsedConfig | 
   return null;
 }
 
-export function buildSharedKeyAuthorization(
+function buildSharedKeyAuthorization(
   accountName: string,
   accountKey: string,
   method: string,
@@ -180,18 +180,22 @@ export class SatelliteCache<T> {
     return loaded;
   }
 
-  private async readAzureBlob(config: AzureParsedConfig, blobName: string): Promise<T | undefined> {
+  private prepareAzureRequest(
+    config: AzureParsedConfig,
+    blobName: string,
+    method: "GET" | "PUT",
+    customHeaders: Record<string, string> = {},
+  ): { url: string; headers: Record<string, string> } | undefined {
     let url: string;
-    const headers: Record<string, string> = {
-      Accept: "application/json",
-    };
+    const headers: Record<string, string> = { ...customHeaders };
 
     if (config.sasUrl) {
       const parsedSas = new URL(config.sasUrl);
       const basePath = parsedSas.pathname.replace(/\/$/, "");
       url = `${parsedSas.origin}${basePath}/${encodeURIComponent(blobName)}${parsedSas.search}`;
     } else if (config.accountName && config.accountKey) {
-      const endpoint = config.blobEndpoint || `https://${config.accountName}.blob.${config.endpointSuffix}`;
+      const rawEndpoint = config.blobEndpoint || `https://${config.accountName}.blob.${config.endpointSuffix}`;
+      const endpoint = rawEndpoint.replace(/\/$/, "");
       url = `${endpoint}/${SATELLITE_CONTAINER}/${encodeURIComponent(blobName)}`;
       const now = new Date().toUTCString();
       headers["x-ms-date"] = now;
@@ -199,7 +203,7 @@ export class SatelliteCache<T> {
       headers["Authorization"] = buildSharedKeyAuthorization(
         config.accountName,
         config.accountKey,
-        "GET",
+        method,
         `/${SATELLITE_CONTAINER}/${encodeURIComponent(blobName)}`,
         headers,
       );
@@ -207,9 +211,18 @@ export class SatelliteCache<T> {
       return undefined;
     }
 
-    const response = await this.fetchImpl(url, {
+    return { url, headers };
+  }
+
+  private async readAzureBlob(config: AzureParsedConfig, blobName: string): Promise<T | undefined> {
+    const prepared = this.prepareAzureRequest(config, blobName, "GET", {
+      Accept: "application/json",
+    });
+    if (!prepared) return undefined;
+
+    const response = await this.fetchImpl(prepared.url, {
       method: "GET",
-      headers,
+      headers: prepared.headers,
       signal: AbortSignal.timeout(8000),
     });
 
@@ -220,39 +233,18 @@ export class SatelliteCache<T> {
   }
 
   private async writeAzureBlob(config: AzureParsedConfig, blobName: string, value: T): Promise<void> {
-    let url: string;
     const payload = JSON.stringify(value);
     const byteLength = Buffer.byteLength(payload, "utf8");
-    const headers: Record<string, string> = {
+    const prepared = this.prepareAzureRequest(config, blobName, "PUT", {
       "Content-Type": "application/json; charset=utf-8",
       "Content-Length": String(byteLength),
       "x-ms-blob-type": "BlockBlob",
-    };
+    });
+    if (!prepared) return;
 
-    if (config.sasUrl) {
-      const parsedSas = new URL(config.sasUrl);
-      const basePath = parsedSas.pathname.replace(/\/$/, "");
-      url = `${parsedSas.origin}${basePath}/${encodeURIComponent(blobName)}${parsedSas.search}`;
-    } else if (config.accountName && config.accountKey) {
-      const endpoint = config.blobEndpoint || `https://${config.accountName}.blob.${config.endpointSuffix}`;
-      url = `${endpoint}/${SATELLITE_CONTAINER}/${encodeURIComponent(blobName)}`;
-      const now = new Date().toUTCString();
-      headers["x-ms-date"] = now;
-      headers["x-ms-version"] = "2023-11-03";
-      headers["Authorization"] = buildSharedKeyAuthorization(
-        config.accountName,
-        config.accountKey,
-        "PUT",
-        `/${SATELLITE_CONTAINER}/${encodeURIComponent(blobName)}`,
-        headers,
-      );
-    } else {
-      return;
-    }
-
-    await this.fetchImpl(url, {
+    await this.fetchImpl(prepared.url, {
       method: "PUT",
-      headers,
+      headers: prepared.headers,
       body: payload,
       signal: AbortSignal.timeout(10000),
     });
