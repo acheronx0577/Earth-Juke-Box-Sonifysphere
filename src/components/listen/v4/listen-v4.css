@@ -5,6 +5,9 @@
   --lv-raised: #141c1c;
   --lv-line: rgba(255, 243, 234, 0.16);
   --lv-cream: #fff3ea;
+  --lv-stroke-1: #555555;
+  --lv-stroke-2: #2d3131;
+  --lv-stroke-3: transparent;
   --lv-muted: rgba(255, 243, 234, 0.62);
   --lv-dim: rgba(255, 243, 234, 0.38);
   --lv-tab-space: 0px;
@@ -28,7 +31,7 @@
 
 .lv-cut {
   --cut: 8px;
-  --lv-stroke: #555555;
+  --lv-stroke: var(--lv-stroke-1);
   position: relative;
   clip-path: polygon(
     var(--cut) 0,
@@ -58,7 +61,7 @@
 .lv-chamfer-svg polygon,
 .lv-chamfer-svg polyline {
   fill: none;
-  stroke: var(--lv-stroke, #555555);
+  stroke: var(--lv-stroke, var(--lv-stroke-1, #555555));
   stroke-width: 1.5px;
   stroke-linejoin: miter;
   stroke-linecap: butt;
@@ -164,6 +167,7 @@
 
 .lv-hist {
   --cut: 10px;
+  --lv-stroke: var(--lv-stroke-3);
   width: 100%;
   min-height: 60px;
   padding: 0;
@@ -175,8 +179,8 @@
   cursor: pointer;
 }
 
-.lv-hist[aria-current="true"] {
-  --lv-stroke: var(--lv-cream);
+.lv-hist[aria-current="true"] .lv-hist-face {
+  background: #1c2626;
 }
 
 .lv-hist:focus-visible {
@@ -194,6 +198,7 @@
 
 .lv-thumb {
   --cut: 4px;
+  --lv-stroke: var(--lv-stroke-2);
   position: relative;
   width: 36px;
   height: 36px;
@@ -285,6 +290,7 @@
 
 .lv-search-glyph {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-2);
   display: grid;
   place-items: center;
   width: 36px;
@@ -315,6 +321,7 @@
 
 .lv-search {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-2);
   display: flex;
   align-items: center;
   height: 44px;
@@ -379,6 +386,7 @@
 
 .lv-chip {
   --cut: 6px;
+  --lv-stroke: var(--lv-stroke-3);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -575,6 +583,7 @@
 
 .lv-legend-source {
   --cut: 4px;
+  --lv-stroke: var(--lv-stroke-2);
   display: inline-block;
   margin-top: 8px;
   padding: 3px 6px;
@@ -608,6 +617,7 @@
 
 .lv-card {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-2);
   min-height: 150px;
   padding: 12px;
   border-radius: 0;
@@ -787,6 +797,7 @@
 
 .lv-save {
   --cut: 6px;
+  --lv-stroke: var(--lv-stroke-3);
   border-radius: 0;
   height: 44px;
   width: max-content;
@@ -846,6 +857,7 @@
 
 .lv-timeline-track {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-2);
   position: relative;
   flex: 1;
   min-width: 0;
@@ -930,6 +942,7 @@
 
 .lv-date {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -956,6 +969,7 @@
 
 .lv-results-close {
   --cut: 6px;
+  --lv-stroke: var(--lv-stroke-3);
   display: grid;
   place-items: center;
   width: 24px;
@@ -999,6 +1013,7 @@
 
 .lv-result {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-3);
   display: flex;
   gap: 10px;
   align-items: center;
@@ -1031,6 +1046,7 @@
 
 .lv-profile {
   --cut: 8px;
+  --lv-stroke: var(--lv-stroke-3);
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1139,6 +1155,7 @@
   .lv-sound-row { display: flex; gap: 8px; align-items: center; }
   .lv-collapse {
     --cut: 8px;
+    --lv-stroke: var(--lv-stroke-3);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1242,7 +1259,7 @@
   .lv-tab[aria-current="page"] {
     background: var(--lv-cream);
     color: var(--lv-ink);
-    --lv-stroke: #555555;
+    --lv-stroke: var(--lv-stroke-3);
   }
 }
 
@@ -1343,4 +1360,14 @@
   .lv-history,
   .lv-sheet,
   .lv-page { transition: none !important; }
+}
+
+.lv-tab:focus-visible,
+.lv-chip:focus-visible,
+.lv-hist:focus-visible,
+.lv-result:focus-visible,
+.lv-save:focus-visible,
+.lv-results-close:focus-visible,
+.lv-collapse:focus-visible {
+  --lv-stroke: #fff3ea;
 }
