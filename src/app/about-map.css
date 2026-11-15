@@ -587,19 +587,19 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="station"] {
-  object-position: 50% 32%;
+  object-position: center 46%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="sonar"] {
-  object-position: 50% 42%;
+  object-position: center 55%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="scope"] {
-  object-position: 50% 46%;
+  object-position: center 60%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="waves"] {
-  object-position: 50% 52%;
+  object-position: center 60%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-footer {
