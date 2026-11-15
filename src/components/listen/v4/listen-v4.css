@@ -324,12 +324,15 @@
 .lv-chip {
   --cut: 6px;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 44px;
-  padding: 1px;
+  padding: 0 14px;
   border: 0;
   border-radius: 0;
-  background: var(--lv-line);
+  background: var(--lv-raised);
   color: var(--lv-cream);
+  box-shadow: inset 0 0 0 1px rgba(255, 243, 234, 0.34);
   cursor: pointer;
   font-family: var(--font-geist-mono), monospace;
   font-size: 13px;
@@ -337,32 +340,16 @@
   letter-spacing: 0.04em;
 }
 
-.lv-chip > span {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 0 12px;
-  background: var(--lv-raised);
-}
-
 .lv-chip.is-on {
   background: var(--lv-cream);
   color: var(--lv-ink);
-}
-
-.lv-chip.is-on > span {
-  background: var(--lv-cream);
+  box-shadow: none;
 }
 
 .lv-chip.is-more {
   background: transparent;
+  box-shadow: none;
   border: 1px dashed rgba(255, 243, 234, 0.45);
-  padding: 0;
-}
-
-.lv-chip.is-more > span {
-  background: transparent;
 }
 
 .lv-chip:focus-visible {
@@ -378,12 +365,9 @@
 
 .lv-chip-grid .lv-chip {
   width: 100%;
+  padding: 0 6px;
   font-size: 11px;
   letter-spacing: 0.02em;
-}
-
-.lv-chip-grid .lv-chip > span {
-  padding: 0 6px;
   white-space: nowrap;
 }
 
@@ -1009,7 +993,7 @@
   .lv-card[data-id="methane"] { order: 5; }
 
   .lv-chips { overflow-x: auto; mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
-  .lv-chip { flex: none; padding: 0 12px; }
+  .lv-chip { flex: none; }
 
   .lv-swipe,
   .lv-count-short,
@@ -1201,8 +1185,7 @@
   .lv-legend-title { white-space: normal; font-size: 9px; letter-spacing: 0.02em; }
   .lv-ticks > span > b { font-size: 9px; letter-spacing: 0; }
   .lv-date { width: 72px; font-size: 10px; }
-  .lv-chip { height: 44px; font-size: 11px; letter-spacing: 0.03em; }
-  .lv-chip > span { padding: 0 10px; }
+  .lv-chip { height: 44px; padding: 0 10px; font-size: 11px; letter-spacing: 0.03em; }
   .lv-card { min-height: 140px; padding: 10px; }
   .lv-card strong { font-size: 26px; margin-top: 8px; }
   .lv-card.is-empty strong,
