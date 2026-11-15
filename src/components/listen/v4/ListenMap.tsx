@@ -138,9 +138,9 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       const gap = 16;
       const edge = 8;
       const stageBox = stage.getBoundingClientRect();
-      const obstacles = [".lv-tag", ".lv-legend", ".lv-hint"]
+      const obstacles = [".lv-tag", ".lv-legend", ".lv-hint", ".lv-nino-label", ".lv-nino-box", ".lv-probe-dot"]
         .map((selector) => stage.querySelector(selector))
-        .filter((node): node is HTMLElement => node instanceof HTMLElement)
+        .filter((node): node is Element => node instanceof Element)
         .map((node) => {
           const rect = node.getBoundingClientRect();
           return {
@@ -181,6 +181,14 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       if (bottomBand - topBand >= height + gap * 2) {
         candidates.unshift({ x: edge - tipAnchor.x, y: topBand + gap - tipAnchor.y });
       }
+      for (const obstacle of obstacles) {
+        candidates.push(
+          { x: obstacle.left - gap - width - tipAnchor.x, y: obstacle.top - tipAnchor.y },
+          { x: obstacle.right + gap - tipAnchor.x, y: obstacle.top - tipAnchor.y },
+          { x: obstacle.left - tipAnchor.x, y: obstacle.top - gap - height - tipAnchor.y },
+          { x: obstacle.left - tipAnchor.x, y: obstacle.bottom + gap - tipAnchor.y },
+        );
+      }
       for (const left of [gap, Math.round((stageWidth - width) / 2), stageWidth - width - gap]) {
         for (const top of [gap, Math.round((stageHeight - height) / 2), stageHeight - height - gap]) {
           candidates.push({ x: left - tipAnchor.x, y: top - tipAnchor.y });
@@ -209,7 +217,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     place();
     const observer = new ResizeObserver(place);
     observer.observe(stage);
-    stage.querySelectorAll(".lv-tag, .lv-legend, .lv-hint").forEach((node) => observer.observe(node));
+    stage.querySelectorAll(".lv-tag, .lv-legend, .lv-hint, .lv-nino-label, .lv-nino-box, .lv-probe-dot").forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, [tipAnchor, tip, legend]);
 
@@ -401,6 +409,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           {(layer === "temperature" || layer === "all") && (
             <g aria-hidden="true">
               <text
+                className="lv-nino-label"
                 x={(NINO_WEST + NINO_EAST) / 2}
                 y={NINO_LABEL_Y}
                 textAnchor="middle"
@@ -410,10 +419,10 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
               >
                 NIÑO 3.4 · 5°N–5°S · 170°W–120°W
               </text>
-              <rect x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
+              <rect className="lv-nino-box" x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
             </g>
           )}
-          <g transform={`translate(${px} ${py})`} aria-hidden="true">
+          <g className="lv-probe-dot" transform={`translate(${px} ${py})`} aria-hidden="true">
             <circle r="22" fill="#e08a3c" opacity="0.28" />
             <circle r="14" fill="none" stroke="#fff3ea" strokeWidth="1.75" />
             <circle r="4.5" fill="#e08a3c" />
