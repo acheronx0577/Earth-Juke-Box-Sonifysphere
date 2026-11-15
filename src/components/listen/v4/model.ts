@@ -146,9 +146,9 @@ export const SEED_SOURCES: readonly ListenSource[] = [
 ];
 
 export const SEED_SEARCHES: readonly SearchRecord[] = [
-  { id: "ocean-currents", term: "ocean currents", detail: "3 NASA MEDIA RESULTS" },
-  { id: "carbon-dioxide", term: "carbon dioxide", detail: "EARTHDATA LAYER" },
-  { id: "arctic-ice", term: "arctic sea ice 1979", detail: "12 RESULTS" },
+  { id: "ocean-currents", term: "ocean currents", detail: "" },
+  { id: "carbon-dioxide", term: "carbon dioxide", detail: "" },
+  { id: "arctic-ice", term: "arctic sea ice 1979", detail: "" },
 ];
 
 export function layerFromParam(value: string | undefined): LayerId {
