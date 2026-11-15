@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { RATE_LIMIT_MESSAGE, clientIp, soundVariationRateLimit } from "@/lib/listen/rateLimit";
 
 const PROMPTS = {
   glass: "A gentle seamless ambient loop of clear glass key notes, soft and spacious, no speech, no percussion",
@@ -15,6 +16,14 @@ export async function POST(request: NextRequest) {
   try { instrument = (await request.json() as { instrument?: string }).instrument ?? ""; }
   catch { return NextResponse.json({ error: "Invalid request." }, { status: 400 }); }
   if (!Object.hasOwn(PROMPTS, instrument)) return NextResponse.json({ error: "Choose an instrument first." }, { status: 400 });
+
+  const decision = soundVariationRateLimit.check(clientIp((name) => request.headers.get(name)));
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: RATE_LIMIT_MESSAGE },
+      { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds), "Cache-Control": "no-store" } },
+    );
+  }
 
   try {
     const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
