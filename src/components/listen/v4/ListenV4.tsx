@@ -690,6 +690,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <h1 className="sr-only">Listen</h1>
       <a className="lv-skip" href="#nasa-search">Skip to search</a>
       <div className="lv-main">
+        <div className="lv-fold">
         <div className="lv-search-stack">
         <form
           className="lv-search lv-cut"
@@ -799,6 +800,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           />
         )}
         <p className="lv-status" role="status">{status}</p>
+        </div>
         {savedOpen ? null : (
           <section aria-label="Readings at probe">
             <div className="lv-read-head">

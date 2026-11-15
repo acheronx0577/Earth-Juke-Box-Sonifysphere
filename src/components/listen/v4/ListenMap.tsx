@@ -128,16 +128,78 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const tip = tipRef.current;
     const stage = stageRef.current;
     if (!tip || !stage || !tipAnchor) return;
-    const width = tip.offsetWidth;
-    const height = tip.offsetHeight;
-    let nextX = 26;
-    let nextY = -Math.round(height * 0.42);
-    if (tipAnchor.x + nextX + width > stage.clientWidth - 8) nextX = -width - 12;
-    if (tipAnchor.x + nextX < 8) nextX = 8 - tipAnchor.x;
-    if (tipAnchor.y + nextY < 8) nextY = 8 - tipAnchor.y;
-    if (tipAnchor.y + nextY + height > stage.clientHeight - 8) nextY = stage.clientHeight - 8 - height - tipAnchor.y;
-    setTipShift({ x: nextX, y: nextY });
-  }, [tipAnchor, tip]);
+
+    const place = () => {
+      const width = tip.offsetWidth;
+      const height = tip.offsetHeight;
+      const stageWidth = stage.clientWidth;
+      const stageHeight = stage.clientHeight;
+      if (width < 8 || height < 8 || stageWidth < 16 || stageHeight < 16) return;
+      const gap = 8;
+      const stageBox = stage.getBoundingClientRect();
+      const obstacles = [".lv-tag", ".lv-legend", ".lv-hint"]
+        .map((selector) => stage.querySelector(selector))
+        .filter((node): node is HTMLElement => node instanceof HTMLElement)
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          return {
+            left: rect.left - stageBox.left,
+            top: rect.top - stageBox.top,
+            right: rect.right - stageBox.left,
+            bottom: rect.bottom - stageBox.top,
+          };
+        });
+
+      const clearance = (x: number, y: number) => {
+        const rect = {
+          left: tipAnchor.x + x,
+          top: tipAnchor.y + y,
+          right: tipAnchor.x + x + width,
+          bottom: tipAnchor.y + y + height,
+        };
+        let room = Math.min(rect.left, rect.top, stageWidth - rect.right, stageHeight - rect.bottom);
+        for (const obstacle of obstacles) {
+          const dx = Math.max(obstacle.left - rect.right, rect.left - obstacle.right);
+          const dy = Math.max(obstacle.top - rect.bottom, rect.top - obstacle.bottom);
+          const apart = dx > 0 && dy > 0 ? Math.min(dx, dy) : Math.max(dx, dy);
+          room = Math.min(room, apart);
+        }
+        return room;
+      };
+
+      const candidates = [
+        { x: 14, y: 12 },
+        { x: 14, y: -height - gap },
+        { x: -width - 14, y: 12 },
+        { x: -width - 14, y: -height - gap },
+      ];
+      for (const left of [gap, Math.round((stageWidth - width) / 2), stageWidth - width - gap]) {
+        for (const top of [gap, Math.round((stageHeight - height) / 2), stageHeight - height - gap]) {
+          candidates.push({ x: left - tipAnchor.x, y: top - tipAnchor.y });
+        }
+      }
+
+      let best = candidates[0] ?? { x: gap - tipAnchor.x, y: gap - tipAnchor.y };
+      let bestRoom = Number.NEGATIVE_INFINITY;
+      for (const candidate of candidates) {
+        const room = clearance(candidate.x, candidate.y);
+        if (room > bestRoom) {
+          best = candidate;
+          bestRoom = room;
+        }
+      }
+
+      const x = Math.min(Math.max(best.x, gap - tipAnchor.x), stageWidth - gap - width - tipAnchor.x);
+      const y = Math.min(Math.max(best.y, gap - tipAnchor.y), stageHeight - gap - height - tipAnchor.y);
+      setTipShift((previous) => (previous.x === x && previous.y === y ? previous : { x, y }));
+    };
+
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(stage);
+    stage.querySelectorAll(".lv-tag, .lv-legend, .lv-hint").forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [tipAnchor, tip, legend]);
 
   useEffect(() => {
     const stage = stageRef.current;
