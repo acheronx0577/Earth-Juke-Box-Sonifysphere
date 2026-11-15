@@ -7,7 +7,7 @@ import { chamferClip } from "@/components/listen/chamfer";
 
 export function listenShareUrl(regionId: string, layer: LayerId, season: SeasonId): string {
   const data = layer === "methane" ? "ch4" : layer === "temperature" ? "temp" : "co2";
-  const url = new URL("/listen", window.location.origin);
+  const url = new URL("/listen/classic", window.location.origin);
   url.searchParams.set("region", regionId);
   url.searchParams.set("data", data);
   url.searchParams.set("theme", season);

@@ -185,7 +185,7 @@ function showsPlayerOnlyWhileAudio(pathname: string): boolean {
 }
 
 function getMiniPlayerVisibility(pathname: string, audioActive: boolean): boolean {
-  if (pathname === "/listen") return false;
+  if (pathname === "/listen" || pathname.startsWith("/listen/")) return false;
   if (showsPlayerOnlyWhileAudio(pathname)) return audioActive;
   return true;
 }
