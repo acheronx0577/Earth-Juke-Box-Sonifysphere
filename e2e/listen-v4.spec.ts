@@ -36,7 +36,7 @@ test("layer chips retarget the sound and the address", async ({ page }) => {
   await expect(page).toHaveURL(/data=sea-ice/);
   await expect(page.getByText("Hear Sea ice as")).toBeVisible();
   await expect(page.getByText("SEA ICE COVER")).toBeVisible();
-  await expect(page.getByText("FROM METADATA")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Readings at probe" })).toContainText("EXAMPLE DATA");
 });
 
 test("the probe and timeline change the reading", async ({ page }) => {
