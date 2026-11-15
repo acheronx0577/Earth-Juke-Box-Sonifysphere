@@ -758,6 +758,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             }}
           />
         )}
+        <p className="lv-status" role="status">{status}</p>
         {savedOpen ? null : (
           <section aria-label="Readings at probe">
             <div className="lv-read-head">
@@ -833,11 +834,6 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             </div>
           )}
         </div>
-        {status ? (
-          <p className="lv-status" role="status">
-            {status}
-          </p>
-        ) : null}
       </div>
       <aside className={`lv-history lv-cut ${drawer ? "is-open" : ""}`} aria-label="History">
         <div className="lv-history-face lv-cut">
