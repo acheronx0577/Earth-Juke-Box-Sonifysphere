@@ -492,6 +492,24 @@
   --lv-stroke: var(--lv-stroke-2);
 }
 
+.lv-stage[data-hide-target-cursor="true"],
+.lv-stage[data-hide-target-cursor="true"] * {
+  cursor: crosshair !important;
+}
+
+.lv-stage[data-hide-target-cursor="true"] .lv-map-controls,
+.lv-stage[data-hide-target-cursor="true"] .lv-map-controls .lv-map-control-label {
+  cursor: default !important;
+}
+
+.lv-stage[data-hide-target-cursor="true"] .lv-map-controls button {
+  cursor: pointer !important;
+}
+
+.lv-stage[data-hide-target-cursor="true"] .lv-map-controls button:disabled {
+  cursor: default !important;
+}
+
 .lv-main:has(.lv-results) {
   --lv-results-space: clamp(8.75rem, calc(100svh - var(--lv-tab-space) - 38rem), 17.5rem);
 }
@@ -504,6 +522,7 @@
 
 .lv-ring {
   position: absolute;
+  z-index: 5;
   width: 28px;
   height: 28px;
   margin-left: -14px;
@@ -512,6 +531,44 @@
   border-radius: 50%;
   box-shadow: 0 0 0 8px rgba(255, 243, 234, 0.28);
   pointer-events: none;
+}
+
+.lv-map-probe {
+  position: absolute;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.lv-map-probe::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #e08a3c;
+  content: "";
+  opacity: 0.28;
+}
+
+.lv-map-probe-ring {
+  position: relative;
+  display: grid;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
+  place-items: center;
+  border: 1.75px solid #fff3ea;
+  border-radius: 50%;
+}
+
+.lv-map-probe-center {
+  width: 32%;
+  height: 32%;
+  min-width: 5px;
+  min-height: 5px;
+  border-radius: 50%;
+  background: #e08a3c;
 }
 
 .lv-stage[data-kind="video"] .lv-legend {
@@ -590,10 +647,27 @@
   opacity: 0.55;
 }
 
+.lv-map-zoom-readout {
+  display: grid;
+  min-width: 48px;
+  height: 30px;
+  padding: 0 6px;
+  place-items: center;
+  border: 1px solid var(--lv-stroke-2);
+  background: transparent;
+  color: var(--lv-cream);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.lv-map-zoom-readout:hover {
+  background: rgba(255, 243, 234, 0.12);
+}
+
 .lv-media {
   background: #100e0c;
-  transform-origin: center center;
-  transition: transform 140ms ease-out;
+  transform-origin: top left;
 }
 
 .lv-glass {
