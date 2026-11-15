@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /** Real NASA media ids include spaces and dots. Reject anything that could change the request path. */
-export function isSafeNasaId(id: string): boolean {
+function isSafeNasaId(id: string): boolean {
   if (id.length < 3 || id.length > 180) return false;
   if (id !== id.trim() || id.includes("..")) return false;
   if (/[\u0000-\u001f\u007f\\/?#%]/.test(id)) return false;
