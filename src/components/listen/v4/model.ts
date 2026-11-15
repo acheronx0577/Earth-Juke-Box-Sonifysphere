@@ -1,8 +1,9 @@
 import { MAP_REGIONS, regionById, type MapRegion } from "@/data/exploreMap";
 import { regionIdAt } from "@/components/listen/regionGeometry";
 import type { LegendMetadata } from "@/components/listen/v4/legend";
-import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { dataAtProbeLabel, seaIceExample } from "@/components/listen/v4/exampleReading";
 import { isSoundLayer, mapLayerToSound, readingNumber } from "@/components/listen/v4/layerRange";
+import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { formatUtcInstant } from "@/components/listen/v4/utcLabel";
 
 export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
@@ -337,13 +338,14 @@ export function readProbe(input: {
 
   let seaIce: ReadingCard;
   if (source.kind === "map" && region?.seaIce) {
+    const example = seaIceExample(when);
     seaIce = {
       id: "sea-ice",
       label: "SEA ICE",
       swatch: "#d5e6ee",
       state: "matched",
-      value: region.id === "arctic" ? "4.81 million km²" : "Included",
-      detail: region.id === "arctic" ? `NSIDC · ${when} · EXAMPLE DATA` : `EXAMPLE · SOUTHERN FIELD · ${when}`,
+      value: example.value,
+      detail: example.detail,
     };
   } else {
     seaIce = emptyCard("sea-ice", "SEA ICE", "SEA ICE IS ARCTIC + ANTARCTIC ONLY");
@@ -412,8 +414,6 @@ export function readProbe(input: {
   let normalized: number | null = null;
   if (active.state === "matched" && source.kind === "map" && region && (layer === "temperature" || layer === "all")) {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
-  } else if (active.state === "matched" && layer === "sea-ice") {
-    normalized = 0.72;
   } else if (active.state === "matched" && isSoundLayer(layer)) {
     normalized = mapLayerToSound(layer, readingNumber(measured?.value));
   } else if (layer === "all") {
@@ -462,7 +462,7 @@ export function readProbe(input: {
     imageDerived,
     empty,
     pitch: layer === "all" ? "VISUAL PATTERN" : pitch,
-    dataAtProbe: active.state === "matched" ? "MATCHED · EXAMPLE" : active.state === "image" ? "IMAGE-DERIVED" : active.state === "loading" ? "LOADING" : "NO DATA",
+    dataAtProbe: dataAtProbeLabel(active.state, active.state === "matched" && (active.id === "temperature" || active.id === "sea-ice")),
     normalized: active.state === "empty" ? null : normalized,
     tip,
     tipTone: warmer < -0.15 ? "cool" : warmer > 0.15 ? "warm" : "flat",
