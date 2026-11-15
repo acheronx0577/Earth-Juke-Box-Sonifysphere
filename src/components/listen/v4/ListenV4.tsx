@@ -311,7 +311,11 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
               return (
                 <span key={tick} aria-hidden="true">
                   <i style={{ left, height: major ? 9 : 4 }} />
-                  {major ? <b className={edge} style={{ left }}>{tick}</b> : null}
+                  {major ? (
+                    <b className={edge} data-year={tick} style={{ left }}>
+                      {tick}
+                    </b>
+                  ) : null}
                 </span>
               );
             })}

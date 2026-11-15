@@ -404,9 +404,6 @@
     margin-left: -46%;
     margin-top: -8%;
   }
-  .lv-legend { width: 168px; }
-  .lv-legend-title,
-  .lv-legend .lv-glass-face { font-size: 9px; letter-spacing: 0.03em; }
 }
 
 .lv-media {
@@ -1118,6 +1115,13 @@
     row-gap: 28px;
   }
   .lv-timeline { width: 932px; }
+}
+
+@media (max-width: 699px) {
+  .lv-legend { width: 168px; }
+  .lv-legend-title { white-space: normal; font-size: 9px; letter-spacing: 0.02em; }
+  .lv-ticks > span > b { font-size: 9px; letter-spacing: 0; }
+  .lv-date { width: 72px; font-size: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
