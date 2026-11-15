@@ -118,6 +118,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const [px, py] = project(lng, lat);
   const mapMode = source.kind === "map";
   const [ring, setRing] = useState<{ x: number; y: number } | null>(null);
+  const [pixel, setPixel] = useState({ x: 0.5, y: 0.5 });
   const tipRef = useRef<HTMLDivElement>(null);
   const [tipShift, setTipShift] = useState({ x: 26, y: -18 });
   const tipAnchor = mapMode ? tipPos : ring;
@@ -229,6 +230,10 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const x = (clientX - stageRect.left - left) / drawnWidth;
     const y = (clientY - stageRect.top - top) / drawnHeight;
     setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
+    setPixel({
+      x: Math.min(1, Math.max(0, (clientX - stageRect.left) / stageRect.width)),
+      y: Math.min(1, Math.max(0, (clientY - stageRect.top) / stageRect.height)),
+    });
     if (x < 0 || x > 1 || y < 0 || y > 1) {
       onPixel(null);
       return;
@@ -267,13 +272,25 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   };
 
   const nudge = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    if (!mapMode) {
+      const stage = stageRef.current;
+      if (!stage) return;
+      const step = event.shiftKey ? 0.08 : 0.03;
+      const next = {
+        x: Math.min(1, Math.max(0, pixel.x + (event.key === "ArrowRight" ? step : event.key === "ArrowLeft" ? -step : 0))),
+        y: Math.min(1, Math.max(0, pixel.y + (event.key === "ArrowDown" ? step : event.key === "ArrowUp" ? -step : 0))),
+      };
+      const rect = stage.getBoundingClientRect();
+      sampleMedia(rect.left + next.x * rect.width, rect.top + next.y * rect.height);
+      return;
+    }
     const step = event.shiftKey ? 5 : 2;
     if (event.key === "ArrowLeft") onProbe(lat, lng - step, true);
     else if (event.key === "ArrowRight") onProbe(lat, lng + step, true);
     else if (event.key === "ArrowUp") onProbe(Math.min(85, lat + step), lng, true);
-    else if (event.key === "ArrowDown") onProbe(Math.max(-85, lat - step), lng, true);
-    else return;
-    event.preventDefault();
+    else onProbe(Math.max(-85, lat - step), lng, true);
   };
 
   return (
@@ -283,7 +300,9 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       ref={stageRef}
       tabIndex={0}
       role="group"
-      aria-label={`Map probe at ${coord}. ${tip}. Arrow keys move the probe.`}
+      aria-label={mapMode
+        ? `Map probe at ${coord}. ${tip}. Arrow keys move the probe.`
+        : `Pixel probe at ${Math.round(pixel.x * 100)} percent across and ${Math.round(pixel.y * 100)} percent down. ${tip}. Arrow keys move the probe.`}
       onKeyDown={nudge}
       onPointerDown={(event) => {
         event.currentTarget.setPointerCapture(event.pointerId);

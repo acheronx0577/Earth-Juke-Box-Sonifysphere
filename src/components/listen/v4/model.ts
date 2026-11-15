@@ -247,7 +247,11 @@ export function bandName(hexColor: string): string {
   const r = Number.parseInt(raw.slice(0, 2), 16);
   const g = Number.parseInt(raw.slice(2, 4), 16);
   const b = Number.parseInt(raw.slice(4, 6), 16);
-  if ([r, g, b].some((part) => Number.isNaN(part))) return "Muted band";
+  if ([r, g, b].some((part) => Number.isNaN(part))) return "No data";
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 48) return "No data";
+  if (max - min < 28) return max < 96 ? "Dark field" : "Muted band";
   if (r > 150 && r > g + 15 && r > b) return "Warm orange band";
   if (b > 90 && r > 70 && b >= g && Math.abs(r - b) < 80) return "Cool purple band";
   if (b > r + 15 && b > g) return "Cool blue band";
@@ -292,13 +296,13 @@ export function readProbe(input: {
   const { layer, year, lat, lng, source, pixelColor, measured, measuring } = input;
   const when = dateLabel(year);
   const region = source.kind === "map" ? regionAt(lng, lat) : null;
-  const color = pixelColor ?? (source.kind === "map" ? paintColor(layer === "all" ? "temperature" : layer, lng, lat) : "#888888");
+  const color = pixelColor ?? (source.kind === "map" ? paintColor(layer === "all" ? "temperature" : layer, lng, lat) : "#161311");
   const visual: ReadingCard = {
     id: "visual",
     label: "VISUAL PATTERN",
-    swatch: "#7f66cc",
+    swatch: source.kind !== "map" && !pixelColor ? "#3a3a3a" : color,
     state: "image",
-    value: bandName(color),
+    value: source.kind !== "map" && !pixelColor ? "No data" : bandName(color),
     detail: source.kind === "map" ? "FROM MAP PIXELS · NOT A MEASUREMENT" : "FROM PIXELS · NOT A MEASUREMENT",
   };
 
