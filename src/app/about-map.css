@@ -463,6 +463,10 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider {
+  /* 1920×1080 card is 540×731 inside the frame. One size, capped by that,
+     by the width that keeps three cards in the row, and by the height under
+     the heading — whichever is smaller. */
+  --card: min(540px, calc(100vw * 540 / 1920), calc((100svh - 14.5rem) * 540 / 731));
   container-type: inline-size;
   width: 100%;
   height: calc(100% - 9rem);
@@ -481,13 +485,13 @@
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
   position: relative;
-  flex: 0 0 min(540px, calc(100cqi - 2.5rem));
-  width: min(540px, calc(100cqi - 2.5rem));
+  flex: 0 0 var(--card);
+  width: var(--card);
   height: 100%;
   background-color: #262626;
   border: 1px solid rgba(242, 242, 240, 0.14);
   border-radius: 0.85rem;
-  padding: 1.75rem;
+  padding: clamp(1rem, 1.46vw, 1.75rem);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -554,7 +558,7 @@
   position: relative;
   width: 100%;
   flex: 1 1 auto;
-  min-height: 260px;
+  min-height: 0;
   margin: 1.25rem 0;
   border-radius: 0.65rem;
   overflow: hidden;
@@ -591,7 +595,12 @@
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-footer {
   align-items: flex-end;
-  gap: 1.5rem;
+  gap: clamp(0.75rem, 1.25vw, 1.5rem);
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-meta {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-meta h3 {
@@ -618,7 +627,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  flex: 0 0 auto;
+  padding: 0.5rem clamp(0.65rem, 0.833vw, 1rem);
   border: 1px solid rgba(242, 242, 240, 0.28);
   border-radius: 9999px;
   background-color: transparent;
