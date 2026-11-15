@@ -76,12 +76,15 @@ test("the CO2 chart plots only the three published readings", async ({ page }) =
   await expect(chart).not.toContainText("1990");
 });
 
-test("challenge hub explains both games", async ({ page }) => {
+test("challenge carousel offers the five games", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/challenge");
-  await expect(page.getByRole("heading", { name: "Guess the Signal" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Compose" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Start round 1/ })).toHaveAttribute("href", "/challenge/guess");
-  await expect(page.getByRole("link", { name: /Open the board/ })).toHaveAttribute("href", "/challenge/compose");
+  const gallery = liveMain(page).locator(".circular-gallery");
+  await expect(gallery).toBeVisible();
+  await expect(liveMain(page).getByRole("link", { name: "Play Guess the Signal" })).toHaveAttribute("href", "/challenge/guess");
+  for (const name of ["Compose Track", "Tune the Signal", "Waveform Ribbons", "Climate Console"]) {
+    await expect(gallery.getByRole("button", { name: new RegExp(name), includeHidden: true })).toHaveCount(1);
+  }
   await expect(page.locator("aside[aria-label='Persistent mini-player']")).toHaveAttribute("data-open", "false");
 });
 
@@ -127,26 +130,17 @@ test("guess refresh and play again keep the same deck", async ({ page }) => {
   await page.getByRole("button", { name: "Hear the signal" }).click();
   await page.keyboard.press("1");
   const again = (await liveMain(page).getByTestId("guess-choice").allTextContents()).join("|");
-  await page.goto("/challenge");
-  await page.getByRole("link", { name: /Resume round/ }).click();
+  await page.goto("/challenge/guess");
   await expect(liveMain(page).getByTestId("guess-reveal")).toBeVisible();
   expect((await liveMain(page).getByTestId("guess-choice").allTextContents()).join("|")).toBe(again);
 });
 
 test("browser Back returns to the same guess round", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/challenge", { waitUntil: "domcontentloaded" });
-  const start = liveMain(page).getByRole("link", { name: /Start round 1/ });
+  const start = liveMain(page).getByRole("link", { name: "Play Guess the Signal" });
   await expect(start).toBeVisible();
-  await start.scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => {
-    const lenis = (window as unknown as { __lenis?: { scroll: number; targetScroll: number } }).__lenis;
-    const link = [...document.querySelectorAll("body > #main-content a")].find((anchor) => anchor.textContent?.includes("Start round 1"));
-    if (!link) return false;
-    const box = link.getBoundingClientRect();
-    const settled = !lenis || Math.abs(lenis.scroll - lenis.targetScroll) < 0.5;
-    return settled && box.width > 0 && box.top >= 0 && box.bottom <= window.innerHeight;
-  });
-  await Promise.all([page.waitForURL(/\/challenge\/guess/), start.evaluate((anchor: HTMLAnchorElement) => anchor.click())]);
+  await Promise.all([page.waitForURL(/\/challenge\/guess/), start.click()]);
   await expect(page).toHaveURL(/seed=\d+/);
   const seed = new URL(page.url()).searchParams.get("seed");
   await page.getByRole("button", { name: "Hear the signal" }).click();
@@ -154,7 +148,7 @@ test("browser Back returns to the same guess round", async ({ page }) => {
   await page.getByRole("button", { name: "Play next signal" }).click();
   await expect(liveMain(page).getByText("Round 2 of 5").first()).toBeVisible();
   await page.getByRole("link", { name: "← Challenges" }).click();
-  await expect(page.getByRole("link", { name: /Resume round 2/ })).toBeVisible();
+  await expect(page).toHaveURL(/\/challenge$/);
   await page.goBack();
   await page.waitForURL(/\/challenge\/guess\?seed=\d+/);
   await expect(liveMain(page).getByText("Round 2 of 5").first()).toBeVisible();
