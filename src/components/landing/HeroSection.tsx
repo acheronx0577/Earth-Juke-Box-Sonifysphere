@@ -68,7 +68,6 @@ function HeroImages() {
           src={ASSETS.heroForegroundAstronaut}
         />
         <HeroPixelHover />
-        <span className="hero-si-watermark">AI-GENERATED ART · CHATGPT</span>
       </div>
       <div className="hero-img-overlay" />
       <div className="hero-img-gradient" />

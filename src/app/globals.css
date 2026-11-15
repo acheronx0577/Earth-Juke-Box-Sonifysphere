@@ -703,32 +703,6 @@ body::-webkit-scrollbar {
   opacity: 0;
 }
 
-.hero-si-watermark {
-  position: absolute;
-  z-index: 2;
-  top: calc(5.5rem + env(safe-area-inset-top));
-  right: clamp(12px, 3.5vw, 56px);
-  padding: 7px 10px;
-  background: rgb(20 20 20 / 0.82);
-  color: #f2f2f0;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  text-transform: uppercase;
-  pointer-events: none;
-}
-
-@media (max-width: 600px) {
-  .hero-si-watermark {
-    top: calc(4.75rem + env(safe-area-inset-top));
-    right: 16px;
-    padding: 6px 8px;
-    font-size: 9px;
-  }
-}
-
 .hero-img[data-pixel-ready="true"] .hero-pixel-hover {
   opacity: 1;
 }
