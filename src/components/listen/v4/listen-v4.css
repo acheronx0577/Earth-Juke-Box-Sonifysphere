@@ -374,6 +374,13 @@
 
 .lv-chip-grid .lv-chip {
   width: 100%;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.lv-chip-grid .lv-chip > span {
+  padding: 0 6px;
+  white-space: nowrap;
 }
 
 .lv-stage {
