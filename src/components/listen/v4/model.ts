@@ -2,6 +2,7 @@ import { MAP_REGIONS, regionById, type MapRegion } from "@/data/exploreMap";
 import { regionIdAt } from "@/components/listen/regionGeometry";
 import type { LegendMetadata } from "@/components/listen/v4/legend";
 import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { isSoundLayer, mapLayerToSound, readingNumber } from "@/components/listen/v4/layerRange";
 
 export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
 export type SoundStyle = "synth" | "orchestra";
@@ -403,6 +404,8 @@ export function readProbe(input: {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && layer === "sea-ice") {
     normalized = 0.72;
+  } else if (active.state === "matched" && isSoundLayer(layer)) {
+    normalized = mapLayerToSound(layer, readingNumber(measured?.value));
   } else if (layer === "all") {
     const raw = color.replace("#", "");
     const r = Number.parseInt(raw.slice(0, 2), 16);
