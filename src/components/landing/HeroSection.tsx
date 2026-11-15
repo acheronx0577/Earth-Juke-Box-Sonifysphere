@@ -121,9 +121,7 @@ function HeroFooterReadouts() {
       >
         <img alt="" className="absolute block inset-0 max-w-none size-full" src={ASSETS.chipRightBg} />
         <p className="relative font-mono font-medium leading-[normal] pl-[12px] text-[#f2f2f0] text-[11px] sm:text-[12px] whitespace-nowrap">
-          <span className="leading-[normal]">{`LATEST · SEP 2026 · `}</span>
-          <span className="font-mono font-bold leading-[normal]">426.07 ppm</span>
-          <span className="leading-[normal]">{` · FEED · NOAA GML`}</span>
+          AI-GENERATED IMAGE
         </p>
       </div>
     </div>
