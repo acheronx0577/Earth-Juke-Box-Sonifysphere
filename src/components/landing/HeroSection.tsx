@@ -116,11 +116,11 @@ function HeroFooterReadouts() {
       </div>
 
       <div
-        className="sonify-hero-clock-chip relative h-[28px] w-[min(370px,calc(100vw-2.5rem))] flex items-center"
+        className="sonify-hero-clock-chip relative flex h-[28px] w-fit max-w-full items-center px-3"
         data-name="Hero/Readout chip · LATEST + FEED"
       >
         <img alt="" className="absolute block inset-0 max-w-none size-full" src={ASSETS.chipRightBg} />
-        <p className="relative font-mono font-medium leading-[normal] pl-[12px] text-[#f2f2f0] text-[11px] sm:text-[12px] whitespace-nowrap">
+        <p className="relative font-mono font-medium leading-[normal] text-[#f2f2f0] text-[11px] sm:text-[12px] whitespace-nowrap">
           AI-GENERATED IMAGE
         </p>
       </div>
