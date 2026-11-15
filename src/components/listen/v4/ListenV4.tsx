@@ -699,7 +699,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           }}
         >
           <ChamferMark />
-          <div className="lv-search-face lv-cut">
+          <div className="lv-search-face">
             <SearchIcon />
             <label className="sr-only" htmlFor="nasa-search">
               Search NASA images, videos or a place
