@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
@@ -299,9 +299,37 @@ function SoundFields({
 
 function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (year: number) => void }) {
   const readoutId = useId();
+  const ticksRef = useRef<HTMLDivElement>(null);
   const span = YEAR_END - YEAR_START;
   const ticks = Array.from({ length: span + 1 }, (_, index) => YEAR_START + index);
   const ratio = (year - YEAR_START) / span;
+  const [sparse, setSparse] = useState(false);
+  useLayoutEffect(() => {
+    const root = ticksRef.current;
+    if (!root) return;
+    const measure = () => {
+      const sample = root.querySelector("b");
+      const trackWidth = root.getBoundingClientRect().width;
+      if (!sample || trackWidth <= 0) return;
+      const labelWidth = sample.getBoundingClientRect().width;
+      const spacing = (10 / span) * trackWidth;
+      const at = (value: number) => ((value - YEAR_START) / span) * trackWidth;
+      const decades: number[] = [];
+      for (let value = Math.ceil(YEAR_START / 10) * 10; value <= YEAR_END; value += 10) decades.push(value);
+      const boxes = decades.map((value) => {
+        const pos = at(value);
+        if (value === 1960) return [pos, pos + labelWidth];
+        if (value === 2020) return [pos - labelWidth, pos];
+        return [pos - labelWidth / 2, pos + labelWidth / 2];
+      });
+      const crowded = spacing < labelWidth + 8 || boxes.some((box, index) => index > 0 && box[0] < boxes[index - 1][1] + 8);
+      setSparse((current) => current === crowded ? current : crowded);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [span]);
   const setFromClient = (clientX: number, target: HTMLInputElement) => {
     const rect = target.getBoundingClientRect();
     if (rect.width <= 0) return;
@@ -313,15 +341,16 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
       <div className="lv-timeline-track lv-cut">
         <ChamferMark />
         <div className="lv-timeline-face">
-          <div className="lv-ticks">
+          <div className="lv-ticks" ref={ticksRef}>
             {ticks.map((tick) => {
               const major = tick % 10 === 0;
               const left = `${((tick - YEAR_START) / span) * 100}%`;
               const edge = tick === 1960 ? "is-start" : tick === 2020 ? "is-end" : "";
+              const showLabel = major && (!sparse || tick % 20 === 0);
               return (
                 <span key={tick} aria-hidden="true">
                   <i style={{ left, height: major ? 9 : 4 }} />
-                  {major ? (
+                  {showLabel ? (
                     <b className={edge} data-year={tick} style={{ left }}>
                       {tick}
                     </b>
@@ -329,7 +358,7 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
                 </span>
               );
             })}
-            <span className="lv-playhead" style={{ left: `${ratio * 100}%` }} aria-hidden="true">
+            <span className="lv-playhead" style={{ left: `calc(${ratio} * (100% - 7px))` }} aria-hidden="true">
               <i />
               <b />
             </span>

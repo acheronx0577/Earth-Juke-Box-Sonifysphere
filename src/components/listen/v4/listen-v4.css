@@ -921,23 +921,23 @@
   height: 100%;
 }
 
-.lv-ticks > span > i {
+.lv-ticks > span:not(.lv-playhead) > i {
   position: absolute;
   bottom: 7px;
   width: 1px;
   background: rgba(255, 243, 234, 0.4);
 }
 
-.lv-ticks > span > b {
+.lv-ticks > span:not(.lv-playhead) > b {
   position: absolute;
   top: 6px;
   transform: translateX(-50%);
 }
 
-.lv-ticks > span > b.is-start { transform: none; }
-.lv-ticks > span > b.is-end { transform: translateX(-100%); }
+.lv-ticks > span:not(.lv-playhead) > b.is-start { transform: none; }
+.lv-ticks > span:not(.lv-playhead) > b.is-end { transform: translateX(-100%); }
 
-.lv-ticks > span > b {
+.lv-ticks > span:not(.lv-playhead) > b {
   color: var(--lv-muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
@@ -950,7 +950,7 @@
   bottom: 6px;
   width: 7px;
   height: 16px;
-  transform: translateX(-3px);
+  transform: none;
 }
 
 .lv-playhead i {
