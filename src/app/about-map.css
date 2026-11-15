@@ -360,8 +360,20 @@
   margin-bottom: 0.5rem;
 }
 
-/* observatory - routine section */
+/* observatory - routine section. Orbit Matter structure, four cards.
+   Chamfer, padding, and type share one vw/svh ramp and land on Orbit's
+   4rem / 6rem / 10rem values once the frame is wide enough. */
 .routine {
+  /* --port is 0 on a tall phone or tablet and 1 once the frame is landscape,
+     so 1024 and wider keep the current side padding exactly. */
+  --port: clamp(0, (100vw - 95svh) / 25svh, 1);
+  --routine-pad-x-base: clamp(1rem, 6.67vw, 6rem);
+  --routine-pad-x: calc(clamp(8px, 2.2vw, 10px) * (1 - var(--port)) + var(--routine-pad-x-base) * var(--port));
+  --routine-pad-top: clamp(4.5rem, 1.2rem + 4.2vw + 2svh, 6rem);
+  --routine-pad-bottom: var(--routine-pad-x-base);
+  --routine-gap: 1.5rem;
+  --routine-block-pad: clamp(0.85rem, 0.45rem + 0.55vw, 1.5rem);
+  --routine-block-pad-x: calc(10px * (1 - var(--port)) + var(--routine-block-pad) * var(--port));
   position: relative;
   width: 100%;
   height: 100svh;
@@ -371,6 +383,7 @@
   align-items: center;
   overflow: hidden;
   background-color: #141414;
+  color: #f2f2f0;
 }
 
 .routine .routine-container {
@@ -381,23 +394,27 @@
 }
 
 .routine .routine-container .routine-bg {
+  --cut: clamp(0.65rem, 3.333vw, 4rem);
+  --notch: clamp(0rem, calc(50vw - 20rem), 15rem);
+  --notch-in: max(0rem, calc(var(--notch) - 1.5rem));
+  --dip: min(2.75rem, calc(var(--notch) * 0.1833));
   position: relative;
   width: 100%;
   height: 100%;
   background-color: #262626;
   clip-path: polygon(
-    4rem 0px,
-    calc(50% - 15rem) 0px,
-    calc(50% - 13.5rem) 2.75rem,
-    calc(50% + 13.5rem) 2.75rem,
-    calc(50% + 15rem) 0px,
-    calc(100% - 4rem) 0px,
-    100% 4rem,
-    100% calc(100% - 4rem),
-    calc(100% - 4rem) 100%,
-    4rem 100%,
-    0px calc(100% - 4rem),
-    0px 4rem
+    var(--cut) 0,
+    calc(50% - var(--notch)) 0,
+    calc(50% - var(--notch-in)) var(--dip),
+    calc(50% + var(--notch-in)) var(--dip),
+    calc(50% + var(--notch)) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
   );
 }
 
@@ -415,39 +432,42 @@
   width: 100%;
   max-width: none;
   height: 100%;
-  margin-inline: 0;
-  padding: clamp(4.5rem, 8vh, 6rem) clamp(1.5rem, 4vw, 6rem);
+  margin: 0;
+  padding: var(--routine-pad-top) var(--routine-pad-x) var(--routine-pad-bottom);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  min-height: 0;
 }
 
 .routine .routine-container .routine-copy .container .routine-header {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  gap: 3rem;
+  align-items: flex-start;
+  gap: clamp(0.75rem, 2vw, 3rem);
+  flex: 0 0 auto;
 }
 
 .routine .routine-container .routine-copy .container .routine-header h3 {
   font-family: var(--font-geist), sans-serif;
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: clamp(1.05rem, 0.55rem + 2.6vw, 3rem);
   font-weight: 700;
   color: #f2f2f0;
   text-transform: uppercase;
   letter-spacing: -0.03em;
   margin: 0;
-  line-height: 1;
+  line-height: 0.95;
 }
 
 .routine .routine-container .routine-copy .container .routine-progress-bar {
   position: relative;
   width: 100%;
   height: 0.25rem;
-  background-color: rgba(242, 242, 240, 0.15);
-  margin: 1.5rem 0;
+  background-color: #3f3f3f;
+  margin: clamp(0.65rem, 0.35rem + 1.1svh, 1.5rem) 0;
   overflow: hidden;
-  border-radius: 9999px;
+  flex: 0 0 auto;
 }
 
 .routine .routine-container .routine-copy .container .routine-progress-bar .routine-progress {
@@ -463,41 +483,47 @@
 }
 
 .routine .routine-container .routine-copy .container .routine-slider {
-  container-type: inline-size;
   width: 100%;
-  height: calc(100% - 9rem);
+  flex: 1 1 0;
+  min-height: 0;
+  height: calc(100% - clamp(4.5rem, 2.2rem + 4.5svh, 10rem));
+  max-height: 100%;
   overflow: hidden;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper {
+  /* --land is 0 while the frame is portrait and reaches 1 on a landscape laptop.
+     Portrait cards take 94% of the slider, leaving a thin peek of the next card.
+     Landscape keeps Orbit's ~58%, about one card and a half. */
+  --land: clamp(0, (100vw - 85svh) / 50vw, 1);
+  --frac: calc((1 - 12px / (100vw - 52px)) * (1 - var(--port)) + (0.94 - 0.36 * var(--land)) * var(--port));
   position: relative;
+  width: calc(400% * var(--frac) + 3 * var(--routine-gap));
   height: 100%;
   transform: translateX(0%);
   display: flex;
-  gap: 1.5rem;
-  width: max-content;
+  align-items: stretch;
+  gap: var(--routine-gap);
   will-change: transform;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
   position: relative;
-  flex: 0 0 min(540px, calc(100cqi - 2.5rem));
-  width: min(540px, calc(100cqi - 2.5rem));
+  flex: 1;
+  width: 100%;
   height: 100%;
-  background-color: #262626;
-  border: 1px solid rgba(242, 242, 240, 0.14);
-  border-radius: 0.85rem;
-  padding: 1.75rem;
+  min-width: 0;
+  min-height: 0;
+  background-color: #303030;
+  border: 0;
+  border-radius: 0.75rem;
+  box-sizing: border-box;
+  padding: var(--routine-block-pad) var(--routine-block-pad-x);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block:hover {
-  border-color: rgba(242, 242, 240, 0.28);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+  container-type: inline-size;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header,
@@ -506,137 +532,172 @@
   display: flex;
   justify-content: space-between;
   flex: 0 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header {
-  align-items: center;
-}
-
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header-left {
-  display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 0.75rem;
 }
 
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header .routine-num {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #f2f2f0;
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header p {
   margin: 0;
-  line-height: 1;
-}
-
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header .routine-tag {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.8rem;
+  font-size: clamp(0.72rem, 0.55rem + 0.7cqi, 1rem);
   font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(242, 242, 240, 0.55);
-  margin: 0;
-}
-
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-hud-pill {
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.7rem;
-  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(242, 242, 240, 0.8);
-  background: rgba(242, 242, 240, 0.06);
-  border: 1px solid rgba(242, 242, 240, 0.12);
-  padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
+  line-height: 1.2;
+  color: #f2f2f0;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-header p:nth-child(2) {
+  color: rgba(242, 242, 240, 0.55);
+  text-align: right;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 30%;
+  min-width: min(5rem, 46%);
+  aspect-ratio: 1;
+  color: #f2f2f0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media {
-  position: relative;
-  width: 100%;
   flex: 1 1 auto;
-  min-height: 260px;
-  margin: 1.25rem 0;
-  border-radius: 0.65rem;
+  min-height: 0;
+  width: 100%;
+  margin: clamp(0.45rem, 0.2rem + 0.4svh, 0.75rem) 0;
+  border: 0;
+  border-radius: 0.75rem;
   overflow: hidden;
-  background-color: #141414;
-  border: 1px solid rgba(242, 242, 240, 0.14);
+  background: transparent;
+  container-type: size;
 }
 
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media .routine-media-inner {
-  position: relative;
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img {
   width: 100%;
   height: 100%;
-  overflow: hidden;
-}
-
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media .routine-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
   display: block;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  object-fit: cover;
+  border: 0;
+  border-radius: 0.75rem;
+  outline: none;
+  box-shadow: none;
 }
 
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block:hover .routine-media .routine-img {
-  transform: scale(1.05);
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="station"] {
+  /* Window follows the slot. 0% shows the top of the photo.
+     The mast tip is source y=292 and the hut base is y=745 in the 1152px file.
+     Ideal centers that span; the clamp keeps 12px of air under the tip and the hut inside
+     whenever the slot is tall enough to hold both. */
+  --r: calc(100cqb / 100cqi);
+  --vis: calc(864 * var(--r));
+  --ideal: calc(518.5 - var(--vis) / 2);
+  --st-min: calc(745 - var(--vis));
+  --st-max: calc(292 - 10368px / 100cqi);
+  --st: min(var(--st-max), max(var(--st-min), var(--ideal)));
+  --den: calc(1152 - var(--vis));
+  object-position: center clamp(0%, calc(100% * var(--st) / var(--den)), 100%);
 }
 
-.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media .routine-media-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(20, 20, 20, 0.1) 0%, rgba(20, 20, 20, 0.45) 100%);
-  border: 1px solid rgba(242, 242, 240, 0.05);
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="sonar"] {
+  object-position: center 55%;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="scope"] {
+  object-position: center 60%;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-img[data-slot="waves"] {
+  object-position: center 60%;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-footer {
-  align-items: flex-end;
-  gap: 1.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: clamp(0.45rem, 0.3rem + 0.6cqi, 0.85rem);
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-meta {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-meta h3 {
   font-family: var(--font-geist), sans-serif;
-  font-size: clamp(1.35rem, 2vw, 1.75rem);
+  font-size: clamp(1rem, 0.62rem + 1.5cqi, 1.75rem);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -0.02em;
   color: #f2f2f0;
-  margin: 0 0 0.35rem 0;
-  line-height: 1.1;
+  margin: 0;
+  line-height: 1.05;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-meta p {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.8rem;
-  color: rgba(242, 242, 240, 0.65);
+  font-size: clamp(0.62rem, 0.5rem + 0.55cqi, 0.8rem);
+  color: rgba(242, 242, 240, 0.62);
   margin: 0;
-  line-height: 1.4;
-  max-width: 26ch;
+  line-height: 1.35;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-hud {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(242, 242, 240, 0.78);
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1rem;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: clamp(0.32rem, 0.2rem + 0.35cqi, 0.5rem) clamp(0.5rem, 0.28rem + 0.9cqi, 1rem);
   border: 1px solid rgba(242, 242, 240, 0.28);
   border-radius: 9999px;
   background-color: transparent;
   color: #f2f2f0;
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.78rem;
+  font-size: clamp(0.56rem, 0.4rem + 0.7cqi, 0.78rem);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   white-space: nowrap;
   text-decoration: none;
-  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  outline: none;
+  box-shadow: none;
 }
 
 .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-btn:hover {
   background-color: #f2f2f0;
   color: #141414;
   border-color: #f2f2f0;
+}
+
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-btn:focus,
+.routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-btn:focus-visible {
+  outline: 1px solid #f2f2f0;
+  outline-offset: 3px;
 }
 
 .record {
@@ -990,33 +1051,6 @@
 
   .vg-name h3 {
     font-size: 2.5rem;
-  }
-
-  .routine .routine-container .routine-bg {
-    clip-path: none;
-    border-radius: 0.75rem;
-  }
-
-  .routine .routine-container .routine-copy .container {
-    padding: 4.5rem 1rem 1.5rem 1rem;
-  }
-
-  .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block {
-    flex: 0 0 min(84vw, calc(100cqi - 1.25rem));
-    width: min(84vw, calc(100cqi - 1.25rem));
-    padding: 1.25rem;
-  }
-
-  .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-media {
-    min-height: 160px;
-    max-height: 200px;
-    margin: 1rem 0;
-  }
-
-  .routine .routine-container .routine-copy .container .routine-slider .routine-slider-wrapper .routine-block .routine-block-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
   }
 
   .about-wordmark {
