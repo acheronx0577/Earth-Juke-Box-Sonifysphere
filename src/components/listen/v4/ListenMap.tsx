@@ -123,6 +123,8 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const [probeRadius, setProbeRadius] = useState(14);
   const [mapZoom, setMapZoom] = useState(1);
   const [mapCenter, setMapCenter] = useState({ x: MAP_VIEW.width / 2, y: MAP_VIEW.height / 2 });
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
+  const [mapProbePosition, setMapProbePosition] = useState<{ x: number; y: number } | null>(null);
   const [pixel, setPixel] = useState({ x: 0.5, y: 0.5 });
   const tipRef = useRef<HTMLDivElement>(null);
   const [tipShift, setTipShift] = useState({ x: 26, y: -18 });
@@ -135,15 +137,75 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     setProbeRadius((size) => Math.min(30, Math.max(6, size + amount)));
   };
 
-  const changeZoom = (amount: number) => {
-    if (mapMode) setMapCenter({ x: px, y: py });
-    setMapZoom((zoom) => Math.min(4, Math.max(1, Number((zoom + amount).toFixed(1)))));
+  const resetZoom = () => {
+    setMapZoom(1);
+    setMapCenter({ x: MAP_VIEW.width / 2, y: MAP_VIEW.height / 2 });
+    setImageOffset({ x: 0, y: 0 });
+  };
+
+  const zoomAt = (clientX: number, clientY: number, amount: number) => {
+    const stage = stageRef.current;
+    if (!stage || !amount) return;
+    const nextZoom = Math.min(4, Math.max(1, Number((mapZoom + amount).toFixed(3))));
+    if (nextZoom === mapZoom) return;
+    const stageRect = stage.getBoundingClientRect();
+    const localX = clientX - stageRect.left;
+    const localY = clientY - stageRect.top;
+
+    if (mapMode) {
+      const svg = svgRef.current;
+      const ctm = svg?.getScreenCTM();
+      if (!svg || !ctm) return;
+      const point = svg.createSVGPoint();
+      point.x = clientX;
+      point.y = clientY;
+      const anchor = point.matrixTransform(ctm.inverse());
+      const width = MAP_VIEW.width / mapZoom;
+      const height = MAP_VIEW.height / mapZoom;
+      const left = mapCenter.x - width / 2;
+      const top = mapCenter.y - height / 2;
+      const nextWidth = MAP_VIEW.width / nextZoom;
+      const nextHeight = MAP_VIEW.height / nextZoom;
+      const nextCenter = {
+        x: Math.min(MAP_VIEW.width - nextWidth / 2, Math.max(nextWidth / 2, anchor.x - ((anchor.x - left) / width - 0.5) * nextWidth)),
+        y: Math.min(MAP_VIEW.height - nextHeight / 2, Math.max(nextHeight / 2, anchor.y - ((anchor.y - top) / height - 0.5) * nextHeight)),
+      };
+      setMapCenter(nextCenter);
+    } else {
+      const scale = nextZoom / mapZoom;
+      setImageOffset({
+        x: Math.min(0, Math.max(stageRect.width * (1 - nextZoom), localX - (localX - imageOffset.x) * scale)),
+        y: Math.min(0, Math.max(stageRect.height * (1 - nextZoom), localY - (localY - imageOffset.y) * scale)),
+      });
+    }
+    setMapZoom(nextZoom);
   };
 
   useEffect(() => {
     setMapZoom(1);
     setMapCenter({ x: MAP_VIEW.width / 2, y: MAP_VIEW.height / 2 });
+    setImageOffset({ x: 0, y: 0 });
   }, [source.id]);
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    const svg = svgRef.current;
+    if (!mapMode || !stage || !svg) return;
+    const updateProbePosition = () => {
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const point = svg.createSVGPoint();
+      point.x = px;
+      point.y = py;
+      const screenPoint = point.matrixTransform(ctm);
+      const stageRect = stage.getBoundingClientRect();
+      setMapProbePosition({ x: screenPoint.x - stageRect.left, y: screenPoint.y - stageRect.top });
+    };
+    updateProbePosition();
+    const observer = new ResizeObserver(updateProbePosition);
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, [mapMode, mapViewBox, px, py]);
 
   useLayoutEffect(() => {
     const tip = tipRef.current;
@@ -254,7 +316,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const screen = point.matrixTransform(ctm);
     const box = stage.getBoundingClientRect();
     setTipPos({ x: screen.x - box.left, y: screen.y - box.top });
-  }, [px, py, mapMode, lat, lng]);
+  }, [px, py, mapMode, lat, lng, mapViewBox]);
 
   useEffect(() => {
     if (mapMode) {
@@ -331,10 +393,8 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
     const drawnHeight = naturalHeight * scale;
     const left = (stageRect.width - drawnWidth) / 2;
     const top = (stageRect.height - drawnHeight) / 2;
-    const centerX = stageRect.width / 2;
-    const centerY = stageRect.height / 2;
-    const unscaledX = centerX + (clientX - stageRect.left - centerX) / mapZoom;
-    const unscaledY = centerY + (clientY - stageRect.top - centerY) / mapZoom;
+    const unscaledX = (clientX - stageRect.left - imageOffset.x) / mapZoom;
+    const unscaledY = (clientY - stageRect.top - imageOffset.y) / mapZoom;
     const x = (unscaledX - left) / drawnWidth;
     const y = (unscaledY - top) / drawnHeight;
     setRing({ x: clientX - stageRect.left, y: clientY - stageRect.top });
@@ -380,6 +440,19 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   };
 
   const nudge = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (zoomable && ["+", "=", "-", "0"].includes(event.key)) {
+      event.preventDefault();
+      if (event.key === "0") {
+        resetZoom();
+      } else {
+        const stage = stageRef.current;
+        if (stage) {
+          const rect = stage.getBoundingClientRect();
+          zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, event.key === "-" ? -0.1 : 0.1);
+        }
+      }
+      return;
+    }
     if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
     event.preventDefault();
     if (!mapMode) {
@@ -410,9 +483,25 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       tabIndex={0}
       role="group"
       aria-label={mapMode
-        ? `Map probe at ${coord}. ${tip}. Arrow keys move the probe.`
-        : `Pixel probe at ${Math.round(pixel.x * 100)} percent across and ${Math.round(pixel.y * 100)} percent down. ${tip}. Arrow keys move the probe.`}
+        ? `Map probe at ${coord}. ${tip}. Scroll or use a trackpad to zoom. Plus and minus keys change zoom; zero resets. Arrow keys move the probe.`
+        : `Pixel probe at ${Math.round(pixel.x * 100)} percent across and ${Math.round(pixel.y * 100)} percent down. ${tip}. Scroll or use a trackpad to zoom. Plus and minus keys change zoom; zero resets. Arrow keys move the probe.`}
       onKeyDown={nudge}
+      onWheel={(event) => {
+        if (!zoomable || (event.target instanceof Element && event.target.closest(".lv-map-controls"))) return;
+        const stage = stageRef.current;
+        if (!stage) return;
+        const deltaY = event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? event.deltaY * 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? event.deltaY * stage.clientHeight
+            : event.deltaY;
+        const amount = Math.max(-0.25, Math.min(0.25, -deltaY * 0.0015));
+        if (!amount) return;
+        const nextZoom = Math.min(4, Math.max(1, Number((mapZoom + amount).toFixed(3))));
+        if (nextZoom === mapZoom) return;
+        event.preventDefault();
+        zoomAt(event.clientX, event.clientY, amount);
+      }}
       onPointerDown={(event) => {
         if (event.target instanceof Element && event.target.closest(".lv-map-controls")) return;
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -461,11 +550,6 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
               <rect className="lv-nino-box" x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
             </g>
           )}
-          <g className="lv-probe-dot" transform={`translate(${px} ${py})`} aria-hidden="true">
-            <circle r={(probeRadius + 8) / mapZoom} fill="#e08a3c" opacity="0.28" />
-            <circle r={probeRadius / mapZoom} fill="none" stroke="#fff3ea" strokeWidth={1.75 / mapZoom} />
-            <circle r={Math.max(2.5, probeRadius * 0.32) / mapZoom} fill="#e08a3c" />
-          </g>
         </svg>
       ) : source.kind === "video" && source.video ? (
         <video ref={videoRef} className="lv-media" src={source.video} poster={source.preview} controls playsInline crossOrigin="anonymous" aria-label={source.title} />
@@ -477,7 +561,7 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
           alt={source.title}
           draggable={false}
           onDragStart={(event) => event.preventDefault()}
-          style={{ transform: `scale(${mapZoom})` }}
+          style={{ transform: `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${mapZoom})`, transformOrigin: "top left" }}
         />
       )}
       {zoomable ? (
@@ -506,27 +590,27 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
             </div>
           ) : null}
           <div className="lv-map-control-group" role="group" aria-label={mapMode ? "Map zoom" : "Image zoom"}>
-            <span className="lv-map-control-label" aria-hidden="true">ZOOM {mapZoom.toFixed(1)}×</span>
+            <span className="lv-map-control-label" aria-hidden="true">ZOOM</span>
             <button
               type="button"
-              className="lv-map-control-btn"
-              aria-label={`Zoom out ${mapMode ? "map" : "image"}`}
-              disabled={mapZoom <= 1}
-              onClick={() => changeZoom(-0.5)}
+              className="lv-map-zoom-readout"
+              aria-label={`Zoom ${Math.round(mapZoom * 100)} percent. Reset zoom to 100 percent.`}
+              title="Click to reset zoom"
+              onClick={resetZoom}
             >
-              −
-            </button>
-            <button
-              type="button"
-              className="lv-map-control-btn"
-              aria-label={`Zoom in ${mapMode ? "map" : "image"}`}
-              disabled={mapZoom >= 4}
-              onClick={() => changeZoom(0.5)}
-            >
-              +
+              {Math.round(mapZoom * 100)}%
             </button>
           </div>
         </div>
+      ) : null}
+      {mapMode && mapProbePosition ? (
+        <span
+          className="lv-map-probe lv-probe-dot"
+          style={{ left: mapProbePosition.x, top: mapProbePosition.y, width: probeRadius * 2 + 16, height: probeRadius * 2 + 16 }}
+          aria-hidden="true"
+        >
+          <span className="lv-map-probe-ring"><span className="lv-map-probe-center" /></span>
+        </span>
       ) : null}
       {!mapMode && ring ? <span className="lv-ring" style={{ left: ring.x, top: ring.y }} aria-hidden="true" /> : null}
       {source.id === "currents-example" && !source.video ? (
