@@ -413,6 +413,32 @@ body::-webkit-scrollbar {
   text-transform: uppercase;
 }
 
+.sonify-footer summary.sonify-footer-kicker {
+  padding: 0;
+  list-style: none;
+}
+
+.sonify-footer summary.sonify-footer-kicker::-webkit-details-marker {
+  display: none;
+}
+
+.sonify-footer-static {
+  display: contents;
+}
+
+.sonify-footer-phone {
+  display: none;
+}
+
+.sonify-footer-nav-links,
+.sonify-footer-fold-body {
+  display: contents;
+}
+
+.sonify-footer-chevron {
+  display: none;
+}
+
 .sonify-footer-copy,
 .sonify-footer-link {
   font-family: var(--font-geist), sans-serif;
@@ -506,6 +532,103 @@ body::-webkit-scrollbar {
 @media (min-width: 1000px) {
   .sonify-footer-cols {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .sonify-footer-static {
+    display: none;
+  }
+
+  .sonify-footer-phone {
+    display: contents;
+  }
+
+  .sonify-footer-inner {
+    gap: 14px;
+  }
+
+  .sonify-footer-cols {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .sonify-footer-nav {
+    gap: 0;
+    padding-bottom: 4px;
+  }
+
+  .sonify-footer-nav-links {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    width: 100%;
+  }
+
+  .sonify-footer a.sonify-footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .sonify-footer-fold {
+    border-top: 1px solid rgba(242, 242, 240, 0.22);
+  }
+
+  .sonify-footer-fold:last-child {
+    border-bottom: 1px solid rgba(242, 242, 240, 0.22);
+  }
+
+  .sonify-footer summary.sonify-footer-kicker {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  .sonify-footer summary.sonify-footer-kicker:focus-visible,
+  .sonify-footer a:focus-visible {
+    outline: 1px solid #f2f2f0;
+    outline-offset: 3px;
+  }
+
+  .sonify-footer-chevron {
+    display: block;
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-right: 4px;
+    border-right: 1.5px solid #f2f2f0;
+    border-bottom: 1.5px solid #f2f2f0;
+    transform: translateY(-2px) rotate(45deg);
+  }
+
+  .sonify-footer-fold[open] .sonify-footer-chevron {
+    transform: translateY(2px) rotate(225deg);
+  }
+
+  .sonify-footer-fold[open] > .sonify-footer-fold-body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    width: 100%;
+    padding: 0 0 8px;
+  }
+
+  .sonify-footer-wordmark {
+    width: 58cqi;
+  }
+
+  .sonify-footer-legal {
+    flex-direction: column;
+    gap: 4px;
+    font-size: 9px;
+    line-height: 1.25;
+    letter-spacing: 0.02em;
   }
 }
 
