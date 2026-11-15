@@ -471,7 +471,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const resolveInitialSource = (): ListenSource => {
     if (initialSourceId === "map") return MAP_SOURCE;
-    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice") return MAP_SOURCE;
+    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice" || initialLayer === "sea-temp") return MAP_SOURCE;
     if (initialLayer === "co2") return SEED_SOURCES.find((s) => s.id === "oco2-example") ?? DEFAULT_EIC_SOURCE;
     if (initialLayer === "currents") return SEED_SOURCES.find((s) => s.id === "currents-example") ?? DEFAULT_EIC_SOURCE;
     return DEFAULT_EIC_SOURCE;
