@@ -189,7 +189,7 @@ test("chips are a single shape", async ({ page }) => {
   });
   expect(shape.kids).toEqual(["lv-chamfer-svg"]);
   expect(shape.fill).toBe("none");
-  expect(shape.stroke).toBe("rgb(85, 85, 85)");
+  expect(shape.stroke).toBe("rgb(31, 37, 37)");
 });
 
 test("the probe tooltip stays inside the stage at the east edge", async ({ page }) => {
