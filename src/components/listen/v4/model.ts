@@ -2,6 +2,8 @@ import { MAP_REGIONS, regionById, type MapRegion } from "@/data/exploreMap";
 import { regionIdAt } from "@/components/listen/regionGeometry";
 import type { LegendMetadata } from "@/components/listen/v4/legend";
 import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { isSoundLayer, mapLayerToSound, readingNumber } from "@/components/listen/v4/layerRange";
+import { formatUtcInstant } from "@/components/listen/v4/utcLabel";
 
 export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "currents" | "wind";
 export type SoundStyle = "synth" | "orchestra";
@@ -303,7 +305,7 @@ export function readProbe(input: {
     time: probeInstant(year),
   };
   const accepted = acceptReading(currentContext, measured);
-  const when = dateLabel(year);
+  const when = formatUtcInstant(probeInstant(year)) ?? dateLabel(year);
   const region = source.kind === "map" ? regionAt(lng, lat) : null;
   const color = pixelColor ?? (source.kind === "map" ? paintColor(layer === "all" ? "temperature" : layer, lng, lat) : "#161311");
   const visual: ReadingCard = {
@@ -341,7 +343,7 @@ export function readProbe(input: {
       swatch: "#d5e6ee",
       state: "matched",
       value: region.id === "arctic" ? "4.81 million km²" : "Included",
-      detail: region.id === "arctic" ? `NSIDC · ${when} · EXAMPLE DATA` : "EXAMPLE · SOUTHERN FIELD",
+      detail: region.id === "arctic" ? `NSIDC · ${when} · EXAMPLE DATA` : `EXAMPLE · SOUTHERN FIELD · ${when}`,
     };
   } else {
     seaIce = emptyCard("sea-ice", "SEA ICE", "SEA ICE IS ARCTIC + ANTARCTIC ONLY");
@@ -360,6 +362,15 @@ export function readProbe(input: {
         state: "loading",
         value: "Loading matched data…",
         detail: "CHECKING THE MEASUREMENT SOURCE",
+      });
+    } else if (accepted?.status === "no-data" && layer === id) {
+      extras.set(id, {
+        id,
+        label: layerLabel(id),
+        swatch: "#3a3a3a",
+        state: "empty",
+        value: "No data for this date",
+        detail: accepted.detail,
       });
     } else if (accepted && layer === id) {
       extras.set(id, {
@@ -403,6 +414,8 @@ export function readProbe(input: {
     normalized = Math.min(1, Math.max(0, (scaleAnomaly(region.anomaly, year) + 1) / 4));
   } else if (active.state === "matched" && layer === "sea-ice") {
     normalized = 0.72;
+  } else if (active.state === "matched" && isSoundLayer(layer)) {
+    normalized = mapLayerToSound(layer, readingNumber(measured?.value));
   } else if (layer === "all") {
     const raw = color.replace("#", "");
     const r = Number.parseInt(raw.slice(0, 2), 16);

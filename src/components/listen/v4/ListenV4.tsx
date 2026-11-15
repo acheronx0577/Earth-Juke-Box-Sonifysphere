@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
+import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/components/listen/v4/eicSource";
 import { ListenMap } from "@/components/listen/v4/ListenMap";
 import {
   EXTRA_LAYERS,
@@ -34,6 +35,7 @@ import {
 import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
@@ -397,7 +399,7 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
 export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const { setSoundEnabled } = useSonifyPlayer();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [sources, setSources] = useState<ListenSource[]>([...SEED_SOURCES]);
+  const [sources, setSources] = useState<ListenSource[]>([EIC_FRAME_SOURCE, ...SEED_SOURCES]);
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const [source, setSource] = useState<ListenSource>(MAP_SOURCE);
   const [query, setQuery] = useState("");
@@ -576,11 +578,17 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         .then(async (response) => {
           const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
           if (!readingContextsMatch(readingContextRef.current, context)) return;
+          const when = formatUtcInstant(context.time) ?? context.time;
+          if (isNoDataResponse(response.status, body.error)) {
+            setMeasured({ context, status: "no-data", value: "No data for this date", detail: when });
+            return;
+          }
           if (!response.ok || typeof body.value !== "number") throw new Error(body.error ?? "No reading");
           setMeasured({
             context,
+            status: "reading",
             value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
-            detail: `${body.source ?? "Matched"} · ${dateLabel(year)}`,
+            detail: `${body.source ?? "Matched"} · ${when}`,
           });
         })
         .catch((error: unknown) => {
@@ -608,13 +616,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   };
 
   const openSource = (item: ListenSource) => {
-    setSource(item);
+    const next = item.id === EIC_FRAME_SOURCE.id ? { ...item, preview: EIC_FRAME_IMAGE } : item;
+    setSource(next);
     setPixelColor(null);
     setSavedOpen(false);
     setDrawer(false);
     setResultsOpen(false);
-    if (item.layer) chooseLayer(item.layer);
-    if (item.kind === "map") {
+    setStatus(next.id === EIC_FRAME_SOURCE.id ? EIC_FRAME_STATUS : "");
+    if (next.layer) chooseLayer(next.layer);
+    if (next.kind === "map") {
       setLat(0);
       setLng(-145);
     }
@@ -752,7 +762,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   };
 
   const coord = formatCoord(lat, lng);
-  const when = dateLabel(year);
+  const when = formatUtcInstant(probeInstant(year)) ?? dateLabel(year);
   const announced =
     layer === "air" || layer === "currents" || layer === "wind"
       ? reading.cards.find((card) => card.id === layer)
@@ -892,7 +902,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             <div className="lv-read-head">
               <p className="lv-mono lv-eyebrow">
                 READINGS AT {source.kind === "map" ? "PROBE" : "MEDIA"} · {source.kind === "map" ? <span className="lv-coord-inline">{coord} · </span> : null}
-                {when}
+                <span className="lv-utc">{when}</span>
               </p>
               <p className="lv-mono lv-eyebrow">
                 <span className="lv-count-long">{summary}</span>
@@ -908,7 +918,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                     {card.label}
                   </p>
                   <strong>{card.value}</strong>
-                  <small>{card.detail}</small>
+                  <small className="lv-utc">{card.detail}</small>
                 </article>
               ))}
             </div>
