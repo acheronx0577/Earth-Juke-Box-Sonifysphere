@@ -7,7 +7,6 @@ import { getGlobalLenis } from "@/lib/lenis";
 import { warmListenAssets } from "@/lib/listenAssets";
 import { useRouter } from "next/navigation";
 import { canWarmAssets } from "@/lib/assetCache";
-import "./Preloader.css";
 
 interface PreloaderProps {
   readonly onComplete?: () => void;
@@ -335,10 +334,15 @@ export function Preloader({
 
     preloader.style.setProperty("--tile-size", `${metrics.tileSize}px`);
     gsap.set(stops.fadeInTiles, { opacity: 0 });
-    gsap.set(progressMarker, { width: metrics.tileSize, height: metrics.tileSize });
-
     const mover = createMarkerMover(progressMarker, preloader);
-    gsap.set(progressMarker, mover.getTileOffset(stops.firstStop));
+    // Reveal the percentage only after it sits on the first tile. It is in the
+    // server HTML, so leaving it visible paints "25" at the viewport corner.
+    gsap.set(progressMarker, {
+      width: metrics.tileSize,
+      height: metrics.tileSize,
+      ...mover.getTileOffset(stops.firstStop),
+      visibility: "visible",
+    });
 
     const timeline = buildPreloaderTimeline({
       stops,
@@ -379,7 +383,7 @@ export function Preloader({
     >
       <div ref={preloaderBgRef} className="preloader-bg" />
       <div ref={preloaderGridRef} className="preloader-grid" />
-      <div ref={progressMarkerRef} className="progress-marker">
+      <div ref={progressMarkerRef} className="progress-marker" style={{ visibility: "hidden" }}>
         <p>25</p>
       </div>
     </div>

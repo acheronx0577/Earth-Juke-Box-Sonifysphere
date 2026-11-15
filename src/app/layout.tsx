@@ -11,6 +11,10 @@ import { PageTransitions } from "@/components/shared/PageTransitions";
 import { SkipLink } from "@/components/shared/SkipLink";
 import TargetCursor from "@/components/shared/TargetCursor";
 import "./globals.css";
+// The home preloader is inside the route suspense boundary, so CSS imported
+// from that page is not render-blocking. These rules have to ship with the
+// layout or the progress percentage paints unstyled at the corner.
+import "@/components/landing/Preloader.css";
 
 export const viewport: Viewport = {
   themeColor: "#141414",
