@@ -31,6 +31,7 @@ import {
   type SoundStyle,
   type VariationId,
 } from "@/components/listen/v4/model";
+import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { ChamferMark } from "@/components/listen/ChamferMark";
@@ -425,6 +426,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [measuring, setMeasuring] = useState(false);
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
+  const nasaSearchRequests = useRef(createLatestRequest());
+  const nasaAssetRequests = useRef(createLatestRequest());
   const ready = useRef(false);
   const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
@@ -522,6 +525,15 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
 
   useEffect(() => onPlaybackStopped(() => setPlaying(false)), []);
 
+  useEffect(() => {
+    const search = nasaSearchRequests.current;
+    const asset = nasaAssetRequests.current;
+    return () => {
+      search.abort();
+      asset.abort();
+    };
+  }, []);
+
   const reading = useMemo(
     () => readProbe({ layer, year, lat, lng, source, pixelColor, measured, measuring }),
     [layer, year, lat, lng, source, pixelColor, measured, measuring],
@@ -600,14 +612,17 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       setStatus(`Probe moved to ${place.name}.`);
     }
     if (clean.length < 2) {
+      nasaSearchRequests.current.abort();
       setStatus("Enter at least two characters to search NASA media.");
       return;
     }
+    const ticket = nasaSearchRequests.current.start();
     setResultsOpen(true);
     setStatus("");
     try {
-      const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`);
+      const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`, { signal: ticket.signal });
       const body = (await response.json()) as { items?: NasaHit[]; error?: string };
+      if (!nasaSearchRequests.current.isCurrent(ticket.id)) return;
       if (!response.ok) throw new Error(body.error ?? "Search failed.");
       const items = body.items ?? [];
       setResults(items);
@@ -618,16 +633,19 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         setSearches((previous) => [{ id: clean, term: clean, detail: `${items.length} NASA MEDIA RESULTS` }, ...previous.filter((item) => item.term !== clean)].slice(0, 12));
       }
     } catch (error) {
+      if (isAbortError(error) || !nasaSearchRequests.current.isCurrent(ticket.id)) return;
       setResults([]);
       setStatus(error instanceof Error ? error.message : "NASA search failed.");
     }
   };
 
   const chooseHit = async (item: NasaHit) => {
+    const ticket = nasaAssetRequests.current.start();
     setStatus("Loading NASA media…");
     try {
-      const response = await fetch(`/api/listen/nasa/asset?id=${encodeURIComponent(item.id)}`);
+      const response = await fetch(`/api/listen/nasa/asset?id=${encodeURIComponent(item.id)}`, { signal: ticket.signal });
       const body = (await response.json()) as { image?: string | null; video?: string | null; error?: string };
+      if (!nasaAssetRequests.current.isCurrent(ticket.id)) return;
       if (!response.ok) throw new Error(body.error ?? "NASA media could not be opened.");
       const next: ListenSource = {
         id: item.id,
@@ -639,10 +657,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         video: body.video ?? undefined,
         legend: null,
       };
+      if (!nasaAssetRequests.current.isCurrent(ticket.id)) return;
       setSources((previous) => [next, ...previous.filter((old) => old.id !== next.id)].slice(0, 20));
       openSource(next);
       setStatus("");
     } catch (error) {
+      if (isAbortError(error) || !nasaAssetRequests.current.isCurrent(ticket.id)) return;
       setResultsOpen(false);
       openSource(MAP_SOURCE);
       setStatus(error instanceof Error ? error.message : "NASA media could not be opened.");

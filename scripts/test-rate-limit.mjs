@@ -120,8 +120,8 @@ async function testRoutes() {
     return new Response(meteomaticsBody(), { status: 200, headers: { "Content-Type": "application/json" } });
   };
 
-  const measure = (ip, lat = "10") => {
-    const url = `http://localhost/api/listen/measurements?lat=${lat}&lon=20&time=${encodeURIComponent(time)}&layer=air-temp`;
+  const measure = (ip, lat = "10", lon = "20") => {
+    const url = `http://localhost/api/listen/measurements?lat=${lat}&lon=${lon}&time=${encodeURIComponent(time)}&layer=air-temp`;
     return measurements.GET(new NextRequest(url, { headers: { "x-real-ip": ip } }));
   };
   const vary = (ip, body = { instrument: "glass" }) => {
@@ -138,17 +138,17 @@ async function testRoutes() {
       assert.equal(response.status, 400);
     }
     assert.equal(calls.length, 0);
-    const first = await measure("203.0.113.10");
+    const first = await measure("203.0.113.10", "10", "20.0000");
     assert.equal(first.status, 200);
     assert.equal((await first.json()).source, "Meteomatics");
     assert.equal(calls.length, 1);
 
     for (let i = 1; i < MEASUREMENTS_LIMIT; i += 1) {
-      const response = await measure("203.0.113.10");
+      const response = await measure("203.0.113.10", "10", (20 + i * 0.0001).toFixed(4));
       assert.equal(response.status, 200);
     }
     assert.equal(calls.length, MEASUREMENTS_LIMIT);
-    const blocked = await measure("203.0.113.10");
+    const blocked = await measure("203.0.113.10", "10", "21.0000");
     const blockedBody = await blocked.json();
     assert.equal(blocked.status, 429);
     assert.equal(blockedBody.error, RATE_LIMIT_MESSAGE);
@@ -160,7 +160,7 @@ async function testRoutes() {
     assert.equal(JSON.stringify(blockedBody).includes(password), false);
     assert.equal(JSON.stringify(blockedBody).includes(username), false);
 
-    const otherIp = await measure("203.0.113.11");
+    const otherIp = await measure("203.0.113.11", "10", "22.0000");
     assert.equal(otherIp.status, 200);
     assert.equal(calls.length, MEASUREMENTS_LIMIT + 1);
 
