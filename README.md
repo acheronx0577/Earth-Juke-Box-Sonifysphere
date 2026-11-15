@@ -23,12 +23,12 @@ The repository is currently private. Judges must be able to open the final proje
 | `/listen` | Upload an image or video, search NASA media, probe its visual pattern, view matched Meteomatics readings, and choose a live sound profile. Optional ElevenLabs texture generation requires server credentials. |
 | `/listen/classic` | Explore the earlier twelve-region map, datasets, seasons, voices, and sharing controls. |
 | `/about` | Learn the intended sound mappings, inspect the record presentation, and meet the team. |
-| `/challenge`, `/story` | Browse five activity cards using the animated gallery. |
+| `/challenge`, `/story` | Browse three activity cards using the animated gallery. |
 | `/challenge/guess` | Guess the Signal: identify sound signatures in seeded rounds with explanatory feedback. |
 | `/challenge/compose` | Compose Track: arrange environmental sound sources into a mix and share its configuration. |
 | `/challenge/match` | Tune the Signal: adjust frequency and Q to match a target. |
 
-There are three dedicated games. The Waveform Ribbons card opens Listen. The Climate Console card currently points to `/jukebox`, which has no implemented route; this is a known limitation, not a fourth or fifth implemented game.
+The gallery lists Guess the Signal, Tune the Signal, and Waveform Ribbons. Waveform Ribbons opens Listen. Compose Track stays at `/challenge/compose` and is not shown on the carousel.
 
 ## How sound works
 

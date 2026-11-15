@@ -113,8 +113,8 @@ export function PageTransitions() {
       overlay.replaceChildren(fragment);
       overlay.hidden = false;
       overlay.dataset.state = "covering";
-      // A failed navigation must never leave an opaque input-blocking overlay behind.
-      safetyTimer = setTimeout(reset, 6000);
+      // Safety timer: A failed or delayed navigation must NEVER leave an input-blocking overlay behind.
+      safetyTimer = setTimeout(reset, 2000);
       animation = gsap.fromTo(overlay.children, { opacity: 0 }, {
         opacity: 1,
         duration: 0.05,

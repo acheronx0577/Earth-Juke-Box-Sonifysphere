@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, type MouseEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import gsap from "gsap";
 import CircularGallery, { type CircularGalleryRef, type GalleryItem } from "@/components/shared/CircularGallery";
 import { RollingText } from "@/components/shared/RollingText";
+import CircularText from "@/components/shared/CircularText";
 
 import type { VoiceId } from "@/lib/voiceSettings";
 
@@ -37,65 +40,166 @@ const CHAPTERS: ChapterData[] = [
   {
     id: "challenge-02",
     num: "02",
-    headerTag: "Challenge 02 · Sound Studio",
-    year: "Mixtape",
-    title: "Compose Track",
-    subtitle: "Layer 4 planetary signals into a custom atmospheric soundscape",
-    challengePath: "/challenge/compose",
-    challengeAction: "Open Studio ↗",
-    image: "/assets/landing/chapters/chapter-02.webp",
-    text: "02 · Compose Track",
-    description: "Sound studio: compile an ambient climate mixtape",
-    audioVoice: "pulse",
-  },
-  {
-    id: "challenge-03",
-    num: "03",
-    headerTag: "Challenge 03 · Wave Match",
+    headerTag: "Challenge 02 · Wave Match",
     year: "Tuning",
     title: "Tune the Signal",
     subtitle: "Align frequency dials to detect the climate anomaly spike",
     challengePath: "/challenge/match",
     challengeAction: "Tune Signal ↗",
     image: "/assets/landing/chapters/chapter-03.webp",
-    text: "03 · Tune the Signal",
+    text: "02 · Tune the Signal",
     description: "Wave match: tune oscillators to match warming anomaly spikes",
     audioVoice: "click",
   },
   {
-    id: "challenge-04",
-    num: "04",
-    headerTag: "Challenge 04 · Waveform Ribbons",
+    id: "challenge-03",
+    num: "03",
+    headerTag: "Challenge 03 · Waveform Ribbons",
     year: "Seasons",
     title: "Waveform Ribbons",
     subtitle: "Track the ~6 ppm annual forest inhale through synchronized acoustic sweeps",
     challengePath: "/listen",
     challengeAction: "Listen Pulses ↗",
     image: "/assets/about/routine/routine_04_voices.webp",
-    text: "04 · Waveform Ribbons",
+    text: "03 · Waveform Ribbons",
     description: "Atmospheric pulse: sonify global seasonal breathing",
     audioVoice: "pulse",
   },
-  {
-    id: "challenge-05",
-    num: "05",
-    headerTag: "Challenge 05 · Climate Console",
-    year: "Archive",
-    title: "Climate Console",
-    subtitle: "Explore the historical 1958–2026 sonification synthesizer archive",
-    challengePath: "/jukebox",
-    challengeAction: "Open Console ↗",
-    image: "/assets/about/routine/routine_03_challenges.webp",
-    text: "05 · Climate Console",
-    description: "Jukebox archive: trigger historical planetary acoustic sweeps",
-    audioVoice: "pitch",
-  },
 ];
 
+const GAME_COUNT = String(CHAPTERS.length).padStart(2, "0");
+
+/**
+ * Card-widths per second is autoScroll * 0.25, so 0.8 crosses about one card every 5s.
+ * Positive flow advances the numbered row (01 then 02), matching the Next control:
+ * cards travel toward the left edge and the following card enters from the right.
+ */
+const FLOW_SPEED = 0.8;
+
+function OctagonPlate() {
+  const ref = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ w: 48, h: 48 });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      const rect = el.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width * 100) / 100);
+      const h = Math.max(1, Math.round(rect.height * 100) / 100);
+      setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
+    };
+    read();
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const cut = 8;
+  const stroke = 1.5;
+  const half = stroke / 2;
+  const join = cut + half * (Math.SQRT2 - 1);
+  const { w, h } = size;
+  const points = [
+    [join, half],
+    [w - join, half],
+    [w - half, join],
+    [w - half, h - join],
+    [w - join, h - half],
+    [join, h - half],
+    [half, h - join],
+    [half, join],
+  ]
+    .map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)
+    .join(" ");
+
+  return (
+    <svg ref={ref} className="story-btn-frame" aria-hidden="true" viewBox={`0 0 ${w} ${h}`}>
+      <polygon
+        points={points}
+        fill="#262626"
+        stroke="#555555"
+        strokeWidth={stroke}
+        strokeLinejoin="miter"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function UpRightArrow({ className }: { readonly className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="6" y1="18" x2="18" y2="6" />
+      <polyline points="9 6 18 6 18 15" />
+    </svg>
+  );
+}
+
+function useListenBadgeSize() {
+  const [size, setSize] = useState(120);
+  useEffect(() => {
+    const apply = () => {
+      const next = Math.round(
+        Math.min(148, Math.max(84, Math.min(window.innerWidth * 0.078, window.innerHeight * 0.13)))
+      );
+      setSize(next);
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+  return size;
+}
+
 export function StoryChaptersCarousel() {
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const galleryRef = useRef<CircularGalleryRef>(null);
+  const badgeRef = useRef<HTMLDivElement | null>(null);
+  const badgeSize = useListenBadgeSize();
+
+  const handleBadgeClick = useCallback((event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented) return;
+    event.preventDefault();
+    if (isNavigating) return;
+    setIsNavigating(true);
+    if (!badgeRef.current) {
+      router.push("/listen");
+      return;
+    }
+    gsap.to(badgeRef.current, {
+      rotate: "+=360",
+      scale: 1.15,
+      duration: 0.5,
+      ease: "power2.inOut",
+      onComplete: () => {
+        router.push("/listen");
+      },
+    });
+  }, [isNavigating, router]);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduced(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
 
   const handlePrev = useCallback(() => {
     setDirection(-1);
@@ -107,41 +211,59 @@ export function StoryChaptersCarousel() {
     galleryRef.current?.next();
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation. The gallery handles arrows while one of its cards is focused.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (target?.closest(".circular-gallery")) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
       if (e.key === "ArrowLeft") handlePrev();
-      if (e.key === "ArrowRight") handleNext();
+      else handleNext();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePrev, handleNext]);
 
   const activeChapter = CHAPTERS[activeIndex] || CHAPTERS[0];
+  const paused = reduced || hovered || focused;
 
   return (
     <section
-      className="story-chapters-section relative flex w-full flex-col justify-between bg-[#141414] pt-6 pb-3 sm:pt-8 sm:pb-5"
+      className="story-chapters-section relative w-full bg-[#141414]"
       aria-label="Story Chapters Carousel"
+      data-paused={paused ? "true" : "false"}
+      data-reduced-motion={reduced ? "true" : "false"}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") setHovered(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") setHovered(false);
+      }}
+      onFocus={() => setFocused(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+      }}
       style={{
         backgroundImage: `
           linear-gradient(to right, rgba(242,242,240,0.04) 1px, transparent 1px),
           linear-gradient(to bottom, rgba(242,242,240,0.04) 1px, transparent 1px)
         `,
-        backgroundSize: "60px 60px",
+        backgroundSize: "clamp(48px, 4vw, 84px) clamp(48px, 4vw, 84px)",
       }}
     >
-      <div className="story-chapters-layout mx-auto flex w-full max-w-[1500px] flex-1 flex-col justify-between px-4 sm:px-8 lg:px-12">
+      <div className="story-chapters-layout">
         {/* Top HUD Row */}
-        <div className="story-chapters-top flex w-full items-center justify-between gap-2 pt-2">
-          <div className="story-chip-glass inline-flex items-center gap-2 px-4 py-2">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#f2f2f0]/80">
-              Challenges · 5 games
+        <div className="story-chapters-top">
+          <div className="story-chip-glass story-hud-chip inline-flex items-center">
+            <span className="story-hud-type font-mono uppercase text-[#f2f2f0]/80">
+              Challenges · {CHAPTERS.length} games
             </span>
           </div>
 
-          <div className="story-chip-solid inline-flex items-center gap-2 px-4 py-2 transition-all duration-300">
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#141414]">
+          <div className="story-chip-solid story-hud-chip inline-flex items-center transition-all duration-300">
+            <span className="story-hud-type font-mono font-semibold uppercase text-[#141414]">
               <RollingText
                 text={`${activeChapter.num} · ${activeChapter.title}`}
                 direction={direction}
@@ -151,8 +273,8 @@ export function StoryChaptersCarousel() {
           </div>
         </div>
 
-        {/* Circular Gallery Showcase - Infinite Straight Auto-scroll */}
-        <div className="story-chapters-gallery-frame relative my-1 w-full overflow-hidden">
+        {/* Full-bleed gallery. Card size follows the viewport inside CircularGallery. */}
+        <div className="story-chapters-gallery-frame">
           <CircularGallery
             ref={galleryRef}
             items={CHAPTERS}
@@ -161,20 +283,23 @@ export function StoryChaptersCarousel() {
             borderRadius={0.05}
             itemSize={1.2}
             itemAspect={0.78}
-            gap={0.22}
+            gap={0.2}
             wave={0}
-            fadeEdges={0.12}
+            fadeEdges={0.06}
             shadow={0}
             dpr={1.25}
             scrollSpeed={2}
-            scrollEase={0.05}
-            autoScroll={0}
-            snap={true}
+            scrollEase={0.08}
+            autoScroll={paused ? 0 : FLOW_SPEED}
+            snap={false}
             openOnClick={true}
             onActiveChange={(index) => {
               setActiveIndex((prev) => {
                 if (index !== prev) {
-                  setDirection(index > prev ? 1 : -1);
+                  const count = CHAPTERS.length;
+                  const forward = (index - prev + count) % count;
+                  const backward = (prev - index + count) % count;
+                  setDirection(forward <= backward ? 1 : -1);
                 }
                 return index;
               });
@@ -185,28 +310,22 @@ export function StoryChaptersCarousel() {
           />
         </div>
 
-        {/* Center Controller - Pushed to Middle Bottom */}
-        <div className="mt-0 mb-3 sm:mb-5 flex flex-col items-center justify-center gap-2.5">
-          <div className="flex items-center gap-3 sm:gap-5 lg:gap-7">
-            {/* Prev Button */}
+        <div className="story-chapters-controls">
+          <div className="story-chapters-controls-row">
             <button
               type="button"
               onClick={handlePrev}
-              className="story-btn-round relative flex size-10 sm:size-12 items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="story-btn-round"
               aria-label="Previous Challenge"
             >
-              <img
-                src="/assets/story/16f81.svg"
-                alt=""
-                className="absolute inset-0 size-full pointer-events-none"
-              />
-              <span className="relative z-10 font-mono text-base sm:text-lg text-[#f2f2f0]">←</span>
+              <OctagonPlate />
+              <span className="story-btn-glyph">←</span>
             </button>
 
-            {/* Play Challenge (White Pill) */}
             <Link
               href={activeChapter.challengePath}
-              className="story-btn-pill relative inline-flex items-center justify-center px-3 sm:px-7 lg:px-9 py-3 sm:py-3.5 transition-transform hover:scale-105 active:scale-95 bg-[#f2f2f0] text-[#141414] cursor-pointer"
+              prefetch={false}
+              className="story-btn-pill"
               aria-label={`Play ${activeChapter.title}`}
             >
               <img
@@ -214,7 +333,7 @@ export function StoryChaptersCarousel() {
                 alt=""
                 className="absolute inset-0 size-full pointer-events-none"
               />
-              <span className="relative z-10 font-mono text-xs sm:text-sm font-bold uppercase tracking-wider text-[#141414] inline-flex items-center justify-center">
+              <span className="story-btn-label">
                 <RollingText
                   text={`Play ${activeChapter.title}`}
                   direction={direction}
@@ -223,37 +342,69 @@ export function StoryChaptersCarousel() {
               </span>
             </Link>
 
-            {/* Next Button */}
             <button
               type="button"
               onClick={handleNext}
-              className="story-btn-round relative flex size-10 sm:size-12 items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="story-btn-round"
               aria-label="Next Challenge"
             >
-              <img
-                src="/assets/story/16f81.svg"
-                alt=""
-                className="absolute inset-0 size-full pointer-events-none"
-              />
-              <span className="relative z-10 font-mono text-base sm:text-lg text-[#f2f2f0]">→</span>
+              <OctagonPlate />
+              <span className="story-btn-glyph">→</span>
             </button>
           </div>
 
-          {/* Dynamic Counter */}
-          <div className="flex items-center justify-center">
-            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#f2f2f0]/80">
-              {activeChapter.num} / 05
-            </p>
-          </div>
+          <p className="story-chapters-count" data-challenge-count={activeChapter.num}>
+            {activeChapter.num} / {GAME_COUNT}
+          </p>
         </div>
 
-        {/* Bottom navigation link */}
-        <div className="story-chapters-bottom flex w-full justify-end pb-0">
-          <Link href="/listen" className="story-chip-glass story-listen-link inline-flex items-center gap-2 px-4 py-2">
-            <span className="size-1.5 rounded-full bg-[#f2f2f0]/40" />
-            <span className="font-mono text-[11px] uppercase tracking-wider">
-              Listen to the map ↗
+        <div className="story-chapters-bottom">
+          <div className="story-chip-glass story-hud-chip story-noaa-chip story-bottom-wide inline-flex items-center gap-2">
+            <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
+            <span className="story-noaa-label">
+              NOAA GML · Mauna Loa Observatory
             </span>
+          </div>
+
+          <Link
+            href="/listen"
+            className="story-chip-glass story-listen-pill"
+            aria-label="Listen to the map"
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-[#f2f2f0]/40" />
+            <span className="story-listen-pill-label">
+              Listen to the map
+              <span className="story-listen-pill-arrow">
+                <UpRightArrow className="story-listen-pill-arrow-out" />
+                <UpRightArrow className="story-listen-pill-arrow-in" />
+              </span>
+            </span>
+          </Link>
+
+          <Link
+            href="/listen"
+            onClick={handleBadgeClick}
+            className="story-listen-badge story-bottom-wide group"
+            aria-label="823 months loaded - Listen to sonifications"
+          >
+            <div ref={badgeRef} className="will-change-transform">
+              <CircularText
+                text="823 MONTHS * LOADED * LISTEN * "
+                onHover="speedUp"
+                direction="clockwise"
+                spinDuration={20}
+                size={badgeSize}
+                fontSize={Math.max(8, Math.round((badgeSize * 11) / 120))}
+                fontWeight={900}
+                hoverTilt={15}
+                className="font-sans font-bold text-[#f2f2f0]/90 transition-colors group-hover:text-[#f2f2f0]"
+              >
+                <div className="relative flex size-10 items-center justify-center overflow-hidden pointer-events-none">
+                  <UpRightArrow className="size-8 text-[#f2f2f0] transition-all duration-300 ease-out group-hover:translate-x-10 group-hover:-translate-y-10 group-hover:opacity-0" />
+                  <UpRightArrow className="absolute size-8 -translate-x-10 translate-y-10 text-[#f2f2f0] opacity-0 transition-all duration-300 ease-out group-hover:translate-x-0 group-hover:translate-y-0 group-hover:opacity-100" />
+                </div>
+              </CircularText>
+            </div>
           </Link>
         </div>
       </div>
