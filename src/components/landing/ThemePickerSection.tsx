@@ -219,6 +219,7 @@ export function ThemePickerSection() {
       <div className="block min-[1680px]:hidden w-full relative">
         <div
           ref={trackRef}
+          data-lenis-prevent-horizontal
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}

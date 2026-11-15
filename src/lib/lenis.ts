@@ -26,7 +26,7 @@ export function initGlobalLenis(options?: { readonly syncTouch?: boolean }): Len
     duration: cfg.duration,
     lerp: cfg.lerp,
     smoothWheel: true,
-    syncTouch: options?.syncTouch ?? true,
+    syncTouch: options?.syncTouch ?? false,
     touchMultiplier: cfg.touchMultiplier,
   });
 
