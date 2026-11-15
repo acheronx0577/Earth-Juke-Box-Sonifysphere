@@ -300,44 +300,49 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
     onYear(next);
   };
   return (
-    <div className="lv-timeline lv-cut">
-      <div className="lv-timeline-face lv-cut">
-        <div className="lv-ticks">
-          {ticks.map((tick) => {
-            const major = tick % 10 === 0;
-            const left = `${((tick - YEAR_START) / span) * 100}%`;
-            return (
-              <span key={tick} aria-hidden="true">
-                <i style={{ left, height: major ? 10 : 4 }} />
-                {major ? <b style={{ left }}>{tick}</b> : null}
-              </span>
-            );
-          })}
-          <span className="lv-playhead" style={{ left: `${ratio * 100}%` }} />
-          <input
-            className="lv-year"
-            type="range"
-            min={YEAR_START}
-            max={YEAR_END}
-            step={1}
-            value={year}
-            aria-label="Timeline"
-            aria-valuemin={YEAR_START}
-            aria-valuemax={YEAR_END}
-            aria-valuenow={year}
-            aria-valuetext={dateLabel(year)}
-            aria-describedby={readoutId}
-            onChange={(event) => onYear(Number(event.currentTarget.value))}
-            onPointerDown={(event) => setFromClient(event.clientX, event.currentTarget)}
-            onPointerMove={(event) => {
-              if (event.buttons) setFromClient(event.clientX, event.currentTarget);
-            }}
-          />
+    <div className="lv-timeline">
+      <div className="lv-timeline-track lv-cut">
+        <div className="lv-timeline-face lv-cut">
+          <div className="lv-ticks">
+            {ticks.map((tick) => {
+              const major = tick % 10 === 0;
+              const left = `${((tick - YEAR_START) / span) * 100}%`;
+              return (
+                <span key={tick} aria-hidden="true">
+                  <i style={{ left, height: major ? 9 : 4 }} />
+                  {major ? <b style={{ left }}>{tick}</b> : null}
+                </span>
+              );
+            })}
+            <span className="lv-playhead" style={{ left: `${ratio * 100}%` }} aria-hidden="true">
+              <i />
+              <b />
+            </span>
+            <input
+              className="lv-year"
+              type="range"
+              min={YEAR_START}
+              max={YEAR_END}
+              step={1}
+              value={year}
+              aria-label="Timeline"
+              aria-valuemin={YEAR_START}
+              aria-valuemax={YEAR_END}
+              aria-valuenow={year}
+              aria-valuetext={dateLabel(year)}
+              aria-describedby={readoutId}
+              onChange={(event) => onYear(Number(event.currentTarget.value))}
+              onPointerDown={(event) => setFromClient(event.clientX, event.currentTarget)}
+              onPointerMove={(event) => {
+                if (event.buttons) setFromClient(event.clientX, event.currentTarget);
+              }}
+            />
+          </div>
         </div>
-        <p className="lv-mono lv-date" id={readoutId}>
-          {dateLabel(year)}
-        </p>
       </div>
+      <p className="lv-date lv-cut" id={readoutId}>
+        <span className="lv-cut">{dateLabel(year)}</span>
+      </p>
     </div>
   );
 }
