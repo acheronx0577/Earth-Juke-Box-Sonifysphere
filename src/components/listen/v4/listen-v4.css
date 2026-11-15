@@ -493,6 +493,8 @@
   display: block;
   object-fit: contain;
   object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .lv-map-controls {
@@ -555,6 +557,8 @@
 
 .lv-media {
   background: #100e0c;
+  transform-origin: center center;
+  transition: transform 140ms ease-out;
 }
 
 .lv-glass {
