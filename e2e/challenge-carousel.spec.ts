@@ -118,7 +118,8 @@ test("challenge footer uses a centred listen pill on phone", async ({ page }) =>
     await expect(badge).toBeHidden();
     await expect(pill).toBeVisible();
     await expect(pill).toHaveAttribute("href", "/listen");
-    await expect(pill).toContainText("« Listen to the map »");
+    await expect(pill).toContainText("Listen to the map");
+    await expect(pill).not.toContainText("«");
     const pillBox = await pill.boundingBox();
     const rowBox = await row.boundingBox();
     if (!pillBox || !rowBox) throw new Error("Phone listen pill was not measurable");
