@@ -85,6 +85,8 @@ export interface TechTextProps {
   bleedBottom?: number;
   bleedLeft?: number;
   bleedRight?: number;
+  /** Size the measure frame, dashes, handles, and labels with the rendered word. Default keeps the fixed overlay from main. */
+  scaleWithSize?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -236,6 +238,7 @@ export const TechText: React.FC<TechTextProps> = ({
   bleedBottom,
   bleedLeft,
   bleedRight,
+  scaleWithSize = false,
   className = '',
   style
 }) => {
@@ -277,7 +280,8 @@ export const TechText: React.FC<TechTextProps> = ({
       bleedTop,
       bleedBottom,
       bleedLeft,
-      bleedRight
+      bleedRight,
+      scaleWithSize
     };
     wakeRef.current();
   });
@@ -781,10 +785,12 @@ export const TechText: React.FC<TechTextProps> = ({
       const devW = devX2 - devX1;
       const devH = devY2 - devY1;
 
+      const scaled = Boolean(s.scaleWithSize);
+      const unit = Math.max(1, view.size * 0.012) * dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = accent;
       ctx.strokeStyle = accent;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = scaled ? unit : 1;
 
       const moved = Math.hypot(glyph.offset.x, glyph.offset.y);
       if (moved > 1) {
@@ -795,12 +801,17 @@ export const TechText: React.FC<TechTextProps> = ({
         ctx.beginPath();
         ctx.moveTo(hx + 0.5, hy + 0.5);
         ctx.lineTo(targetX + 0.5, targetY + 0.5);
-        ctx.setLineDash([Math.round(3 * dpr), Math.round(4 * dpr)]);
+        ctx.setLineDash(
+          scaled
+            ? [Math.round(unit * 2.2), Math.round(unit * 2.8)]
+            : [Math.round(3 * dpr), Math.round(4 * dpr)]
+        );
         ctx.globalAlpha = 0.5 * a;
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.beginPath();
-        ctx.rect(hx - 2, hy - 2, 4, 4);
+        if (scaled) ctx.rect(hx - unit, hy - unit, unit * 2, unit * 2);
+        else ctx.rect(hx - 2, hy - 2, 4, 4);
         ctx.globalAlpha = 0.75 * a;
         ctx.fill();
       }
@@ -810,7 +821,7 @@ export const TechText: React.FC<TechTextProps> = ({
       ctx.globalAlpha = 0.65 * a;
       ctx.stroke();
 
-      const handleSize = Math.max(5, Math.round(4 * dpr));
+      const handleSize = scaled ? Math.max(unit * 2.4, 4) : Math.max(5, Math.round(4 * dpr));
       const halfH = Math.floor(handleSize / 2);
       ctx.beginPath();
       for (const [cx, cy] of [
@@ -833,8 +844,9 @@ export const TechText: React.FC<TechTextProps> = ({
 
       if (!s.labels) return;
 
-      // Scale label font size proportionally with the wordmark size (12px on mobile up to 16px on big screens)
-      const labelCssSize = Math.max(12, Math.min(16, Math.round(view.size * 0.085)));
+      const labelCssSize = scaled
+        ? Math.max(8, view.size * 0.09)
+        : Math.max(12, Math.min(16, Math.round(view.size * 0.085)));
       const labelDevSize = Math.round(labelCssSize * dpr);
       ctx.font = `600 ${labelDevSize}px "Geist Mono", Consolas, SFMono-Regular, Menlo, monospace`;
       ctx.textAlign = 'left';

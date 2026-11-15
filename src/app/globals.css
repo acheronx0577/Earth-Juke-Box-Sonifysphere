@@ -317,7 +317,32 @@ body::-webkit-scrollbar {
 
 }
 
-/* Orbit Matter sci-fi footer container & shape */
+/* One continuous vw/svh size. Type keeps a readability floor. Spacing, the
+   four corner chamfers, and the wordmark all follow --footer-s. */
+.sonify-footer {
+  --footer-s: clamp(8px, 3px + 0.48vw + 0.18svh, 32px);
+  --footer-chamfer: calc(var(--footer-s) * 2.8);
+  --footer-notch-depth: calc(var(--footer-s) * 2.2);
+  --footer-text: max(13px, calc(var(--footer-s) * 1.05));
+  --footer-label: max(11px, calc(var(--footer-s) * 0.9));
+  --footer-legal: max(10px, calc(var(--footer-s) * 0.74));
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: calc(var(--footer-s) * 1.7) calc(var(--footer-s) * 1.15);
+  position: relative;
+  z-index: 20;
+  background: transparent;
+  overflow: visible;
+}
+
+.sonify-footer-frame {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  container-type: inline-size;
+}
+
 .sonify-footer-bg-wrapper {
   position: absolute;
   inset: 0;
@@ -331,6 +356,108 @@ body::-webkit-scrollbar {
   width: 100%;
   height: 100%;
   background-color: #262626;
+  clip-path: polygon(
+    var(--footer-chamfer) 0,
+    calc(50% - 16%) 0,
+    calc(50% - 14.2%) var(--footer-notch-depth),
+    calc(50% + 14.2%) var(--footer-notch-depth),
+    calc(50% + 16%) 0,
+    calc(100% - var(--footer-chamfer)) 0,
+    100% var(--footer-chamfer),
+    100% calc(100% - var(--footer-chamfer)),
+    calc(100% - var(--footer-chamfer)) 100%,
+    var(--footer-chamfer) 100%,
+    0 calc(100% - var(--footer-chamfer)),
+    0 var(--footer-chamfer)
+  );
+}
+
+.sonify-footer-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--footer-s) * 1.85);
+  padding:
+    calc(var(--footer-notch-depth) + var(--footer-s) * 1.7)
+    max(var(--footer-chamfer), calc(var(--footer-s) * 2.15))
+    max(var(--footer-chamfer), calc(var(--footer-s) * 1.45));
+  overflow: visible;
+}
+
+.sonify-footer-cols {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(var(--footer-s) * 1.45) calc(var(--footer-s) * 1.7);
+  width: 100%;
+  color: #f2f2f0;
+}
+
+.sonify-footer-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--footer-s) * 0.55);
+  width: 100%;
+  min-width: 0;
+}
+
+.sonify-footer-kicker {
+  margin: 0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--footer-label);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sonify-footer-copy,
+.sonify-footer-link {
+  font-family: var(--font-geist), sans-serif;
+  font-size: var(--footer-text);
+  font-weight: 400;
+  line-height: 1.45;
+  color: #f2f2f0;
+}
+
+.sonify-footer-copy {
+  margin: 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.sonify-footer-link {
+  width: 100%;
+  text-decoration: none;
+}
+
+.sonify-footer a.sonify-text-link {
+  min-height: 0;
+}
+
+.sonify-footer-link-underline,
+.sonify-footer-inline-link {
+  text-decoration: underline;
+  text-decoration-thickness: from-font;
+  text-underline-offset: 0.12em;
+}
+
+.sonify-footer-inline-link {
+  color: #f2f2f0;
+  cursor: pointer;
+}
+
+.sonify-footer-wordmark {
+  position: relative;
+  width: 84cqi;
+  max-width: 100%;
+  aspect-ratio: 1346.4 / 239.467;
+  z-index: 3;
+  overflow: visible;
+  container-type: inline-size;
+  font-family: "PlanetKosmos", sans-serif;
 }
 
 .sonify-footer-wordmark-static {
@@ -340,22 +467,45 @@ body::-webkit-scrollbar {
   place-items: center;
   color: #f2f2f0;
   font-family: "PlanetKosmos", sans-serif;
-  font-size: clamp(2rem, 9vw, 4.5rem);
-  line-height: 1;
+  font-size: 10.45cqi;
+  font-weight: 400;
+  line-height: 0.78;
+  letter-spacing: -0.03em;
   text-align: center;
   white-space: nowrap;
 }
 
-@media (min-width: 1000px) {
-  .sonify-footer-bg {
-    clip-path: var(--clip-orbit-matter-console);
+.sonify-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: calc(var(--footer-s) * 0.7) calc(var(--footer-s) * 1.4);
+  width: 100%;
+  margin: 0;
+  color: #f2f2f0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: var(--footer-legal);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sonify-footer-legal p {
+  margin: 0;
+  max-width: 46em;
+}
+
+@media (min-width: 640px) {
+  .sonify-footer-cols {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 999px) {
-  .sonify-footer-bg {
-    clip-path: none;
-    border-radius: 0.75rem;
+@media (min-width: 1000px) {
+  .sonify-footer-cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
