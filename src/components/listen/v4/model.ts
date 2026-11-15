@@ -10,6 +10,7 @@ export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "a
 export type SoundStyle = "synth" | "orchestra";
 export type InstrumentId = "soft-synth" | "marimba" | "woodblock" | "strings";
 export type VariationId = "soft" | "bright" | "deep";
+export type PitchMode = "continuous" | "pentatonic";
 export type MediaKind = "map" | "image" | "video" | "search";
 
 export interface ListenSource {

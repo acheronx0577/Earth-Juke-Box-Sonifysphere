@@ -6,7 +6,9 @@ import { onPlaybackStopped } from "@/lib/playbackGate";
 import { legendFromMetadata, type LegendModel } from "@/components/listen/v4/legend";
 import { EIC_FRAME_IMAGE, EIC_FRAME_SOURCE, EIC_FRAME_STATUS } from "@/components/listen/v4/eicSource";
 import { ListenMap } from "@/components/listen/v4/ListenMap";
-import { frequencyForValue, intervalForTempo, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
+import { frequencyForValue, intervalForTempo, layerTimbreFor, noteNameForFrequency } from "@/components/listen/v4/audioMapping";
+import { MAP_REGIONS } from "@/data/exploreMap";
+import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import {
   EXTRA_LAYERS,
   INSTRUMENTS,
@@ -29,6 +31,7 @@ import {
   type InstrumentId,
   type LayerId,
   type ListenSource,
+  type PitchMode,
   type SearchRecord,
   type SoundStyle,
   type VariationId,
@@ -44,6 +47,13 @@ import "./listen-v4.css";
 
 const HISTORY_KEY = "sonifysphere-listen-v4";
 const PROFILE_KEY = "sonifysphere-listen-v4-profiles";
+
+const MAP_SCAN_POINTS = MAP_REGIONS.map((region) => {
+  const coordinates = region.id === "nino34"
+    ? region.center
+    : REGION_SHAPES.find((shape) => shape.id === region.id)?.label ?? region.center;
+  return { id: region.id, name: region.name, lng: coordinates[0], lat: coordinates[1] };
+}).sort((a, b) => a.lng - b.lng);
 
 interface NasaHit {
   id: string;
@@ -62,6 +72,8 @@ interface SavedProfile {
   style: SoundStyle;
   instrument: InstrumentId;
   variation: VariationId;
+  pitchMode?: PitchMode;
+  ambience?: boolean;
   volume: number;
   tempo: number;
   year: number;
@@ -239,11 +251,18 @@ function SoundFields({
   styleId,
   instrument,
   variation,
+  pitchMode,
+  ambience,
+  scanAvailable,
+  scanning,
   volume,
   tempo,
   onStyle,
   onInstrument,
   onVariation,
+  onPitchMode,
+  onAmbience,
+  onScan,
   onVolume,
   onTempo,
 }: {
@@ -251,11 +270,18 @@ function SoundFields({
   readonly styleId: SoundStyle;
   readonly instrument: InstrumentId;
   readonly variation: VariationId;
+  readonly pitchMode: PitchMode;
+  readonly ambience: boolean;
+  readonly scanAvailable: boolean;
+  readonly scanning: boolean;
   readonly volume: number;
   readonly tempo: number;
   readonly onStyle: (id: SoundStyle) => void;
   readonly onInstrument: (id: InstrumentId) => void;
   readonly onVariation: (id: VariationId) => void;
+  readonly onPitchMode: (id: PitchMode) => void;
+  readonly onAmbience: () => void;
+  readonly onScan: () => void;
   readonly onVolume: (value: number) => void;
   readonly onTempo: (value: number) => void;
 }) {
@@ -291,6 +317,29 @@ function SoundFields({
           ))}
         </div>
       </div>
+      <div className="lv-field">
+        <p className="lv-mono lv-eyebrow">PITCH MAPPING</p>
+        <div className="lv-chip-grid lv-pitch-mode" role="group" aria-label="Pitch mapping">
+          <Chip pressed={pitchMode === "continuous"} onClick={() => onPitchMode("continuous")}>CONTINUOUS</Chip>
+          <Chip pressed={pitchMode === "pentatonic"} onClick={() => onPitchMode("pentatonic")}>PENTATONIC</Chip>
+        </div>
+      </div>
+      <div className="lv-field">
+        <p className="lv-mono lv-eyebrow">AMBIENT BED</p>
+        <div className="lv-chip-grid lv-ambience-toggle" role="group" aria-label="Ambient bed">
+          <Chip pressed={ambience} onClick={onAmbience}>{ambience ? "ON" : "OFF"}</Chip>
+        </div>
+      </div>
+      {scanAvailable ? (
+        <div className="lv-field lv-scan-field">
+          <p className="lv-mono lv-eyebrow">SPATIAL MAP SCAN</p>
+          <button type="button" className="lv-map-scan lv-cut" aria-pressed={scanning} onClick={onScan}>
+            <ChamferMark />
+            {scanning ? "STOP SCAN" : "SCAN WEST → EAST"}
+          </button>
+          <small className="lv-scan-note">12 regional example points · stereo follows longitude</small>
+        </div>
+      ) : null}
       <WakeSlider label="VOLUME" min={0} max={100} step={1} value={volume} text={`${Math.round(volume)}%`} compact={compact} onChange={onVolume} />
       <WakeSlider
         label="TEMPO"
@@ -312,7 +361,11 @@ function AudioKey({
   source,
   reading,
   styleId,
+  instrument,
   variation,
+  pitchMode,
+  ambience,
+  pan,
   tempo,
 }: {
   readonly layer: LayerId;
@@ -320,25 +373,40 @@ function AudioKey({
   readonly source: ListenSource;
   readonly reading: ReturnType<typeof readProbe>;
   readonly styleId: SoundStyle;
+  readonly instrument: InstrumentId;
   readonly variation: VariationId;
+  readonly pitchMode: PitchMode;
+  readonly ambience: boolean;
+  readonly pan: number;
   readonly tempo: number;
 }) {
   const activeId = layer === "all" ? "visual" : layer;
   const active = reading.cards.find((card) => card.id === activeId);
   const toneLabel = (value: number) => {
-    const frequency = frequencyForValue(value, variation);
+    const frequency = frequencyForValue(value, variation, pitchMode);
     if (frequency === null) return "Silent";
-    return styleId === "orchestra"
-      ? `${noteNameForFrequency(frequency)} · nearest note`
+    if (styleId === "orchestra" && pitchMode === "continuous") return `${noteNameForFrequency(frequency)} · nearest semitone`;
+    return pitchMode === "pentatonic" || styleId === "orchestra"
+      ? `${noteNameForFrequency(frequency)} · ${Math.round(frequency)} Hz`
       : `${Math.round(frequency)} Hz`;
   };
-  const currentFrequency = frequencyForValue(reading.normalized, variation);
+  const currentFrequency = frequencyForValue(reading.normalized, variation, pitchMode);
   const currentTone = currentFrequency === null
     ? "Silent · no matched data"
-    : styleId === "orchestra"
-      ? `${noteNameForFrequency(currentFrequency)} · nearest note`
+    : styleId === "orchestra" && pitchMode === "continuous"
+      ? `${noteNameForFrequency(currentFrequency)} · nearest semitone`
+    : pitchMode === "pentatonic" || styleId === "orchestra"
+      ? `${noteNameForFrequency(currentFrequency)} · ${Math.round(currentFrequency)} Hz`
       : `${Math.round(currentFrequency)} Hz`;
   const interval = intervalForTempo(tempo);
+  const timbre = styleId === "orchestra" || instrument === "strings"
+    ? "sampled string orchestra"
+    : instrument === "marimba"
+      ? "FM marimba mallet tone"
+      : instrument === "woodblock"
+        ? "short membrane percussion strike"
+        : layerTimbreFor(layer).label;
+  const panPosition = Math.abs(pan) < 0.01 ? "center" : `${pan < 0 ? "left" : "right"} ${Math.round(Math.abs(pan) * 100)}%`;
 
   return (
     <details className="lv-audio-key">
@@ -355,8 +423,9 @@ function AudioKey({
             </p>
           ))}
         </div>
-        <p>Higher normalized values raise pitch. Current sound: {currentTone}.</p>
-        <p>Tempo triggers one note every {interval} ms. The selected instrument changes timbre; data controls pitch.</p>
+        <p>Higher normalized values raise pitch. Current sound: {currentTone}. Mapping: {pitchMode === "pentatonic" ? "C-major pentatonic" : "continuous"}.</p>
+        <p>One note every {interval} ms. Timbre: {timbre}. {ambience ? "A quiet two-octave pad and longer reverb are on." : "A short room reverb is on; the ambient pad is off."}</p>
+        <p>{source.kind === "map" ? `Stereo position follows longitude · ${panPosition}. The regional scan uses example data, not live measurements.` : "Media sources stay centered in stereo."}</p>
       </div>
     </details>
   );
@@ -493,9 +562,12 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
     setInstrument(id === "strings" ? "soft-synth" : id);
   }, []);
   const [variation, setVariation] = useState<VariationId>("soft");
+  const [pitchMode, setPitchMode] = useState<PitchMode>("pentatonic");
+  const [ambience, setAmbience] = useState(false);
   const [volume, setVolume] = useState(80);
   const [tempo, setTempo] = useState(1);
   const [playing, setPlaying] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
@@ -506,11 +578,24 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [readingError, setReadingError] = useState("");
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
+  const mapScanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nasaSearchRequests = useRef(createLatestRequest());
   const nasaAssetRequests = useRef(createLatestRequest());
   const ready = useRef(false);
   const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
+
+  const stopMapScan = useCallback((message?: string) => {
+    if (mapScanTimer.current) clearTimeout(mapScanTimer.current);
+    mapScanTimer.current = null;
+    setScanning(false);
+    if (message) setStatus(message);
+  }, []);
+
+  useEffect(() => () => {
+    if (mapScanTimer.current) clearTimeout(mapScanTimer.current);
+    mapScanTimer.current = null;
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(max-width: 699px)");
@@ -642,14 +727,31 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   );
 
   const hearing = useMemo<HearingParams>(
-    () => ({ style: styleId, instrument, variation, volume, tempo, value: reading.normalized }),
-    [styleId, instrument, variation, volume, tempo, reading.normalized],
+    () => ({
+      style: styleId,
+      instrument,
+      variation,
+      pitchMode,
+      ambience,
+      layer,
+      pan: source.kind === "map" ? Math.max(-1, Math.min(1, lng / 180)) : 0,
+      volume,
+      tempo,
+      value: reading.normalized,
+    }),
+    [styleId, instrument, variation, pitchMode, ambience, layer, source.kind, lng, volume, tempo, reading.normalized],
   );
 
   useEffect(() => {
     if (!playing) return;
     updateProbeAudio(hearing);
   }, [hearing, playing]);
+
+  useEffect(() => {
+    if (scanning && (source.kind !== "map" || layer !== "temperature")) {
+      stopMapScan("Map scan stopped because the selected source or layer changed.");
+    }
+  }, [scanning, source.kind, layer, stopMapScan]);
 
   const readingContextRef = useRef<ReadingContext | null>(null);
   useEffect(() => {
@@ -959,6 +1061,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
 
   const togglePlay = async () => {
     if (playing) {
+      stopMapScan();
       stopProbeAudio();
       setPlaying(false);
       setStatus("");
@@ -974,6 +1077,62 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
     setStatus(started ? `Playing ${instrument.replace("-", " ")}.` : "Audio could not start on this device.");
   };
 
+  const canScanMap = source.kind === "map" && layer === "temperature";
+  const toggleMapScan = async () => {
+    if (scanning) {
+      stopMapScan("Map scan stopped. Playback stays at the current point.");
+      return;
+    }
+    if (!canScanMap || MAP_SCAN_POINTS.length === 0) return;
+
+    const first = MAP_SCAN_POINTS[0];
+    const firstReading = readProbe({
+      layer,
+      year,
+      lat: first.lat,
+      lng: first.lng,
+      source,
+      pixelColor: null,
+      measured: null,
+      measuring: false,
+    });
+
+    if (!playing) {
+      setSoundEnabled(true);
+      const started = await startProbeAudio({
+        ...hearing,
+        value: firstReading.normalized,
+        pan: Math.max(-1, Math.min(1, first.lng / 180)),
+      });
+      if (!started) {
+        setStatus("Audio could not start on this device.");
+        return;
+      }
+      setPlaying(true);
+    }
+
+    setLat(first.lat);
+    setLng(first.lng);
+    setScanning(true);
+    setStatus(`Map scan 1/${MAP_SCAN_POINTS.length} · ${first.name}.`);
+    let index = 1;
+    const advance = () => {
+      const point = MAP_SCAN_POINTS[index];
+      if (!point) {
+        mapScanTimer.current = null;
+        setScanning(false);
+        setStatus("Map scan complete. Playback continues at the last point.");
+        return;
+      }
+      setLat(point.lat);
+      setLng(point.lng);
+      setStatus(`Map scan ${index + 1}/${MAP_SCAN_POINTS.length} · ${point.name}.`);
+      index += 1;
+      mapScanTimer.current = setTimeout(advance, 1500);
+    };
+    mapScanTimer.current = setTimeout(advance, 1500);
+  };
+
   const saveProfile = () => {
     const profile: SavedProfile = {
       id: `${Date.now()}`,
@@ -982,6 +1141,8 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
       style: styleId,
       instrument,
       variation,
+      pitchMode,
+      ambience,
       volume,
       tempo,
       year,
@@ -995,6 +1156,8 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
     setStyleId(profile.style);
     chooseInstrument(profile.instrument);
     setVariation(profile.variation);
+    setPitchMode(profile.pitchMode ?? "continuous");
+    setAmbience(profile.ambience ?? false);
     setVolume(profile.volume);
     setTempo(profile.tempo);
     setYear(profile.year);
@@ -1131,6 +1294,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
             coord={coord}
             onPixel={setPixelColor}
             onProbe={(nextLat, nextLng) => {
+              if (scanning) stopMapScan("Map scan stopped at the selected point.");
               setLat(Math.max(-85, Math.min(85, nextLat)));
               setLng(Math.max(-180, Math.min(180, nextLng)));
             }}
@@ -1184,11 +1348,18 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
                   styleId={styleId}
                   instrument={instrument}
                   variation={variation}
+                  pitchMode={pitchMode}
+                  ambience={ambience}
+                  scanAvailable={canScanMap}
+                  scanning={scanning}
                   volume={volume}
                   tempo={tempo}
                   onStyle={setStyleId}
                   onInstrument={chooseInstrument}
                   onVariation={setVariation}
+                  onPitchMode={setPitchMode}
+                  onAmbience={() => setAmbience((value) => !value)}
+                  onScan={() => void toggleMapScan()}
                   onVolume={setVolume}
                   onTempo={setTempo}
                 />
@@ -1198,7 +1369,11 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
                   source={source}
                   reading={reading}
                   styleId={styleId}
+                  instrument={instrument}
                   variation={variation}
+                  pitchMode={pitchMode}
+                  ambience={ambience}
+                  pan={hearing.pan}
                   tempo={tempo}
                 />
                 <div className="lv-sheet-actions">
@@ -1259,11 +1434,18 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
             styleId={styleId}
             instrument={instrument}
             variation={variation}
+            pitchMode={pitchMode}
+            ambience={ambience}
+            scanAvailable={canScanMap}
+            scanning={scanning}
             volume={volume}
             tempo={tempo}
             onStyle={setStyleId}
             onInstrument={chooseInstrument}
             onVariation={setVariation}
+            onPitchMode={setPitchMode}
+            onAmbience={() => setAmbience((value) => !value)}
+            onScan={() => void toggleMapScan()}
             onVolume={setVolume}
             onTempo={setTempo}
           />
@@ -1292,7 +1474,11 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
             source={source}
             reading={reading}
             styleId={styleId}
+            instrument={instrument}
             variation={variation}
+            pitchMode={pitchMode}
+            ambience={ambience}
+            pan={hearing.pan}
             tempo={tempo}
           />
           <button type="button" className="lv-save lv-cut" onClick={saveProfile}>
