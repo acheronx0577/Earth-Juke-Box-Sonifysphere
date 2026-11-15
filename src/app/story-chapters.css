@@ -64,6 +64,7 @@
   --story-play-font: clamp(14.4px, 0.456vw + 12px, 21.6px);
   --story-play-pad-y: clamp(17px, 1.73vh, 31px);
   --story-play-height: calc(var(--story-play-pad-y) * 2 + var(--story-play-font) * 1.25);
+  --story-round-size: calc(var(--story-play-height) * 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,7 +75,7 @@
   position: relative;
   z-index: 1;
   font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(16px, 0.7vw + 12px, 28px);
+  font-size: clamp(12.8px, 0.56vw + 9.6px, 22.4px);
   line-height: 1;
   color: #f2f2f0;
 }
@@ -285,8 +286,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--story-play-height);
-  height: var(--story-play-height);
+  width: var(--story-round-size);
+  height: var(--story-round-size);
   padding: 0;
   background: transparent;
   border: none;
@@ -365,7 +366,7 @@
   }
 
   .story-btn-round {
-    flex: 0 0 var(--story-play-height);
+    flex: 0 0 var(--story-round-size);
   }
 
   .story-btn-pill {
