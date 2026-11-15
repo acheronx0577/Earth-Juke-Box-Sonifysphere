@@ -649,6 +649,19 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       return { w, h, spacing, openH: frame.height, openY: frame.y, titleSpace: frame.titleSpace };
     };
 
+    // One opacity for the whole card, ramping across about one card-width at each edge.
+    const positionFade = (centerX: number, cardW: number) => {
+      if (reduce) return 1;
+      const span = Math.max(cardW, 1);
+      const left = centerX - span / 2;
+      const right = centerX + span / 2;
+      let visible = 1;
+      if (left < 0) visible = right / span;
+      else if (right > view.width) visible = (view.width - left) / span;
+      const t = clamp(visible, 0, 1);
+      return t * t * (3 - 2 * t);
+    };
+
     const draw = (metrics: { w: number; h: number; spacing: number }) => {
       const s = settingsRef.current;
       const ratio = view.ratio;
@@ -664,8 +677,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (u.uResolution) gl.uniform2f(u.uResolution, canvas.width, canvas.height);
       if (u.uFocal) gl.uniform1f(u.uFocal, view.height * 1.207 * ratio);
       if (u.uWaveTime) gl.uniform1f(u.uWaveTime, state.waveTime);
-      const fadeAmount = view.width >= 1280 ? Math.min(s.fadeEdges, 10 / Math.max(view.width, 1)) : s.fadeEdges;
-      if (u.uFade) gl.uniform1f(u.uFade, fadeAmount);
+      if (u.uFade) gl.uniform1f(u.uFade, 0);
       if (u.uPlaceholder) gl.uniform3fv(u.uPlaceholder, parse(s.textColor));
       if (u.uRingColor) gl.uniform3fv(u.uRingColor, parse(s.textColor));
       if (u.uRingWidth) gl.uniform1f(u.uRingWidth, 2 * ratio);
@@ -681,7 +693,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         if (u.uAngle) gl.uniform1f(u.uAngle, card.angle);
         if (u.uRadius) gl.uniform1f(u.uRadius, Math.min(card.radius, card.w / 2, card.h / 2) * ratio);
         if (u.uWave) gl.uniform1f(u.uWave, wavePx * (1 - card.focus));
-        if (u.uAlpha) gl.uniform1f(u.uAlpha, card.alpha);
+        if (u.uAlpha) gl.uniform1f(u.uAlpha, card.alpha * positionFade(view.width / 2 + card.x, card.w));
       };
 
       if (s.shadow > 0) {
@@ -720,12 +732,6 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       ensurePool(metrics.spacing);
       const used = new Set<PoolEntry>();
       const font = fontRef.current;
-      const fadeAmount = view.width >= 1280 ? Math.min(s.fadeEdges, 10 / Math.max(view.width, 1)) : s.fadeEdges;
-      const fade = (value: number) => {
-        if (fadeAmount <= 0) return 1;
-        const t = clamp(value / fadeAmount, 0, 1);
-        return t * t * t * (t * (t * 6 - 15) + 10);
-      };
       if (s.showTitles) {
         cards.forEach((card) => {
           if (!card.item.text) return;
@@ -759,16 +765,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
           const y = card.y - Math.cos(card.angle) * offset;
           const cssX = view.width / 2 + x;
           const cssY = view.height / 2 - y;
-          const edge = fade(cssX / view.width) * fade(1 - cssX / view.width);
-          const labelWidth = entry.el.offsetWidth || maxWidth;
-          const left = cssX - labelWidth / 2;
-          const right = cssX + labelWidth / 2;
-          const fullyInside = left >= 2 && right <= view.width - 2;
-          // Wide screens fade a title only while its card is entering or leaving.
-          // At rest the five cards are sized to sit fully inside, so every title stays readable.
-          const titleOpacity = view.width >= 1280
-            ? card.alpha * card.labelAlpha * edge
-            : (fullyInside ? card.alpha * card.labelAlpha * mix(edge, 1, card.focus) : 0);
+          const titleOpacity = card.alpha * card.labelAlpha * positionFade(cssX, card.w);
           entry.el.style.color = s.textColor;
           entry.el.style.transform = `translate(${cssX}px, ${cssY}px) translate(-50%, -50%) rotate(${-card.angle}rad)`;
           entry.el.style.opacity = String(titleOpacity);
