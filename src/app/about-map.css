@@ -795,6 +795,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
   transition: transform 0.3s ease;
 }
 
@@ -846,13 +847,13 @@
 
 @media (min-width: 1280px) {
   .team .cards {
-    top: 58%;
-    height: min(78svh, 920px);
+    top: 56%;
+    height: min(72svh, 860px);
   }
 
   .team .cards .card {
-    --crew-w: clamp(520px, 38vw, 780px);
-    --crew-h: clamp(600px, 36vw, 720px);
+    --crew-h: min(58svh, 42vw, 700px);
+    --crew-w: calc(var(--crew-h) * 425 / 575);
     width: var(--crew-w);
     height: var(--crew-h);
     margin-left: calc(var(--crew-w) / -2);
@@ -961,9 +962,9 @@
 
   .team .cards .card {
     width: 320px;
-    height: 440px;
+    height: calc(320px * 575 / 425);
     margin-left: -160px;
-    margin-top: -220px;
+    margin-top: calc(320px * 575 / 425 / -2);
   }
 
   .record-notes {
