@@ -1637,3 +1637,9 @@
 .lv-collapse:focus-visible {
   --lv-stroke: #fff3ea;
 }
+
+.lv-play:focus-visible,
+.lv-chip.is-on:focus-visible,
+.lv-tab[aria-current="page"]:focus-visible {
+  --lv-stroke: var(--lv-ink);
+}

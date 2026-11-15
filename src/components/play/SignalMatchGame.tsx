@@ -55,6 +55,8 @@ const MATCH_ROUNDS: MatchRound[] = [
 ];
 
 const METER_HEIGHTS = [20, 35, 55, 75, 90, 75, 55, 35] as const;
+const INITIAL_USER_FREQ = 80;
+const INITIAL_USER_Q = 0.5;
 
 function getCoherence(userFreq: number, userQ: number, targetFreq: number, targetQ: number): number {
   const freqDiff = Math.abs(userFreq - targetFreq) / targetFreq;
@@ -240,7 +242,7 @@ function AudioMeter({
   const style = getMeterStyle(coherence);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[#f2f2f0]/10 bg-[#141414] p-6 text-center">
+    <div className="flex flex-col items-center justify-center gap-2 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#141414] p-6 text-center">
       <div className="flex items-end justify-center gap-1.5 h-16 w-full max-w-xs">
         {METER_HEIGHTS.map((heightPct, idx) => {
           const activeHeight = isActive ? heightPct : 15;
@@ -284,7 +286,7 @@ function TuningDials({
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-2 rounded-lg border border-[#f2f2f0]/10 bg-[#262626] p-4">
+      <div className="flex flex-col gap-2 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-4">
         <div className="flex items-center justify-between font-mono text-xs">
           <span className="text-[#f2f2f0]/70">Carrier Frequency</span>
           <span className="font-bold text-[#f2f2f0]">{userFreq} Hz</span>
@@ -304,7 +306,7 @@ function TuningDials({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-lg border border-[#f2f2f0]/10 bg-[#262626] p-4">
+      <div className="flex flex-col gap-2 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-4">
         <div className="flex items-center justify-between font-mono text-xs">
           <span className="text-[#f2f2f0]/70">Atmospheric Resonance (Q)</span>
           <span className="font-bold text-[#f2f2f0]">{userQ.toFixed(1)}</span>
@@ -388,7 +390,7 @@ function CalibratedNextButton({ onNext, hasNext }: { onNext: () => void; hasNext
 
 function FactBanner({ fact }: { fact: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-[#f2f2f0]/30 bg-[#262626] p-4 text-[#f2f2f0]">
+    <div className="flex flex-col gap-2 sonify-chamfer-panel border border-[#f2f2f0]/30 bg-[#262626] p-4 text-[#f2f2f0]">
       <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-[#f2f2f0]">
         Planetary Record Unlocked:
       </span>
@@ -423,8 +425,8 @@ type MatchAction =
 
 const INITIAL_STATE: MatchState = {
   roundIdx: 0,
-  userFreq: 250,
-  userQ: 2.0,
+  userFreq: INITIAL_USER_FREQ,
+  userQ: INITIAL_USER_Q,
   isPlayingTarget: false,
   isPlayingUser: false,
   isLocked: false,
@@ -446,7 +448,7 @@ function matchReducer(state: MatchState, action: MatchAction): MatchState {
     case "LOCK_SIGNAL":
       return { ...state, isLocked: true, isPlayingUser: false, totalScore: state.totalScore + action.scoreGain, roundScores: [...state.roundScores, action.scoreGain] };
     case "NEXT_ROUND":
-      return { ...state, roundIdx: state.roundIdx + 1, userFreq: 250, userQ: 2.0, isLocked: false };
+      return { ...state, roundIdx: state.roundIdx + 1, userFreq: INITIAL_USER_FREQ, userQ: INITIAL_USER_Q, isLocked: false };
     case "FINISH_GAME":
       return { ...state, gameFinished: true };
     case "RESTART":
