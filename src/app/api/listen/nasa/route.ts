@@ -25,7 +25,9 @@ export async function GET(request: NextRequest) {
     const body = await response.json() as { collection?: { items?: NasaItem[]; metadata?: { total_hits?: number } } };
     const items = (body.collection?.items ?? []).flatMap((item) => {
       const data = item.data?.[0];
-      const preview = item.links?.find((link) => link.rel === "preview")?.href ?? item.links?.[0]?.href;
+      const imageLink = (href?: string) => !!href && /\.(?:jpe?g|png|gif|webp)(?:$|\?)/i.test(href);
+      const preview = item.links?.find((link) => link.rel === "preview" && imageLink(link.href))?.href
+        ?? item.links?.find((link) => imageLink(link.href))?.href;
       if (!data?.nasa_id || !data.title || !preview || !["image", "video"].includes(data.media_type ?? "")) return [];
       return [{
         id: data.nasa_id,

@@ -26,7 +26,7 @@ test("phone menu sound toggle stops the about hero", async ({ page }) => {
 });
 
 test("phone theme sheet leads with the year slider", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   await page.getByRole("button", { name: "Open theme controls" }).click();
   const year = liveMain(page).getByText("YEAR", { exact: true });
   await expect(year).toBeVisible();
@@ -38,7 +38,7 @@ test("phone theme sheet leads with the year slider", async ({ page }) => {
 });
 
 test("phone place card Turn sound on accepts a tap", async ({ page }) => {
-  await page.goto("/listen?sound=off");
+  await page.goto("/listen/classic?sound=off");
   const europe = page.getByRole("button", { name: "Europe", exact: true }).filter({ visible: true });
   await europe.evaluate((el: HTMLButtonElement) => el.click());
   await page.getByRole("button", { name: "Hear it" }).filter({ visible: true }).click();

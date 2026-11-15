@@ -825,6 +825,12 @@ nav .nav-mobile-header p,
     filter: url("#goo");
     margin-top: -1rem;
     z-index: 1;
+    pointer-events: none;
+  }
+
+  nav.nav-open .nav-overlay,
+  .sonify-nav.nav-open .nav-overlay {
+    pointer-events: auto;
   }
 
   nav .nav-overlay::before,

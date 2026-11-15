@@ -1,27 +1,22 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-import nextConfigPkg from "eslint-config-next/package.json" with { type: "json" };
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
-void nextConfigPkg;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
-  },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {
     rules: {
       "@next/next/no-img-element": "off",
+      // These React Compiler checks are new in eslint-plugin-react-hooks 7.
+      // The existing components predate them, so keep the previous lint bar.
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/purity": "off",
+      "@typescript-eslint/ban-ts-comment": ["error", { "ts-nocheck": false }],
     },
   },
-];
+]);
 
 export default eslintConfig;
