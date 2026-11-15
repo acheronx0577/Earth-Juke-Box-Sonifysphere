@@ -480,6 +480,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     let snapTimer: ReturnType<typeof setTimeout> | undefined;
     let lastItems: GalleryItem[] | null = null;
     let typing = false;
+    let pointerPoint: { x: number; y: number } | null = null;
+    let inFrame = false;
 
     const textureFor = (url: string): TextureEntry => {
       const existing = textures.get(url);
@@ -870,11 +872,15 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const frame = (now: number) => {
       raf = 0;
+      inFrame = true;
       if (resizePending) {
         resizePending = false;
         applyResize();
       }
-      if (!visible || document.hidden) return;
+      if (!visible || document.hidden) {
+        inFrame = false;
+        return;
+      }
       const s = settingsRef.current;
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
@@ -955,11 +961,13 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       }
 
       const metrics = layout();
+      if (pointerPoint) setPointer(hit(pointerPoint));
       draw(metrics);
       placeLabels(metrics);
 
       const moving =
         auto ||
+        pointerPoint !== null ||
         state.scroll !== state.target ||
         state.velocity !== 0 ||
         state.open !== state.openTarget ||
@@ -968,6 +976,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         settling;
       if (moving) raf = requestAnimationFrame(frame);
       else last = 0;
+      inFrame = false;
     };
 
     function wake() {
@@ -1005,7 +1014,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       if (slot !== state.hovered) {
         state.hovered = slot;
         if (slot !== null && !state.hover.has(slot)) state.hover.set(slot, 0);
-        wake();
+        if (!inFrame) wake();
       }
       const over = state.hovered !== null;
       if (over !== wasOver) settingsRef.current.onCardHover?.(over);
@@ -1059,7 +1068,10 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         }
         return;
       }
-      if (event.pointerType === 'mouse') setPointer(hit(point(event)));
+      if (event.pointerType === 'mouse') {
+        pointerPoint = point(event);
+        setPointer(hit(pointerPoint));
+      }
     };
 
     const onPointerUp = (event: PointerEvent) => {
@@ -1112,6 +1124,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     };
 
     const onPointerLeave = () => {
+      pointerPoint = null;
       setPointer(null);
     };
 
