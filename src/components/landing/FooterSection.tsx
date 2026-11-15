@@ -4,50 +4,30 @@ import { FooterWordmark } from "@/components/landing/FooterWordmark";
 function FooterNavAndDataColumns({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
   return (
     <>
-      <div className="flex flex-col gap-[10px] items-start relative w-full min-w-0">
-        <p className="font-mono font-medium leading-[1.2] relative text-[13px] tracking-[0.52px] uppercase">
-          Navigate
-        </p>
-        <Link
-          href="/listen"
-          className="sonify-text-link no-underline text-[#f2f2f0] font-sans font-normal leading-[1.45] text-[15px] w-full"
-        >
+      <div className="sonify-footer-col">
+        <p className="sonify-footer-kicker">Navigate</p>
+        <Link href="/listen" className="sonify-text-link sonify-footer-link">
           Listen
         </Link>
-        <Link
-          href="/story"
-          className="sonify-text-link no-underline text-[#f2f2f0] font-sans font-normal leading-[1.45] text-[15px] w-full"
-        >
+        <Link href="/story" className="sonify-text-link sonify-footer-link">
           Story
         </Link>
-        <Link
-          href="/about"
-          className="sonify-text-link no-underline text-[#f2f2f0] font-sans font-normal leading-[1.45] text-[15px] w-full"
-        >
+        <Link href="/about" className="sonify-text-link sonify-footer-link">
           About
         </Link>
         {showChallenge ? (
-          <Link
-            href="/challenge"
-            className="sonify-text-link no-underline text-[#f2f2f0] font-sans font-normal leading-[1.45] text-[15px] w-full"
-          >
+          <Link href="/challenge" className="sonify-text-link sonify-footer-link">
             Challenge
           </Link>
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-[10px] items-start relative w-full min-w-0">
-        <p className="font-mono font-medium leading-[1.2] relative text-[13px] tracking-[0.52px] uppercase">
-          CO₂ data
-        </p>
-        <p className="font-sans font-normal leading-[1.45] text-[15px] w-full">
-          NOAA Global Monitoring Laboratory
-        </p>
-        <p className="font-sans font-normal leading-[1.45] text-[15px] w-full">
-          Mauna Loa Observatory · monthly mean
-        </p>
+      <div className="sonify-footer-col">
+        <p className="sonify-footer-kicker">CO₂ data</p>
+        <p className="sonify-footer-copy">NOAA Global Monitoring Laboratory</p>
+        <p className="sonify-footer-copy">Mauna Loa Observatory · monthly mean</p>
         <a
-          className="sonify-text-link text-[#f2f2f0] block cursor-pointer decoration-from-font decoration-solid font-sans font-normal leading-[1.45] text-[15px] underline w-full"
+          className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
           href="https://gml.noaa.gov/ccgg/trends/"
           target="_blank"
           rel="noreferrer"
@@ -62,15 +42,11 @@ function FooterNavAndDataColumns({ showChallenge }: Readonly<{ showChallenge: bo
 function FooterImageAndTypeColumns() {
   return (
     <>
-      <div className="flex flex-col gap-[10px] items-start relative w-full min-w-0">
-        <p className="font-mono font-medium leading-[1.2] relative text-[13px] tracking-[0.52px] uppercase">
-          Earth image
-        </p>
-        <p className="font-sans font-normal leading-[1.45] text-[15px] w-full">
-          NASA EPIC Team (DSCOVR)
-        </p>
+      <div className="sonify-footer-col">
+        <p className="sonify-footer-kicker">Earth image</p>
+        <p className="sonify-footer-copy">NASA EPIC Team (DSCOVR)</p>
         <a
-          className="sonify-text-link text-[#f2f2f0] block cursor-pointer decoration-from-font decoration-solid font-sans font-normal leading-[1.45] text-[15px] underline w-full"
+          className="sonify-text-link sonify-footer-link sonify-footer-link-underline"
           href="https://epic.gsfc.nasa.gov/"
           target="_blank"
           rel="noreferrer"
@@ -79,14 +55,12 @@ function FooterImageAndTypeColumns() {
         </a>
       </div>
 
-      <div className="flex flex-col gap-[10px] items-start relative w-full min-w-0">
-        <p className="font-mono font-medium leading-[1.2] relative text-[13px] tracking-[0.52px] uppercase">
-          Type
-        </p>
-        <p className="font-sans font-normal leading-[1.45] text-[15px] w-full break-words">
+      <div className="sonify-footer-col">
+        <p className="sonify-footer-kicker">Type</p>
+        <p className="sonify-footer-copy">
           <span>{"Display: Planet Kosmos by Mads Rydahl, The Planet ("}</span>
           <a
-            className="text-[#f2f2f0] cursor-pointer decoration-from-font decoration-solid underline"
+            className="sonify-footer-inline-link"
             href="https://www.planet.dk/fonts/"
             target="_blank"
             rel="noreferrer"
@@ -95,9 +69,7 @@ function FooterImageAndTypeColumns() {
           </a>
           <span>{")"}</span>
         </p>
-        <p className="font-sans font-normal leading-[1.45] text-[15px] w-full">
-          UI: Geist / Geist Mono (SIL OFL 1.1)
-        </p>
+        <p className="sonify-footer-copy">UI: Geist / Geist Mono (SIL OFL 1.1)</p>
       </div>
     </>
   );
@@ -105,26 +77,23 @@ function FooterImageAndTypeColumns() {
 
 export function FooterSection({ showChallenge = false }: Readonly<{ showChallenge?: boolean }>) {
   return (
-    <footer
-      className="flex flex-col items-center py-8 sm:py-12 lg:py-16 px-3 sm:px-6 lg:px-8 xl:px-12 relative w-full overflow-visible z-20 bg-transparent"
-      data-name="Landing/Footer"
-    >
-      <div className="relative w-full max-w-[1800px] mx-auto overflow-visible">
+    <footer className="sonify-footer" data-name="Landing/Footer">
+      <div className="sonify-footer-frame">
         <div className="sonify-footer-bg-wrapper" aria-hidden="true">
           <div className="sonify-footer-bg" />
         </div>
 
-        <div className="relative z-10 flex flex-col gap-12 sm:gap-16 lg:gap-20 items-center pt-20 sm:pt-24 lg:pt-28 pb-12 sm:pb-16 lg:pb-20 px-6 sm:px-10 lg:px-14 xl:px-20 overflow-visible">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 items-start relative text-[#f2f2f0] w-full max-w-[1440px] xl:max-w-[1600px] 2xl:max-w-[1800px] z-10">
+        <div className="sonify-footer-inner">
+          <div className="sonify-footer-cols">
             <FooterNavAndDataColumns showChallenge={showChallenge} />
             <FooterImageAndTypeColumns />
           </div>
 
           <FooterWordmark />
 
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4 font-mono font-normal items-start sm:items-center justify-between leading-[1.4] relative text-[#f2f2f0] text-[11px] tracking-[0.44px] uppercase w-full max-w-[1440px] xl:max-w-[1600px] 2xl:max-w-[1800px] z-10">
-            <p className="m-0">Space Apps 2026 · The Earth Information Jukebox</p>
-            <p className="m-0 max-w-xl">
+          <div className="sonify-footer-legal">
+            <p>Space Apps 2026 · The Earth Information Jukebox</p>
+            <p>
               Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth · CO₂: NOAA GML Mauna Loa
             </p>
           </div>

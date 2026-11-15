@@ -781,10 +781,11 @@ export const TechText: React.FC<TechTextProps> = ({
       const devW = devX2 - devX1;
       const devH = devY2 - devY1;
 
+      const unit = Math.max(1, view.size * 0.012) * dpr;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = accent;
       ctx.strokeStyle = accent;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = unit;
 
       const moved = Math.hypot(glyph.offset.x, glyph.offset.y);
       if (moved > 1) {
@@ -795,12 +796,12 @@ export const TechText: React.FC<TechTextProps> = ({
         ctx.beginPath();
         ctx.moveTo(hx + 0.5, hy + 0.5);
         ctx.lineTo(targetX + 0.5, targetY + 0.5);
-        ctx.setLineDash([Math.round(3 * dpr), Math.round(4 * dpr)]);
+        ctx.setLineDash([Math.round(unit * 2.2), Math.round(unit * 2.8)]);
         ctx.globalAlpha = 0.5 * a;
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.beginPath();
-        ctx.rect(hx - 2, hy - 2, 4, 4);
+        ctx.rect(hx - unit, hy - unit, unit * 2, unit * 2);
         ctx.globalAlpha = 0.75 * a;
         ctx.fill();
       }
@@ -810,7 +811,7 @@ export const TechText: React.FC<TechTextProps> = ({
       ctx.globalAlpha = 0.65 * a;
       ctx.stroke();
 
-      const handleSize = Math.max(5, Math.round(4 * dpr));
+      const handleSize = Math.max(unit * 2.4, 4);
       const halfH = Math.floor(handleSize / 2);
       ctx.beginPath();
       for (const [cx, cy] of [
@@ -833,8 +834,7 @@ export const TechText: React.FC<TechTextProps> = ({
 
       if (!s.labels) return;
 
-      // Scale label font size proportionally with the wordmark size (12px on mobile up to 16px on big screens)
-      const labelCssSize = Math.max(12, Math.min(16, Math.round(view.size * 0.085)));
+      const labelCssSize = Math.max(8, view.size * 0.09);
       const labelDevSize = Math.round(labelCssSize * dpr);
       ctx.font = `600 ${labelDevSize}px "Geist Mono", Consolas, SFMono-Regular, Menlo, monospace`;
       ctx.textAlign = 'left';
