@@ -121,7 +121,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
               <div className="sonify-footer-col sonify-footer-nav">
                 <p className="sonify-footer-kicker">Navigate</p>
                 <div className="sonify-footer-nav-links">
-                  <NavLinks showChallenge={showChallenge} />
+                  <NavLinks showChallenge />
                 </div>
               </div>
               <FooterCredit title="CO₂ data">
