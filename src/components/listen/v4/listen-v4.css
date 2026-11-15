@@ -729,15 +729,11 @@
 }
 
 .lv-status {
-  position: absolute;
-  z-index: 4;
-  left: 12px;
-  right: 12px;
-  bottom: 8px;
+  min-height: 20px;
   margin: 0;
   color: var(--lv-muted);
   font-size: 13px;
-  pointer-events: none;
+  line-height: 20px;
 }
 
 .lv-saved-link {
