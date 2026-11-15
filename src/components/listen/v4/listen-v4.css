@@ -367,9 +367,20 @@
 
 .lv-map,
 .lv-media {
-  width: 100%;
-  height: 100%;
+  width: 118%;
+  height: 124%;
+  margin-left: -9%;
+  margin-top: -12%;
   display: block;
+}
+
+@media (max-width: 699px) {
+  .lv-map {
+    width: 168%;
+    height: 176%;
+    margin-left: -58%;
+    margin-top: -32%;
+  }
 }
 
 .lv-media {
