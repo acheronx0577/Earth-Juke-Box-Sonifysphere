@@ -320,7 +320,7 @@ body::-webkit-scrollbar {
 /* One continuous vw/svh size. Type keeps a readability floor. Spacing, the
    four corner chamfers, and the wordmark all follow --footer-s. */
 .sonify-footer {
-  --footer-s: clamp(8px, 3px + 0.48vw + 0.18svh, 20px);
+  --footer-s: clamp(8px, 3px + 0.48vw + 0.18svh, 32px);
   --footer-chamfer: calc(var(--footer-s) * 2.8);
   --footer-notch-depth: calc(var(--footer-s) * 2.2);
   --footer-text: max(13px, calc(var(--footer-s) * 1.05));
