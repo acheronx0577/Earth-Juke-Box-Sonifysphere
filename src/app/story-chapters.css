@@ -6,7 +6,7 @@
   min-height: calc(100svh - 3.5rem);
   display: flex;
   flex-direction: column;
-  overflow-x: clip;
+  overflow: hidden;
   padding-top: clamp(8px, 1.6vh, 28px);
   padding-bottom: clamp(8px, 1.2vh, 22px);
 }
