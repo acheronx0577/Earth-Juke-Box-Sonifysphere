@@ -690,6 +690,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <h1 className="sr-only">Listen</h1>
       <a className="lv-skip" href="#nasa-search">Skip to search</a>
       <div className="lv-main">
+        <div className="lv-search-stack">
         <form
           className="lv-search lv-cut"
           role="search"
@@ -713,6 +714,33 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             />
           </div>
         </form>
+        {resultsOpen ? (
+          <div className="lv-results lv-cut" role="region" aria-label="NASA search results">
+            <ChamferMark />
+            <div className="lv-layer-head">
+              <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
+              <button type="button" className="lv-save lv-cut" onClick={() => setResultsOpen(false)}>
+                <ChamferMark />
+                CLOSE
+              </button>
+            </div>
+            <div className="lv-results-list">
+              {results.map((item) => (
+                <button type="button" key={item.id} className="lv-result lv-cut" onClick={() => void chooseHit(item)}>
+                  <ChamferMark />
+                  <img src={item.preview} alt="" />
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>
+                      {item.mediaType} · {item.center}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        </div>
         <div>
           <div className="lv-layer-head">
             <p className="lv-mono lv-eyebrow">
@@ -733,30 +761,6 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             </button>
           </div>
         </div>
-        {resultsOpen ? (
-          <div className="lv-results lv-cut" role="region" aria-label="NASA search results">
-            <ChamferMark />
-            <div className="lv-layer-head">
-              <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
-              <button type="button" className="lv-save lv-cut" onClick={() => setResultsOpen(false)}>
-                <ChamferMark />
-                CLOSE
-              </button>
-            </div>
-            {results.map((item) => (
-              <button type="button" key={item.id} className="lv-result lv-cut" onClick={() => void chooseHit(item)}>
-                <ChamferMark />
-                <img src={item.preview} alt="" />
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>
-                    {item.mediaType} · {item.center}
-                  </small>
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : null}
         {savedOpen ? (
           <section className="lv-saved lv-cut" aria-labelledby="saved-title">
             <ChamferMark />
