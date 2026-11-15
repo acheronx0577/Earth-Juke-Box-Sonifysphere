@@ -154,30 +154,6 @@ function OctagonPlate() {
   );
 }
 
-function StepArrow({ direction }: { readonly direction: "prev" | "next" }) {
-  const left = direction === "prev";
-  return (
-    <svg className="story-btn-glyph" viewBox="4 5 16 14" aria-hidden="true" fill="none">
-      <line
-        x1={left ? 18 : 6}
-        y1="12"
-        x2={left ? 7 : 17}
-        y2="12"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-      <polyline
-        points={left ? "11 7.5 7 12 11 16.5" : "13 7.5 17 12 13 16.5"}
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function UpRightArrow({ className }: { readonly className?: string }) {
   return (
     <svg
@@ -370,7 +346,7 @@ export function StoryChaptersCarousel() {
               aria-label="Previous Challenge"
             >
               <OctagonPlate />
-              <StepArrow direction="prev" />
+              <span className="story-btn-glyph">←</span>
             </button>
 
             <Link
@@ -400,7 +376,7 @@ export function StoryChaptersCarousel() {
               aria-label="Next Challenge"
             >
               <OctagonPlate />
-              <StepArrow direction="next" />
+              <span className="story-btn-glyph">→</span>
             </button>
           </div>
 
