@@ -582,8 +582,22 @@
   color: var(--lv-muted);
 }
 
-.lv-read-head { margin-bottom: 8px; }
-.lv-read-head p:last-child { color: var(--lv-muted); text-align: right; }
+.lv-read-head {
+  flex-wrap: wrap;
+  row-gap: 4px;
+  margin-bottom: 8px;
+}
+
+.lv-read-head p {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.lv-read-head p:last-child {
+  margin-left: auto;
+  color: var(--lv-muted);
+  text-align: right;
+}
 
 .lv-cards {
   display: grid;
