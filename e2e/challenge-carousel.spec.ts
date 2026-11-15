@@ -89,7 +89,7 @@ test("challenge card titles stay on one line", async ({ page }) => {
         for (const el of els) {
           const style = getComputedStyle(el);
           const box = el.getBoundingClientRect();
-          if (Number(style.opacity) < 0.9 || style.whiteSpace !== "nowrap" || box.width < 8) continue;
+          if (Number(style.opacity) < 0.45 || style.whiteSpace !== "nowrap" || box.width < 8) continue;
           if (box.left < 1 || box.right > window.innerWidth - 1) continue;
           const text = (el.textContent || "").trim();
           if (text) texts.add(text);

@@ -649,17 +649,20 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       return { w, h, spacing, openH: frame.height, openY: frame.y, titleSpace: frame.titleSpace };
     };
 
-    // One opacity for the whole card, ramping across about one card-width at each edge.
+    // Shared by the card and its title. The fade covers 1.5 card-widths at each edge,
+    // and a card halfway through that zone sits near 38% opacity.
     const positionFade = (centerX: number, cardW: number) => {
       if (reduce) return 1;
       const span = Math.max(cardW, 1);
-      const left = centerX - span / 2;
-      const right = centerX + span / 2;
-      let visible = 1;
-      if (left < 0) visible = right / span;
-      else if (right > view.width) visible = (view.width - left) / span;
-      const t = clamp(visible, 0, 1);
-      return t * t * (3 - 2 * t);
+      const zone = span * 1.5;
+      const lead = zone - span;
+      const cardLeft = centerX - span / 2;
+      const cardRight = centerX + span / 2;
+      let t = 1;
+      if (cardLeft < lead) t = Math.min(t, (cardLeft + span) / zone);
+      if (cardRight > view.width - lead) t = Math.min(t, (view.width - cardRight + span) / zone);
+      t = clamp(t, 0, 1);
+      return Math.pow(t, 1.42);
     };
 
     const draw = (metrics: { w: number; h: number; spacing: number }) => {
