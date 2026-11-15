@@ -121,27 +121,27 @@ export function StoryChaptersCarousel() {
 
   return (
     <section
-      className="story-chapters-section relative flex w-full flex-col justify-between bg-[#141414] pt-6 pb-3 sm:pt-8 sm:pb-5"
+      className="story-chapters-section relative w-full bg-[#141414]"
       aria-label="Story Chapters Carousel"
       style={{
         backgroundImage: `
           linear-gradient(to right, rgba(242,242,240,0.04) 1px, transparent 1px),
           linear-gradient(to bottom, rgba(242,242,240,0.04) 1px, transparent 1px)
         `,
-        backgroundSize: "60px 60px",
+        backgroundSize: "clamp(48px, 4vw, 84px) clamp(48px, 4vw, 84px)",
       }}
     >
-      <div className="story-chapters-layout mx-auto flex w-full max-w-[1500px] flex-1 flex-col justify-between px-4 sm:px-8 lg:px-12">
+      <div className="story-chapters-layout">
         {/* Top HUD Row */}
-        <div className="story-chapters-top flex w-full items-center justify-between gap-2 pt-2">
-          <div className="story-chip-glass inline-flex items-center gap-2 px-4 py-2">
-            <span className="font-mono text-xs uppercase tracking-wider text-[#f2f2f0]/80">
+        <div className="story-chapters-top">
+          <div className="story-chip-glass story-hud-chip inline-flex items-center">
+            <span className="story-hud-type font-mono uppercase text-[#f2f2f0]/80">
               Challenges · 5 games
             </span>
           </div>
 
-          <div className="story-chip-solid inline-flex items-center gap-2 px-4 py-2 transition-all duration-300">
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#141414]">
+          <div className="story-chip-solid story-hud-chip inline-flex items-center transition-all duration-300">
+            <span className="story-hud-type font-mono font-semibold uppercase text-[#141414]">
               <RollingText
                 text={`${activeChapter.num} · ${activeChapter.title}`}
                 direction={direction}
@@ -151,8 +151,8 @@ export function StoryChaptersCarousel() {
           </div>
         </div>
 
-        {/* Circular Gallery Showcase - Infinite Straight Auto-scroll */}
-        <div className="story-chapters-gallery-frame relative my-1 w-full overflow-hidden">
+        {/* Full-bleed gallery. Card size follows the viewport inside CircularGallery. */}
+        <div className="story-chapters-gallery-frame">
           <CircularGallery
             ref={galleryRef}
             items={CHAPTERS}
@@ -161,9 +161,9 @@ export function StoryChaptersCarousel() {
             borderRadius={0.05}
             itemSize={1.2}
             itemAspect={0.78}
-            gap={0.22}
+            gap={0.2}
             wave={0}
-            fadeEdges={0.12}
+            fadeEdges={0.06}
             shadow={0}
             dpr={1.25}
             scrollSpeed={2}
@@ -185,14 +185,12 @@ export function StoryChaptersCarousel() {
           />
         </div>
 
-        {/* Center Controller - Pushed to Middle Bottom */}
-        <div className="mt-0 mb-3 sm:mb-5 flex flex-col items-center justify-center gap-2.5">
-          <div className="flex items-center gap-3 sm:gap-5 lg:gap-7">
-            {/* Prev Button */}
+        <div className="story-chapters-controls">
+          <div className="story-chapters-controls-row">
             <button
               type="button"
               onClick={handlePrev}
-              className="story-btn-round relative flex size-10 sm:size-12 items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="story-btn-round"
               aria-label="Previous Challenge"
             >
               <img
@@ -200,13 +198,12 @@ export function StoryChaptersCarousel() {
                 alt=""
                 className="absolute inset-0 size-full pointer-events-none"
               />
-              <span className="relative z-10 font-mono text-base sm:text-lg text-[#f2f2f0]">←</span>
+              <span className="story-btn-glyph">←</span>
             </button>
 
-            {/* Play Challenge (White Pill) */}
             <Link
               href={activeChapter.challengePath}
-              className="story-btn-pill relative inline-flex items-center justify-center px-3 sm:px-7 lg:px-9 py-3 sm:py-3.5 transition-transform hover:scale-105 active:scale-95 bg-[#f2f2f0] text-[#141414] cursor-pointer"
+              className="story-btn-pill"
               aria-label={`Play ${activeChapter.title}`}
             >
               <img
@@ -214,7 +211,7 @@ export function StoryChaptersCarousel() {
                 alt=""
                 className="absolute inset-0 size-full pointer-events-none"
               />
-              <span className="relative z-10 font-mono text-xs sm:text-sm font-bold uppercase tracking-wider text-[#141414] inline-flex items-center justify-center">
+              <span className="story-btn-label">
                 <RollingText
                   text={`Play ${activeChapter.title}`}
                   direction={direction}
@@ -223,11 +220,10 @@ export function StoryChaptersCarousel() {
               </span>
             </Link>
 
-            {/* Next Button */}
             <button
               type="button"
               onClick={handleNext}
-              className="story-btn-round relative flex size-10 sm:size-12 items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="story-btn-round"
               aria-label="Next Challenge"
             >
               <img
@@ -235,16 +231,13 @@ export function StoryChaptersCarousel() {
                 alt=""
                 className="absolute inset-0 size-full pointer-events-none"
               />
-              <span className="relative z-10 font-mono text-base sm:text-lg text-[#f2f2f0]">→</span>
+              <span className="story-btn-glyph">→</span>
             </button>
           </div>
 
-          {/* Dynamic Counter */}
-          <div className="flex items-center justify-center">
-            <p className="font-mono text-xs font-semibold uppercase tracking-widest text-[#f2f2f0]/80">
-              {activeChapter.num} / 05
-            </p>
-          </div>
+          <p className="story-chapters-count">
+            {activeChapter.num} / 05
+          </p>
         </div>
 
         {/* Bottom navigation link */}
