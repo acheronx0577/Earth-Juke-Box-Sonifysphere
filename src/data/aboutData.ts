@@ -87,7 +87,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "si-tools",
     label: "SI tools",
-    text: "ChatGPT: hero art. Codex: code/optimization/docs. Project data/presets aren't AI-generated.",
+    text: "Grok Bot, ChatGPT, Claude, Antigravity, Codex. Hero is AI-generated; data is not.",
   },
   {
     id: "audio-provenance",

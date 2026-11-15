@@ -14,7 +14,7 @@ const FLOWING_MARQUEES: Record<string, string> = {
   data: "CO₂ · NOAA MAUNA LOA",
   image: "EARTH IMAGE · NASA EPIC",
   "hero-image": "AI HERO IMAGE · CHATGPT",
-  "si-tools": "SI TOOLS · CHATGPT + CODEX",
+  "si-tools": "SI TOOLS · GROK BOT, CHATGPT, CLAUDE, ANTIGRAVITY, CODEX",
   "audio-provenance": "AUDIO · TONE.JS / WEB AUDIO",
   "video-provenance": "VIDEO · NO AI VIDEO",
   type: "TYPE · PLANET KOSMOS",
