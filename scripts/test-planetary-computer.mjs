@@ -122,7 +122,7 @@ assert.equal(pointCalls[0].url.endsWith("/search"), true);
 const searchPayload = JSON.parse(pointCalls[0].init.body);
 assert.deepEqual(searchPayload.collections, ["modis-11A1-061"]);
 assert.equal(searchPayload.limit, 5);
-assert.equal(searchPayload.datetime, "2023-07-16T00:00:00Z/2023-07-17T00:00:00Z");
+assert.equal(searchPayload.datetime, "2023-07-16T00:00:00Z/2023-07-16T23:59:59Z");
 assertNoSecrets(pointBody);
 
 const fillCalls = installFetch(async (url) => {
@@ -206,8 +206,27 @@ assert.equal(searchBody.items[0].sceneId, SCENE_ID);
 assert.equal(searchBody.items[0].date, "2023-07-16");
 assert.equal(searchBody.collection, "modis-11A1-061");
 assert.equal(searchResponse.headers.get("Cache-Control"), "public, s-maxage=21600, stale-while-revalidate=86400");
-assert.equal(JSON.parse(searchCalls[0].init.body).limit, 1);
+assert.equal(JSON.parse(searchCalls[0].init.body).limit, 5);
+assert.equal(JSON.parse(searchCalls[0].init.body).datetime, "2023-07-16T00:00:00Z/2023-07-16T23:59:59Z");
 assertNoSecrets(searchBody);
+
+const nextDayCalls = installFetch(async () => jsonResponse({
+  features: [
+    {
+      ...sceneFeature(),
+      id: "MYD11A1.A2023198.h17v04.061.2023213084746",
+      properties: { datetime: null, start_datetime: "2023-07-17T00:00:00Z" },
+    },
+    sceneFeature(),
+  ],
+}));
+const sameDay = await searchRoute.GET(new NextRequest("http://localhost/api/listen/pc/search?lat=40.42&lon=-3.7&time=2023-07-16&limit=1"));
+const sameDayBody = await sameDay.json();
+assert.equal(sameDay.status, 200);
+assert.equal(sameDayBody.items.length, 1);
+assert.equal(sameDayBody.items[0].sceneId, SCENE_ID);
+assert.equal(sameDayBody.items[0].date, "2023-07-16");
+assert.equal(nextDayCalls.length, 1);
 
 installFetch(async () => jsonResponse({ features: [] }));
 const empty = await searchRoute.GET(new NextRequest("http://localhost/api/listen/pc/search?lat=40&lon=-3&time=2023-07-16"));

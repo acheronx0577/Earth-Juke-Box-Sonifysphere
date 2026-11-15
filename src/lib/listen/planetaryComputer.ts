@@ -198,7 +198,7 @@ export async function searchScenes(query: ParsedQuery, fetchImpl: typeof fetch =
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(searchBody(query)),
+      body: JSON.stringify(searchBody(query, query.day)),
       next: { revalidate: SEARCH_REVALIDATE_SECONDS },
     },
     fetchImpl,
@@ -207,7 +207,7 @@ export async function searchScenes(query: ParsedQuery, fetchImpl: typeof fetch =
   return features
     .flatMap((feature) => {
       const scene = sceneFromFeature(feature);
-      return scene ? [scene.summary] : [];
+      return scene && scene.summary.date === query.day ? [scene.summary] : [];
     })
     .sort(compareScenes)
     .slice(0, query.limit);
@@ -263,14 +263,12 @@ export function errorResult(error: unknown, kind: "search" | "point"): {
   return { status: 502, body: { error: UNREACHABLE }, headers: { "Cache-Control": "no-store" } };
 }
 
-function searchBody(query: ParsedQuery) {
-  const start = `${query.day}T00:00:00Z`;
-  const endDate = new Date(Date.parse(start) + 86_400_000).toISOString().slice(0, 10);
+function searchBody(query: ParsedQuery, day: string) {
   return {
     collections: [PC_COLLECTION],
     intersects: { type: "Point", coordinates: [query.lon, query.lat] },
-    datetime: `${start}/${endDate}T00:00:00Z`,
-    limit: query.limit,
+    datetime: `${day}T00:00:00Z/${day}T23:59:59Z`,
+    limit: 5,
     fields: {
       include: [
         "id",
@@ -291,7 +289,7 @@ async function firstScene(query: ParsedQuery, fetchImpl: typeof fetch): Promise<
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(searchBody({ ...query, limit: Math.max(query.limit, 5) })),
+      body: JSON.stringify(searchBody(query, query.day)),
       next: { revalidate: SEARCH_REVALIDATE_SECONDS },
     },
     fetchImpl,
@@ -299,7 +297,7 @@ async function firstScene(query: ParsedQuery, fetchImpl: typeof fetch): Promise<
   const scenes = featureList(body)
     .flatMap((feature) => {
       const scene = sceneFromFeature(feature);
-      return scene ? [scene] : [];
+      return scene && scene.summary.date === query.day ? [scene] : [];
     })
     .sort((a, b) => compareScenes(a.summary, b.summary));
   return scenes[0] ?? null;
