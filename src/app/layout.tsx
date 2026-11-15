@@ -22,6 +22,15 @@ function resolveSiteUrl(): URL {
 
 const siteUrl = resolveSiteUrl();
 
+const shareImage = {
+  url: "/og-image.png",
+  secureUrl: new URL("/og-image.png", siteUrl),
+  width: 1200,
+  height: 630,
+  alt: "SonifySphere home hero, Earth breathes above a lunar foreground",
+  type: "image/png",
+};
+
 export const viewport: Viewport = {
   themeColor: "#141414",
   colorScheme: "dark",
@@ -55,16 +64,17 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    url: "/",
     siteName: "SonifySphere",
     title: "SonifySphere — The Earth Information Jukebox",
     description: "Four real records of a changing planet, turned into music you can play.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "SonifySphere" }],
+    images: [shareImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "SonifySphere — The Earth Information Jukebox",
     description: "Four real records of a changing planet, turned into music you can play.",
-    images: ["/og-image.png"],
+    images: [shareImage],
   },
 };
 
