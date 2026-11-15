@@ -33,6 +33,7 @@ import {
 } from "@/components/listen/v4/model";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
+import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
 
 const HISTORY_KEY = "sonifysphere-listen-v4";
@@ -102,6 +103,7 @@ function MapThumb() {
 function Thumb({ source }: { readonly source: ListenSource }) {
   return (
     <span className="lv-thumb lv-cut" aria-hidden="true">
+      <ChamferMark />
       {source.kind === "map" || source.kind === "search" ? <MapThumb /> : source.preview ? <img src={source.preview} alt="" /> : <MapThumb />}
       {source.kind === "video" ? (
         <>
@@ -128,6 +130,7 @@ function Chip({
 }) {
   return (
     <button type="button" className={`lv-chip lv-cut ${pressed ? "is-on" : ""} ${dashed ? "is-more" : ""}`} aria-pressed={pressed} onClick={onClick}>
+      <ChamferMark />
       {children}
     </button>
   );
@@ -170,6 +173,7 @@ function HistoryList({
         <p className="lv-mono lv-eyebrow">HISTORY</p>
       )}
       <button type="button" className="lv-new lv-cut" onClick={onNew}>
+        <ChamferMark />
         + New source
       </button>
       <p className="lv-mono lv-eyebrow lv-section">RECENT SOURCES</p>
@@ -182,7 +186,8 @@ function HistoryList({
             aria-current={item.id === activeId ? "true" : undefined}
             onClick={() => onOpen(item)}
           >
-            <span className="lv-hist-face lv-cut">
+            <ChamferMark />
+            <span className="lv-hist-face">
               <Thumb source={item} />
               <span className="lv-hist-copy">
                 <strong>
@@ -199,8 +204,10 @@ function HistoryList({
       <div className="lv-list">
         {searches.map((item) => (
           <button type="button" key={item.id} className="lv-hist lv-cut" onClick={() => onSearch(item.term)}>
-            <span className="lv-hist-face lv-cut">
+            <ChamferMark />
+            <span className="lv-hist-face">
               <span className="lv-search-glyph lv-cut" aria-hidden="true">
+                <ChamferMark />
                 <SearchIcon />
               </span>
               <span className="lv-hist-copy">
@@ -258,7 +265,7 @@ function SoundFields({
       <div className="lv-field">
         <p className="lv-mono lv-eyebrow">INSTRUMENT</p>
         <div className="lv-chip-grid" role="group" aria-label="Instrument">
-          {INSTRUMENTS.map((item) => (
+          {INSTRUMENTS.map((item) => item.id === "strings" ? null : (
             <Chip key={item.id} pressed={instrument === item.id} onClick={() => onInstrument(item.id)}>
               {item.label}
             </Chip>
@@ -304,7 +311,8 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
   return (
     <div className="lv-timeline">
       <div className="lv-timeline-track lv-cut">
-        <div className="lv-timeline-face lv-cut">
+        <ChamferMark />
+        <div className="lv-timeline-face">
           <div className="lv-ticks">
             {ticks.map((tick) => {
               const major = tick % 10 === 0;
@@ -348,7 +356,8 @@ function Timeline({ year, onYear }: { readonly year: number; readonly onYear: (y
         </div>
       </div>
       <p className="lv-date lv-cut" id={readoutId}>
-        <span className="lv-cut">{dateLabel(year)}</span>
+        <ChamferMark />
+        <span>{dateLabel(year)}</span>
       </p>
     </div>
   );
@@ -371,6 +380,9 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [year, setYear] = useState(YEAR_END);
   const [styleId, setStyleId] = useState<SoundStyle>("synth");
   const [instrument, setInstrument] = useState<InstrumentId>("soft-synth");
+  const chooseInstrument = useCallback((id: InstrumentId) => {
+    setInstrument(id === "strings" ? "soft-synth" : id);
+  }, []);
   const [variation, setVariation] = useState<VariationId>("soft");
   const [volume, setVolume] = useState(80);
   const [tempo, setTempo] = useState(1);
@@ -662,7 +674,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const applyProfile = (profile: SavedProfile) => {
     chooseLayer(profile.layer);
     setStyleId(profile.style);
-    setInstrument(profile.instrument);
+    chooseInstrument(profile.instrument);
     setVariation(profile.variation);
     setVolume(profile.volume);
     setTempo(profile.tempo);
@@ -681,6 +693,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       <h1 className="sr-only">Listen</h1>
       <a className="lv-skip" href="#nasa-search">Skip to search</a>
       <div className="lv-main">
+        <div className="lv-fold">
+        <div className="lv-search-stack">
         <form
           className="lv-search lv-cut"
           role="search"
@@ -689,7 +703,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             void searchNASA();
           }}
         >
-          <div className="lv-search-face lv-cut">
+          <ChamferMark />
+          <div className="lv-search-face">
             <SearchIcon />
             <label className="sr-only" htmlFor="nasa-search">
               Search NASA images, videos or a place
@@ -703,6 +718,35 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             />
           </div>
         </form>
+        {resultsOpen ? (
+          <div className="lv-results lv-cut" role="region" aria-label="NASA search results">
+            <ChamferMark />
+            <div className="lv-layer-head">
+              <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
+              <button type="button" className="lv-results-close lv-cut" aria-label="Close results" onClick={() => setResultsOpen(false)}>
+                <ChamferMark />
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M2.4 2.4 L9.6 9.6 M9.6 2.4 L2.4 9.6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+                </svg>
+              </button>
+            </div>
+            <div className="lv-results-list">
+              {results.map((item) => (
+                <button type="button" key={item.id} className="lv-result lv-cut" onClick={() => void chooseHit(item)}>
+                  <ChamferMark />
+                  <img src={item.preview} alt="" />
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>
+                      {item.mediaType} · {item.center}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        </div>
         <div>
           <div className="lv-layer-head">
             <p className="lv-mono lv-eyebrow">
@@ -718,40 +762,28 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
               </Chip>
             ))}
             <button type="button" className="lv-chip lv-cut is-more" aria-expanded={more} onClick={() => setMore((value) => !value)}>
+              <ChamferMark />
               MORE +
+            </button>
+            <button type="button" className="lv-chip lv-cut lv-more-icon" aria-label="More data layers" aria-expanded={more} onClick={() => setMore((value) => !value)}>
+              <ChamferMark />
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                <path d="M1.5 2.5 H12.5 L8.4 7.1 V11.1 L5.6 12.2 V7.1 Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
             </button>
           </div>
         </div>
-        {resultsOpen ? (
-          <div className="lv-results lv-cut" role="region" aria-label="NASA search results">
-            <div className="lv-layer-head">
-              <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
-              <button type="button" className="lv-save lv-cut" onClick={() => setResultsOpen(false)}>
-                CLOSE
-              </button>
-            </div>
-            {results.map((item) => (
-              <button type="button" key={item.id} className="lv-result lv-cut" onClick={() => void chooseHit(item)}>
-                <img src={item.preview} alt="" />
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>
-                    {item.mediaType} · {item.center}
-                  </small>
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : null}
         {savedOpen ? (
           <section className="lv-saved lv-cut" aria-labelledby="saved-title">
-            <div className="lv-saved-face lv-cut">
+            <ChamferMark />
+            <div className="lv-saved-face">
               <p className="lv-mono lv-eyebrow">SAVED</p>
               <h2 id="saved-title">Saved profiles</h2>
               <p>The Saved screen is not in the Listen v4 frames yet. Profiles you save from the sound panel are listed here.</p>
               {profiles.length === 0 ? <p>No saved profiles yet.</p> : null}
               {profiles.map((profile) => (
                 <button type="button" key={profile.id} className="lv-profile lv-cut" onClick={() => applyProfile(profile)}>
+                  <ChamferMark />
                   <strong>{profile.name}</strong>
                   <small>
                     {layerLabel(profile.layer)} · {Math.round(profile.volume)}% · {profile.tempo}×
@@ -779,6 +811,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           />
         )}
         <p className="lv-status" role="status">{status}</p>
+        </div>
         {savedOpen ? null : (
           <section aria-label="Readings at probe">
             <div className="lv-read-head">
@@ -794,6 +827,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             <div className="lv-cards" data-count={reading.cards.length}>
               {reading.cards.map((card) => (
                 <article key={card.id} className={`lv-card lv-cut is-${card.state}`} data-id={card.id}>
+                  <ChamferMark />
                   <p className="lv-mono lv-card-label">
                     <i className="lv-swatch" style={{ background: card.swatch }} />
                     {card.label}
@@ -808,7 +842,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         <div className="lv-mobile-sound">
           {sheet ? (
             <div className="lv-sheet lv-cut" id="sound-controls">
-              <div className="lv-sheet-face lv-cut">
+              <ChamferMark />
+              <div className="lv-sheet-face">
                 <button type="button" className="lv-grab" aria-expanded="true" aria-controls="sound-controls" onClick={() => setSheet(false)}>
                   <i />
                   <span>
@@ -825,17 +860,19 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                   volume={volume}
                   tempo={tempo}
                   onStyle={setStyleId}
-                  onInstrument={setInstrument}
+                  onInstrument={chooseInstrument}
                   onVariation={setVariation}
                   onVolume={setVolume}
                   onTempo={setTempo}
                 />
                 <div className="lv-sheet-actions">
                   <button type="button" className="lv-play lv-cut" onClick={() => void togglePlay()}>
+                    <ChamferMark />
                     <PlayGlyph stop={playing} />
                     {playing ? "Stop" : "Play sound"}
                   </button>
                   <button type="button" className="lv-save lv-cut" onClick={saveProfile}>
+                    <ChamferMark />
                     SAVE PROFILE
                   </button>
                 </div>
@@ -844,10 +881,12 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
           ) : (
             <div className="lv-sound-row">
               <button ref={soundToggleRef} type="button" className="lv-collapse lv-cut" aria-expanded="false" aria-controls="sound-controls" onClick={() => setSheet(true)}>
+                <ChamferMark />
                 SOUND PROFILE
                 <Chevron up />
               </button>
               <button type="button" className="lv-play lv-play-pill lv-cut" onClick={() => void togglePlay()}>
+                <ChamferMark />
                 <PlayGlyph stop={playing} />
                 {playing ? "Stop" : "Play sound"}
               </button>
@@ -856,7 +895,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         </div>
       </div>
       <aside className={`lv-history lv-cut ${drawer ? "is-open" : ""}`} aria-label="History">
-        <div className="lv-history-face lv-cut">
+        <ChamferMark />
+        <div className="lv-history-face">
           <HistoryList
             sources={sources}
             searches={searches}
@@ -872,7 +912,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
       </aside>
       <button type="button" className={`lv-scrim ${drawer ? "is-open" : ""}`} aria-label="Close history" tabIndex={drawer ? 0 : -1} onClick={() => setDrawer(false)} />
       <aside className="lv-sound lv-cut" aria-label="Sound profile">
-        <div className="lv-sound-face lv-cut">
+        <ChamferMark />
+        <div className="lv-sound-face">
           <div>
             <p className="lv-mono lv-eyebrow">SOUND PROFILE</p>
             <p className="lv-title">{hearTitle(layer)}</p>
@@ -885,12 +926,13 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             volume={volume}
             tempo={tempo}
             onStyle={setStyleId}
-            onInstrument={setInstrument}
+            onInstrument={chooseInstrument}
             onVariation={setVariation}
             onVolume={setVolume}
             onTempo={setTempo}
           />
           <button type="button" className="lv-play lv-cut" onClick={() => void togglePlay()}>
+            <ChamferMark />
             <PlayGlyph stop={playing} />
             {playing ? "Stop" : "Play sound"}
           </button>
@@ -909,6 +951,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             </p>
           </div>
           <button type="button" className="lv-save lv-cut" onClick={saveProfile}>
+            <ChamferMark />
             SAVE PROFILE
           </button>
           {profiles.length > 0 ? (
@@ -930,6 +973,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             setSavedOpen(false);
           }}
         >
+          <ChamferMark />
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <circle cx="9" cy="9" r="6.2" fill="none" stroke="currentColor" strokeWidth="1.4" />
             <path d="M9 5.5 V9 L11.5 11" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -945,6 +989,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             setDrawer(false);
           }}
         >
+          <ChamferMark />
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
             <path d="M5 3.5 H13 V15 L9 12.2 L5 15 Z" fill="none" stroke="currentColor" strokeWidth="1.4" />
           </svg>
