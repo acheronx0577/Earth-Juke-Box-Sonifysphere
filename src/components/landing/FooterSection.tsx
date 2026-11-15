@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { TechText } from "@/components/shared/TechText";
+import { FooterWordmark } from "@/components/landing/FooterWordmark";
 
 function FooterNavAndDataColumns({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
   return (
@@ -120,35 +120,7 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
             <FooterImageAndTypeColumns />
           </div>
 
-          <div className="relative shrink-0 w-full max-w-[1346.4px] xl:max-w-[1500px] 2xl:max-w-[1680px] aspect-[1346.4/239.467] z-30 overflow-visible font-['PlanetKosmos']">
-            <TechText
-              text="sonifysphere"
-              className="cursor-target"
-              fontFamily="PlanetKosmos"
-              fontWeight={400}
-              fontSize={160}
-              letterSpacing={-0.03}
-              color="#f2f2f0"
-              accentColor="#f2f2f0"
-              reveal="letter"
-              dashLength={4}
-              dashGap={2}
-              strokeWidth={1.5}
-              specks={15}
-              selection={true}
-              labels={true}
-              draggable={true}
-              bounce={0.4}
-              clickKick={true}
-              intro="none"
-              sweep={true}
-              speed={0.5}
-              guides={false}
-              bleedTop={520}
-              bleedBottom={220}
-              bleedX={200}
-            />
-          </div>
+          <FooterWordmark />
 
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 font-mono font-normal items-start sm:items-center justify-between leading-[1.4] relative text-[#f2f2f0] text-[11px] tracking-[0.44px] uppercase w-full max-w-[1440px] xl:max-w-[1600px] 2xl:max-w-[1800px] z-10">
             <p className="m-0">Space Apps 2026 · The Earth Information Jukebox</p>
