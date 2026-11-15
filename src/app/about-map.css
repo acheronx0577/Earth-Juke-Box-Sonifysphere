@@ -943,6 +943,23 @@
   }
 }
 
+@media (min-width: 1001px) and (max-height: 1000px) {
+  .team {
+    --crew-h: min(
+      1100px,
+      51svh,
+      calc((100vw - 2.25rem) * 575 / 425),
+      max(36vw, calc(100svh - 64vw))
+    );
+  }
+
+  .team .cards {
+    top: calc(
+      max(57%, calc(5.25rem + 1.76 * min(7.5vw, 7.5rem) + var(--crew-h) / 2)) - 3.5rem
+    );
+  }
+}
+
 @media (max-width: 1000px) {
   .hm-stage {
     transform: translate(-50%, -53%);
