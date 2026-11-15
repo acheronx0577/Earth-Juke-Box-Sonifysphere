@@ -844,6 +844,35 @@
   margin: 0;
 }
 
+@media (min-width: 1280px) {
+  .team .cards {
+    top: 58%;
+    height: min(78svh, 920px);
+  }
+
+  .team .cards .card {
+    --crew-w: clamp(520px, 38vw, 780px);
+    --crew-h: clamp(600px, 36vw, 720px);
+    width: var(--crew-w);
+    height: var(--crew-h);
+    margin-left: calc(var(--crew-w) / -2);
+    margin-top: calc(var(--crew-h) / -2);
+  }
+
+  .team .cards .card .card-content {
+    height: auto;
+    min-height: 4.75rem;
+  }
+
+  .team .cards .card .card-content h3 {
+    font-size: clamp(1.7rem, 2.1vw, 2.6rem);
+  }
+
+  .team .cards .card .card-content p {
+    font-size: clamp(0.95rem, 1vw, 1.2rem);
+  }
+}
+
 @media (max-width: 1000px) {
   .hm-stage {
     transform: translate(-50%, -53%);
