@@ -16,7 +16,9 @@ const routeImages: Record<string, readonly string[]> = {
 
 export function warmRouteAssets(pathname: string) {
   if (!canWarmAssets()) return Promise.resolve();
-  return pathname === "/listen" ? warmListenAssets() : warmImages(routeImages[pathname] ?? []);
+  return pathname === "/listen" || pathname === "/listen/classic"
+    ? warmListenAssets()
+    : warmImages(routeImages[pathname] ?? []);
 }
 
 /** Wait only for the visible destination, with a short ceiling for failed/slow resources. */
@@ -31,7 +33,7 @@ export async function waitForFirstView(pathname: string, signal: AbortSignal) {
   });
   // Explicit assets also cover images whose intrinsic size is still zero while loading.
   const ready: Promise<unknown>[] = [warmRouteAssets(pathname), ...visibleImages.map((image) => image.decode().catch(() => {}))];
-  if (pathname === "/listen" && !document.querySelector("[data-listen-map-ready]")) {
+  if ((pathname === "/listen" || pathname === "/listen/classic") && !document.querySelector("[data-listen-map-ready]")) {
     ready.push(new Promise<void>((resolve) => {
       mapReady = resolve;
       window.addEventListener("sonify-map-ready", mapReady, { once: true });

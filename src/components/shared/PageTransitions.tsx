@@ -7,6 +7,38 @@ import { canWarmAssets } from "@/lib/assetCache";
 import { waitForFirstView, warmRouteAssets } from "@/lib/routeAssets";
 import "./PageTransitions.css";
 
+const APP_ROUTE_PATHS = new Set([
+  "/",
+  "/listen",
+  "/listen/classic",
+  "/about",
+  "/story",
+  "/challenge",
+  "/challenge/guess",
+  "/challenge/compose",
+  "/challenge/match",
+  "/play",
+  "/play/guess",
+  "/play/compose",
+  "/play/match",
+  "/challenges",
+  "/challenges/guess",
+  "/challenges/compose",
+  "/challenges/match",
+  "/credit",
+  "/credits",
+]);
+
+type ActiveNavigation = {
+  from: string;
+  href: string;
+  pushed: boolean;
+  covered: boolean;
+  revealing: boolean;
+  keyboard: boolean;
+  controller: AbortController;
+};
+
 /** Orbit Matter's grid-cover motif, adapted to persistent Next.js navigation. */
 export function PageTransitions() {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -24,14 +56,17 @@ export function PageTransitions() {
     let animation: gsap.core.Tween | undefined;
     let intentTimer: ReturnType<typeof setTimeout> | undefined;
     let safetyTimer: ReturnType<typeof setTimeout> | undefined;
-    let active: { from: string; href: string; pushed: boolean; revealing: boolean; keyboard: boolean; controller: AbortController } | null = null;
+    let active: ActiveNavigation | null = null;
+
+    const normalizedPathname = (pathname: string) => pathname.replace(/\/+$/, "") || "/";
 
     const destination = (target: EventTarget | null) => {
       const anchor = target instanceof Element ? target.closest<HTMLAnchorElement>("a[href]") : null;
       if (!anchor || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self") || anchor.dataset.noTransition !== undefined) return null;
       const url = new URL(anchor.href, location.href);
-      if (url.origin !== location.origin || !/^https?:$/.test(url.protocol) || url.pathname === location.pathname) return null;
-      if (!/^\/(?:listen|about|story|challenge(?:\/(?:guess|compose|match))?)?\/?$/.test(url.pathname)) return null;
+      const pathname = normalizedPathname(url.pathname);
+      if (url.origin !== location.origin || !/^https?:$/.test(url.protocol) || pathname === normalizedPathname(location.pathname)) return null;
+      if (!APP_ROUTE_PATHS.has(pathname)) return null;
       return url;
     };
     const warm = (url: URL) => {
@@ -43,6 +78,24 @@ export function PageTransitions() {
         router.prefetch(href);
       }
       void warmRouteAssets(url.pathname);
+    };
+    const createTiles = () => {
+      const size = 60;
+      const columns = Math.ceil(innerWidth / size);
+      const rows = Math.ceil(innerHeight / size) + 1;
+      const offsetX = (innerWidth - columns * size) / 2;
+      const offsetY = (innerHeight - rows * size) / 2;
+      const fragment = document.createDocumentFragment();
+      for (let index = 0; index < columns * rows; index++) {
+        const tile = document.createElement("span");
+        tile.setAttribute("aria-hidden", "true");
+        tile.style.width = `${size}px`;
+        tile.style.height = `${size}px`;
+        tile.style.left = `${(index % columns) * size + offsetX}px`;
+        tile.style.top = `${Math.floor(index / columns) * size + offsetY}px`;
+        fragment.appendChild(tile);
+      }
+      return fragment;
     };
     const reset = () => {
       active?.controller.abort();
@@ -56,8 +109,10 @@ export function PageTransitions() {
     };
     const reveal = async () => {
       const navigation = active;
-      if (!navigation?.pushed || navigation.revealing) return;
+      if (!navigation?.pushed || !navigation.covered || navigation.revealing) return;
       navigation.revealing = true;
+      clearTimeout(safetyTimer);
+      safetyTimer = undefined;
       await waitForFirstView(pathnameRef.current, navigation.controller.signal);
       if (active !== navigation) return;
       overlay.dataset.state = "revealing";
@@ -84,6 +139,43 @@ export function PageTransitions() {
       intentTimer = setTimeout(() => warm(url), event.type === "pointerover" ? 100 : 0);
     };
     const cancelIntent = () => clearTimeout(intentTimer);
+    const onPopState = () => {
+      const url = new URL(location.href);
+      const pathname = normalizedPathname(url.pathname);
+      if (motion.matches || !APP_ROUTE_PATHS.has(pathname) || pathname === normalizedPathname(pathnameRef.current)) {
+        reset();
+        return;
+      }
+
+      reset();
+      const navigation: ActiveNavigation = {
+        from: pathnameRef.current,
+        href: url.pathname + url.search + url.hash,
+        pushed: true,
+        covered: false,
+        revealing: false,
+        keyboard: false,
+        controller: new AbortController(),
+      };
+      active = navigation;
+      document.documentElement.dataset.sonifyNavigating = "1";
+      overlay.replaceChildren(createTiles());
+      overlay.hidden = false;
+      overlay.dataset.state = "covering";
+      safetyTimer = setTimeout(reset, 8_000);
+      animation = gsap.fromTo(overlay.children, { opacity: 0 }, {
+        opacity: 1,
+        duration: 0.05,
+        ease: "power2.inOut",
+        stagger: { amount: 0.5, each: 0.01, from: "random" },
+        onComplete: () => {
+          if (active !== navigation) return;
+          navigation.covered = true;
+          overlay.dataset.state = "loading";
+          if (pathnameRef.current !== navigation.from) void reveal();
+        },
+      });
+    };
     const onClick = (event: MouseEvent) => {
       if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const url = destination(event.target);
@@ -92,29 +184,14 @@ export function PageTransitions() {
       if (motion.matches) return;
       event.preventDefault();
       if (active) return;
-      const navigation = { from: pathnameRef.current, href: url.pathname + url.search + url.hash, pushed: false, revealing: false, keyboard: event.detail === 0, controller: new AbortController() };
+      const navigation: ActiveNavigation = { from: pathnameRef.current, href: url.pathname + url.search + url.hash, pushed: false, covered: false, revealing: false, keyboard: event.detail === 0, controller: new AbortController() };
       active = navigation;
       document.documentElement.dataset.sonifyNavigating = "1";
-      const size = 60;
-      const columns = Math.ceil(innerWidth / size);
-      const rows = Math.ceil(innerHeight / size) + 1;
-      const offsetX = (innerWidth - columns * size) / 2;
-      const offsetY = (innerHeight - rows * size) / 2;
-      const fragment = document.createDocumentFragment();
-      for (let index = 0; index < columns * rows; index++) {
-        const tile = document.createElement("span");
-        tile.setAttribute("aria-hidden", "true");
-        tile.style.width = `${size}px`;
-        tile.style.height = `${size}px`;
-        tile.style.left = `${(index % columns) * size + offsetX}px`;
-        tile.style.top = `${Math.floor(index / columns) * size + offsetY}px`;
-        fragment.appendChild(tile);
-      }
-      overlay.replaceChildren(fragment);
+      overlay.replaceChildren(createTiles());
       overlay.hidden = false;
       overlay.dataset.state = "covering";
-      // Safety timer: A failed or delayed navigation must NEVER leave an input-blocking overlay behind.
-      safetyTimer = setTimeout(reset, 2000);
+      // Safety timer only covers a stalled route commit; reveal readiness is separately bounded.
+      safetyTimer = setTimeout(reset, 8_000);
       animation = gsap.fromTo(overlay.children, { opacity: 0 }, {
         opacity: 1,
         duration: 0.05,
@@ -122,6 +199,7 @@ export function PageTransitions() {
         stagger: { amount: 0.5, each: 0.01, from: "random" },
         onComplete: () => {
           if (active !== navigation) return;
+          navigation.covered = true;
           animation = gsap.delayedCall(0.3, () => {
             if (active !== navigation) return;
             navigation.pushed = true;
@@ -142,7 +220,7 @@ export function PageTransitions() {
     document.addEventListener("pointerdown", onIntent, { passive: true });
     document.addEventListener("pointerout", cancelIntent, { passive: true });
     document.addEventListener("click", onClick, true);
-    window.addEventListener("popstate", reset);
+    window.addEventListener("popstate", onPopState);
     motion.addEventListener("change", onMotionChange);
     return () => {
       reset();
@@ -153,7 +231,7 @@ export function PageTransitions() {
       document.removeEventListener("pointerdown", onIntent);
       document.removeEventListener("pointerout", cancelIntent);
       document.removeEventListener("click", onClick, true);
-      window.removeEventListener("popstate", reset);
+      window.removeEventListener("popstate", onPopState);
       motion.removeEventListener("change", onMotionChange);
     };
   }, [router]);
