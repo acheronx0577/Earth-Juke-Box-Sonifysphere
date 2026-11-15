@@ -58,13 +58,14 @@ function graticule(): string[] {
 }
 
 const GRID = graticule();
-const NINO = [
-  project(-170, 5),
-  project(-120, 5),
-  project(-120, -5),
-  project(-170, -5),
-];
-const NINO_LABEL = project(-170, 8.2);
+const NINO_WEST = project(-170, 0)[0];
+const NINO_EAST = project(-120, 0)[0];
+const NINO_PROBE = project(-145, 0);
+const NINO_BOX_H = 36;
+const NINO_GAP = 20;
+const NINO_BOTTOM = NINO_PROBE[1] - NINO_GAP;
+const NINO_TOP = NINO_BOTTOM - NINO_BOX_H;
+const NINO_LABEL_Y = NINO_TOP - 8;
 
 interface ListenMapProps {
   readonly source: ListenSource;
@@ -229,17 +230,24 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
             <path key={shape.id} d={shape.d} fill={landFill(layer, shape.anomaly, shape.seaIce, shape.id)} />
           ))}
           {(layer === "temperature" || layer === "all") && (
-            <polygon points={NINO.map(([x, y]) => `${x},${y}`).join(" ")} fill="#c56a32" />
-          )}
-          {(layer === "temperature" || layer === "all") && (
-            <text x={NINO_LABEL[0]} y={NINO_LABEL[1]} fill="rgba(255,243,234,0.72)" fontSize="11" fontFamily="var(--font-geist-mono), monospace">
-              NIÑO 3.4 · 5°N–5°S · 170°W–120°W
-            </text>
+            <g aria-hidden="true">
+              <text
+                x={(NINO_WEST + NINO_EAST) / 2}
+                y={NINO_LABEL_Y}
+                textAnchor="middle"
+                fill="rgba(255,243,234,0.72)"
+                fontSize="10"
+                fontFamily="var(--font-geist-mono), monospace"
+              >
+                NIÑO 3.4 · 5°N–5°S · 170°W–120°W
+              </text>
+              <rect x={NINO_WEST} y={NINO_TOP} width={NINO_EAST - NINO_WEST} height={NINO_BOX_H} fill="#c56a32" />
+            </g>
           )}
           <g transform={`translate(${px} ${py})`} aria-hidden="true">
-            <circle r="14" fill="none" stroke="#e08a3c" strokeWidth="2" />
-            <circle r="5" fill="#e08a3c" />
-            <circle r="2" fill="#fff3ea" />
+            <circle r="22" fill="#e08a3c" opacity="0.28" />
+            <circle r="14" fill="none" stroke="#fff3ea" strokeWidth="1.75" />
+            <circle r="4.5" fill="#e08a3c" />
           </g>
         </svg>
       ) : source.kind === "video" && source.video ? (

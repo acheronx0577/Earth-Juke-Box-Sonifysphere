@@ -364,8 +364,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   const [status, setStatus] = useState("");
   const [layer, setLayer] = useState<LayerId>(initialLayer);
   const [more, setMore] = useState(EXTRA_LAYERS.some((item) => item.id === initialLayer));
-  const [lat, setLat] = useState(5);
-  const [lng, setLng] = useState(-170);
+  const [lat, setLat] = useState(0);
+  const [lng, setLng] = useState(-145);
   const [year, setYear] = useState(YEAR_END);
   const [styleId, setStyleId] = useState<SoundStyle>("synth");
   const [instrument, setInstrument] = useState<InstrumentId>("soft-synth");
@@ -507,8 +507,8 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
     setResultsOpen(false);
     if (item.layer) chooseLayer(item.layer);
     if (item.kind === "map") {
-      setLat(5);
-      setLng(-170);
+      setLat(0);
+      setLng(-145);
     }
   };
 
