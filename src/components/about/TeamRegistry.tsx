@@ -59,38 +59,27 @@ export function TeamRegistry() {
       });
     }
 
+    function centeredCardIndex(progress: number) {
+      const cardSpacing = 0.15;
+      const initialOffset = -cardSpacing * (totalCards - 1);
+      const totalTravel = 1 - initialOffset;
+      const arcProgress = initialOffset + progress * totalTravel;
+      const raw = totalCards - 1 - (0.5 - arcProgress) / cardSpacing;
+      return Math.max(0, Math.min(totalCards - 1, Math.round(raw)));
+    }
+
     function updateTeamCounter(progress: number) {
-      const isMobile = window.innerWidth <= 1000;
-      const stepHeight = isMobile ? 100 : 150;
-      const positions = [
-        stepHeight,
-        ...Array.from({ length: totalCards }, (_, i) => -i * stepHeight),
-        -totalCards * stepHeight,
-      ];
-      const startProgress = 0.15;
-      const endProgress = 0.9;
-      const range = endProgress - startProgress;
-
-      let index: number;
-      if (progress < startProgress) {
-        index = 0;
-      } else if (progress > endProgress) {
-        index = positions.length - 1;
-      } else {
-        const normalizedProgress = (progress - startProgress) / range;
-        index = Math.min(
-          positions.length - 1,
-          Math.floor(normalizedProgress * (positions.length - 1))
-        );
-      }
-
-      const targetY = positions[index];
+      const stepHeight = countContainer?.parentElement?.getBoundingClientRect().height ?? 0;
+      if (!stepHeight) return;
+      const index = centeredCardIndex(progress);
+      const targetY = -index * stepHeight;
       if (targetY === lastCounterY) return;
+      const first = lastCounterY === null;
       lastCounterY = targetY;
 
       gsap.to(countContainer, {
         y: targetY,
-        duration: 0.3,
+        duration: first ? 0 : 0.3,
         ease: "power1.out",
         overwrite: true,
       });
@@ -113,6 +102,7 @@ export function TeamRegistry() {
     });
 
     const onResize = () => {
+      lastCounterY = null;
       positionCards(trigger.progress || 0);
       updateTeamCounter(trigger.progress || 0);
     };
