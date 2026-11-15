@@ -42,11 +42,11 @@ test("layer chips retarget the sound and the address", async ({ page }) => {
 test("the probe and timeline change the reading", async ({ page }) => {
   await page.goto("/listen?sound=off");
   const readings = page.getByRole("region", { name: "Readings at probe" });
-  await expect(readings).toContainText("5°N 170°W");
+  await expect(readings).toContainText("0° 145°W");
   await expect(readings).toContainText("+2.84 °C");
   await page.getByRole("group", { name: /Map probe/ }).focus();
   await page.keyboard.press("ArrowRight");
-  await expect(readings).toContainText("168°W");
+  await expect(readings).toContainText("143°W");
 
   const timeline = page.getByRole("slider", { name: "Timeline" });
   await expect(timeline).toHaveAttribute("aria-valuetext", "SEP 2026");

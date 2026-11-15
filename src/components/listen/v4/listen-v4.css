@@ -460,7 +460,7 @@
 .lv-tag { top: 16px; left: 16px; }
 .lv-hint { left: 16px; bottom: 16px; max-width: min(348px, calc(100% - 32px)); }
 .lv-legend { right: 16px; bottom: 16px; width: 210px; }
-.lv-tip { transform: translate(18px, -18px); min-width: 168px; }
+.lv-tip { transform: translate(26px, -42%); min-width: 168px; }
 
 .lv-tip .is-warm { color: #e08a3c; }
 .lv-tip .is-cool { color: #a593e6; }
