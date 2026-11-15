@@ -725,6 +725,11 @@
   text-transform: uppercase;
 }
 
+.lv-mono .lv-utc,
+.lv-card small.lv-utc {
+  text-transform: none;
+}
+
 .lv-sound-face {
   display: flex;
   flex-direction: column;

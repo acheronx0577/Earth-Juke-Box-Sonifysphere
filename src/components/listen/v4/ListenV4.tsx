@@ -35,6 +35,7 @@ import {
 import { createLatestRequest, isAbortError } from "@/components/listen/v4/latestRequest";
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
@@ -577,11 +578,17 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
         .then(async (response) => {
           const body = (await response.json()) as { value?: number; unit?: string; source?: string; error?: string };
           if (!readingContextsMatch(readingContextRef.current, context)) return;
+          const when = formatUtcInstant(context.time) ?? context.time;
+          if (isNoDataResponse(response.status, body.error)) {
+            setMeasured({ context, status: "no-data", value: "No data for this date", detail: when });
+            return;
+          }
           if (!response.ok || typeof body.value !== "number") throw new Error(body.error ?? "No reading");
           setMeasured({
             context,
+            status: "reading",
             value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
-            detail: `${body.source ?? "Matched"} · ${dateLabel(year)}`,
+            detail: `${body.source ?? "Matched"} · ${when}`,
           });
         })
         .catch((error: unknown) => {
@@ -755,7 +762,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
   };
 
   const coord = formatCoord(lat, lng);
-  const when = dateLabel(year);
+  const when = formatUtcInstant(probeInstant(year)) ?? dateLabel(year);
   const announced =
     layer === "air" || layer === "currents" || layer === "wind"
       ? reading.cards.find((card) => card.id === layer)
@@ -895,7 +902,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
             <div className="lv-read-head">
               <p className="lv-mono lv-eyebrow">
                 READINGS AT {source.kind === "map" ? "PROBE" : "MEDIA"} · {source.kind === "map" ? <span className="lv-coord-inline">{coord} · </span> : null}
-                {when}
+                <span className="lv-utc">{when}</span>
               </p>
               <p className="lv-mono lv-eyebrow">
                 <span className="lv-count-long">{summary}</span>
@@ -911,7 +918,7 @@ export function ListenV4({ initialLayer }: { readonly initialLayer: LayerId }) {
                     {card.label}
                   </p>
                   <strong>{card.value}</strong>
-                  <small>{card.detail}</small>
+                  <small className="lv-utc">{card.detail}</small>
                 </article>
               ))}
             </div>
