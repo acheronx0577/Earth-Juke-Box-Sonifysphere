@@ -960,6 +960,7 @@ nav .nav-container,
   left: 0;
   width: 100%;
   height: 100%;
+  filter: url("#goo");
   z-index: -1;
   pointer-events: none;
 }
@@ -969,7 +970,7 @@ nav .nav-bg,
   width: 100%;
   height: 100%;
   background-color: #f2f2f0;
-  border-radius: 4px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 1rem) 100%, 1rem 100%);
 }
 
 nav .nav-overlay,
@@ -1064,6 +1065,11 @@ nav .nav-mobile-header p,
     width: calc(100% - 4rem);
     max-width: none;
     height: 2rem;
+  }
+
+  nav .nav-container,
+  .sonify-nav .nav-container {
+    filter: none;
   }
 
   nav .nav-bg,
