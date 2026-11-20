@@ -166,7 +166,7 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
   {
     id: "power",
     label: "NASA POWER",
-    text: "NASA POWER API (Prediction of Worldwide Energy Resources). Hourly and daily solar irradiance and 10m meteorological data, serving as automated fallback for weather readings.",
+    text: "NASA POWER API (Prediction of Worldwide Energy Resources). Hourly and daily solar irradiance and 10 m meteorological data, serving as automated fallback for weather readings. Average precipitation on Listen is the PRECTOTCORR annual climatology in mm/day; the yearly total is that daily mean times 365.",
     linkLabel: "NASA POWER ↗",
     linkHref: "https://power.larc.nasa.gov/",
   },
