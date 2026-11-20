@@ -144,15 +144,32 @@ function Chip({
   onClick,
   dashed = false,
   label,
+  holdScroll = false,
 }: {
   readonly pressed: boolean;
   readonly children: string;
   readonly onClick: () => void;
   readonly dashed?: boolean;
   readonly label?: string;
+  /** A mouse click should not slide the chip row to reveal this button. */
+  readonly holdScroll?: boolean;
 }) {
   return (
-    <button type="button" className={`lv-chip lv-cut ${pressed ? "is-on" : ""} ${dashed ? "is-more" : ""}`} aria-pressed={pressed} aria-label={label} onClick={onClick}>
+    <button
+      type="button"
+      className={`lv-chip lv-cut ${pressed ? "is-on" : ""} ${dashed ? "is-more" : ""}`}
+      aria-pressed={pressed}
+      aria-label={label}
+      onMouseDown={holdScroll ? (event) => {
+        const row = event.currentTarget.parentElement;
+        if (!row) return;
+        const left = row.scrollLeft;
+        requestAnimationFrame(() => {
+          row.scrollLeft = left;
+        });
+      } : undefined}
+      onClick={onClick}
+    >
       <ChamferMark />
       {children}
     </button>
@@ -1345,7 +1362,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
           </div>
           <div className="lv-chips" role="group" aria-label="Data layer">
             {layers.map((item) => (
-              <Chip key={item.id} pressed={layer === item.id} label={item.name} onClick={() => chooseLayer(item.id)}>
+              <Chip key={item.id} pressed={layer === item.id} label={item.name} holdScroll onClick={() => chooseLayer(item.id)}>
                 {item.label}
               </Chip>
             ))}
