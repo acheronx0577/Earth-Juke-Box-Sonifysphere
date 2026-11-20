@@ -1667,12 +1667,20 @@
   }
   .lv-read-head { margin-bottom: clamp(0px, calc(100svh - 41.375rem), 8px); }
   .lv-status:empty { display: none; }
+  /* Stay left-aligned. A visible bar replaces the hidden scroller, so the
+     first chip is not stranded off the left with no way back. */
   .lv-chips {
     flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
-    scrollbar-width: none;
+    overflow-y: hidden;
+    scroll-padding-inline-start: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #555555 transparent;
   }
-  .lv-chips::-webkit-scrollbar { display: none; }
+  .lv-chips::-webkit-scrollbar { height: 8px; }
+  .lv-chips::-webkit-scrollbar-thumb { background: #555555; }
   .lv-sound { grid-column: 3; grid-row: 1; }
   .lv-timeline {
     grid-column: 1 / -1;
@@ -1680,15 +1688,22 @@
     justify-self: center;
     width: min(932px, 100%);
   }
+  /* One row, starting at the first card. The bar is the neutral stroke
+     so a card past the edge can be reached and is not sliced with no hint. */
   .lv-cards {
+    min-width: 0;
+    max-width: 100%;
     min-height: 0;
     height: auto;
     overflow-x: auto;
     overflow-y: hidden;
     grid-auto-columns: minmax(8.25rem, 1fr);
-    scrollbar-width: none;
+    scroll-padding-inline-start: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #555555 transparent;
   }
-  .lv-cards::-webkit-scrollbar { display: none; }
+  .lv-cards::-webkit-scrollbar { height: 8px; }
+  .lv-cards::-webkit-scrollbar-thumb { background: #555555; }
   .lv-card {
     height: auto;
     min-height: clamp(4.25rem, calc(100svh - 32.5rem), 150px);
