@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { measurementCache, measurementCacheControl, measurementCacheKey, measurementTtlMs } from "@/lib/listen/measurementCache";
+import { isElevationLayer, readElevationPoint } from "@/lib/listen/elevation";
 import { isPowerLayer, readPowerPoint } from "@/lib/listen/power";
 import { RATE_LIMIT_MESSAGE, clientIp, measurementsRateLimit } from "@/lib/listen/rateLimit";
 
@@ -20,6 +21,12 @@ function jsonError(error: string, status: number) {
 
 async function powerFallback(lat: number, lon: number, time: string, layer: string) {
   const result = await readPowerPoint({ layer, lat, lon, time });
+  if (!result.ok) return jsonError(result.error, result.status);
+  return NextResponse.json(result.body, { headers: { "Cache-Control": result.cacheControl } });
+}
+
+async function elevationFallback(lat: number, lon: number, time: string) {
+  const result = await readElevationPoint({ lat, lon, time });
   if (!result.ok) return jsonError(result.error, result.status);
   return NextResponse.json(result.body, { headers: { "Cache-Control": result.cacheControl } });
 }
@@ -64,11 +71,13 @@ export async function GET(request: NextRequest) {
   const lon = Number(request.nextUrl.searchParams.get("lon"));
   const time = request.nextUrl.searchParams.get("time") ?? "";
   const layer = request.nextUrl.searchParams.get("layer") ?? "";
+  const elevation = isElevationLayer(layer);
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180 ||
-      !Object.hasOwn(PARAMETERS, layer) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(time) ||
+      (!Object.hasOwn(PARAMETERS, layer) && !elevation) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(time) ||
       Number.isNaN(Date.parse(time)) || Date.parse(time) > Date.now() + 86_400_000) {
     return jsonError("Provide a valid location, UTC time, and layer.", 400);
   }
+  if (elevation) return elevationFallback(lat, lon, time);
   const username = process.env.METEOMATICS_USERNAME;
   const password = process.env.METEOMATICS_PASSWORD;
   // Air temperature and wind use NASA POWER when Meteomatics is absent or fails.
