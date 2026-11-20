@@ -83,6 +83,25 @@ function testParseAndKey() {
   assert.equal(url.searchParams.get("time-standard"), "UTC");
   assert.equal(url.searchParams.has("api_key"), false);
 
+  const climate = {
+    properties: { parameter: { PRECTOTCORR: { JAN: 1, ANN: 3.37 } } },
+    header: { fill_value: -999, time_standard: "LST" },
+  };
+  assert.equal(power.parsePowerClimatology(climate, "PRECTOTCORR"), 3.37);
+  assert.equal(power.parsePowerClimatology({ ...climate, properties: { parameter: { PRECTOTCORR: { ANN: 0 } } } }, "PRECTOTCORR"), 0);
+  assert.equal(power.parsePowerClimatology({ ...climate, properties: { parameter: { PRECTOTCORR: { ANN: -999 } } } }, "PRECTOTCORR"), null);
+  assert.equal(power.parsePowerClimatology({ properties: { parameter: { PRECTOTCORR: { JAN: 1 } } } }, "PRECTOTCORR"), null);
+  assert.equal(power.parsePowerClimatology(null, "PRECTOTCORR"), null);
+  const climateUrl = new URL(power.powerClimatologyUrl(47.6062, -122.33214, "PRECTOTCORR"));
+  assert.equal(climateUrl.hostname, "power.larc.nasa.gov");
+  assert.equal(climateUrl.pathname, "/api/temporal/climatology/point");
+  assert.equal(climateUrl.searchParams.get("parameters"), "PRECTOTCORR");
+  assert.equal(climateUrl.searchParams.get("community"), "RE");
+  assert.equal(climateUrl.searchParams.get("latitude"), "47.6062");
+  assert.equal(climateUrl.searchParams.get("longitude"), "-122.3321");
+  assert.equal(climateUrl.searchParams.has("api_key"), false);
+  assert.equal(climateUrl.searchParams.has("start"), false);
+
   assert.equal(power.powerTtlMs(DAY, NOW), 30 * 24 * 60 * 60 * 1000);
   assert.equal(power.powerTtlMs("20240613", NOW), 30 * 24 * 60 * 60 * 1000);
   assert.equal(power.powerTtlMs("20240614", NOW), 24 * 60 * 60 * 1000);
@@ -298,8 +317,91 @@ async function testRoutes() {
   }
 }
 
+function climatologyFixture(ann) {
+  return {
+    properties: { parameter: { PRECTOTCORR: { ANN: ann, JAN: ann } } },
+    header: { fill_value: -999, time_standard: "LST" },
+    parameters: { PRECTOTCORR: { units: "mm/day" } },
+    messages: [],
+  };
+}
+
+async function testPrecipitationRoute() {
+  power.clearPowerCache();
+  delete process.env.METEOMATICS_USERNAME;
+  delete process.env.METEOMATICS_PASSWORD;
+  const original = global.fetch;
+  const calls = [];
+  global.fetch = async (input) => {
+    const url = new URL(String(input));
+    calls.push(url.hostname);
+    assert.equal(url.searchParams.has("api_key"), false);
+    assert.equal(url.username, "");
+    if (url.hostname === "api.meteomatics.com") {
+      return new Response(JSON.stringify({
+        data: [{ coordinates: [{ dates: [{ value: 18.5, date: "2020-01-15T12:00:00Z" }] }] }],
+      }), { status: 200 });
+    }
+    if (url.hostname !== "power.larc.nasa.gov") {
+      throw new Error(`unexpected host ${url.hostname}`);
+    }
+    assert.equal(url.pathname, "/api/temporal/climatology/point");
+    assert.equal(url.searchParams.get("parameters"), "PRECTOTCORR");
+    assert.equal(url.searchParams.get("community"), "RE");
+    const latitude = url.searchParams.get("latitude");
+    if (latitude === "8.0000") return new Response(JSON.stringify(climatologyFixture(-999)), { status: 200 });
+    if (latitude === "23.4162") return new Response(JSON.stringify(climatologyFixture(0)), { status: 200 });
+    return new Response(JSON.stringify(climatologyFixture(3.37)), { status: 200 });
+  };
+  try {
+    const reading = await measurements.GET(request("/api/listen/measurements", 47.6062, -122.3321, PAST, "precip"));
+    const body = await reading.json();
+    assert.equal(reading.status, 200);
+    assert.equal(body.source, "POWER");
+    assert.equal(body.layer, "precip");
+    assert.equal(body.value, 3.37);
+    assert.equal(body.unit, "mm/day");
+    assert.equal(body.resolution, "climatology");
+    assert.equal(body.time, PAST);
+    assert.match(reading.headers.get("cache-control") ?? "", /s-maxage=2592000/);
+    assert.equal(calls.length, 1);
+
+    const again = await measurements.GET(request("/api/listen/measurements", 47.60624, -122.3321, PAST_LATER, "precip"));
+    assert.equal((await again.json()).value, 3.37);
+    assert.equal(calls.length, 1);
+
+    process.env.METEOMATICS_USERNAME = "test-user";
+    process.env.METEOMATICS_PASSWORD = "test-password";
+    const dry = await measurements.GET(request("/api/listen/measurements", 23.4162, 25.6628, PAST, "precip"));
+    const dryBody = await dry.json();
+    assert.equal(dry.status, 200);
+    assert.equal(dryBody.value, 0);
+    assert.equal(dryBody.unit, "mm/day");
+    assert.equal(calls.at(-1), "power.larc.nasa.gov");
+    assert.equal(calls.length, 2);
+
+    const missing = await measurements.GET(request("/api/listen/measurements", 8, 6, PAST, "precip"));
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.json()).error, "No reading for this place and time.");
+    const missingAgain = await measurements.GET(request("/api/listen/measurements", 8, 6, PAST, "precip"));
+    assert.equal(missingAgain.status, 404);
+    assert.equal(calls.length, 4);
+
+    const windStill = await measurements.GET(request("/api/listen/measurements", 5.5, 6.5, PAST, "wind"));
+    assert.equal(windStill.status, 200);
+    assert.equal((await windStill.json()).source, "Meteomatics");
+    assert.equal(calls.at(-1), "api.meteomatics.com");
+  } finally {
+    global.fetch = original;
+    delete process.env.METEOMATICS_USERNAME;
+    delete process.env.METEOMATICS_PASSWORD;
+    power.clearPowerCache();
+  }
+}
+
 testParseAndKey();
 testCacheExpiry();
 await testSingleflight();
 await testRoutes();
+await testPrecipitationRoute();
 console.log("POWER fallback: parser, cache, route, and Meteomatics fallback tests passed");

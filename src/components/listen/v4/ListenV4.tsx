@@ -41,6 +41,7 @@ import { createLatestRequest, isAbortError } from "@/components/listen/v4/latest
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { LISTEN_UPLOAD_ACCEPT, validateListenUpload } from "@/lib/listen/uploadValidation";
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
+import { precipitationDetail, precipitationValueLabel } from "@/components/listen/v4/layerRange";
 import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { proximityMix, type ListeningFocus } from "@/components/listen/v4/proximityAudio";
@@ -142,12 +143,14 @@ function Chip({
   children,
   onClick,
   dashed = false,
+  label,
   holdScroll = false,
 }: {
   readonly pressed: boolean;
   readonly children: string;
   readonly onClick: () => void;
   readonly dashed?: boolean;
+  readonly label?: string;
   /** A mouse click should not slide the chip row to reveal this button. */
   readonly holdScroll?: boolean;
 }) {
@@ -156,6 +159,7 @@ function Chip({
       type="button"
       className={`lv-chip lv-cut ${pressed ? "is-on" : ""} ${dashed ? "is-more" : ""}`}
       aria-pressed={pressed}
+      aria-label={label}
       onMouseDown={holdScroll ? (event) => {
         const row = event.currentTarget.parentElement;
         if (!row) return;
@@ -639,7 +643,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const resolveInitialSource = (): ListenSource => {
     if (initialSourceId === "map") return MAP_SOURCE;
-    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice" || initialLayer === "sea-temp") return MAP_SOURCE;
+    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice" || initialLayer === "sea-temp" || initialLayer === "precip") return MAP_SOURCE;
     if (initialLayer === "co2") return SEED_SOURCES.find((s) => s.id === "oco2-example") ?? DEFAULT_EIC_SOURCE;
     if (initialLayer === "currents") return SEED_SOURCES.find((s) => s.id === "currents-example") ?? DEFAULT_EIC_SOURCE;
     return DEFAULT_EIC_SOURCE;
@@ -877,7 +881,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
     readingContextRef.current = context;
     setMeasured(null);
     setReadingError("");
-    if (source.kind !== "map" || (layer !== "air" && layer !== "sea-temp" && layer !== "currents" && layer !== "wind" && layer !== "temperature")) {
+    if (source.kind !== "map" || (layer !== "air" && layer !== "sea-temp" && layer !== "currents" && layer !== "wind" && layer !== "precip" && layer !== "temperature")) {
       setMeasuring(false);
       return;
     }
@@ -1006,8 +1010,8 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
           setMeasured({
             context,
             status: "reading",
-            value: `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
-            detail: `${body.source ?? "Matched"} · ${actualTime}`,
+            value: layer === "precip" ? precipitationValueLabel(body.value) : `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
+            detail: layer === "precip" ? precipitationDetail(body.value) : `${body.source ?? "Matched"} · ${actualTime}`,
           });
         })
         .catch((error: unknown) => {
@@ -1280,7 +1284,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const coord = formatCoord(lat, lng);
   const when = formatUtcInstant(probeInstant(year)) ?? dateLabel(year);
   const announced =
-    layer === "air" || layer === "currents" || layer === "wind"
+    layer === "air" || layer === "currents" || layer === "wind" || layer === "precip"
       ? reading.cards.find((card) => card.id === layer)
       : undefined;
   const layers = more ? [...PRIMARY_LAYERS, ...EXTRA_LAYERS] : PRIMARY_LAYERS;
@@ -1358,7 +1362,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
           </div>
           <div className="lv-chips" role="group" aria-label="Data layer">
             {layers.map((item) => (
-              <Chip key={item.id} pressed={layer === item.id} holdScroll onClick={() => chooseLayer(item.id)}>
+              <Chip key={item.id} pressed={layer === item.id} label={item.name} holdScroll onClick={() => chooseLayer(item.id)}>
                 {item.label}
               </Chip>
             ))}
