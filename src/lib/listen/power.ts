@@ -1,13 +1,16 @@
 /**
- * NASA POWER daily point reads for air temperature and wind.
+ * NASA POWER point reads for air temperature, wind, and precipitation.
  *
- * POWER is the keyless fallback when Meteomatics is not configured or fails.
- * Values are daily means for the requested UTC date (T2M in °C, WS10M in m/s).
- * A missing day or the fill value -999 is no reading. Successful values are
- * cached in this isolate: completed days (two or more days old) for 30 days,
- * and today, yesterday, or a future day for one day. Failures are not stored.
- * The cache key is the layer, coordinates rounded to 4 decimal places, the
- * UTC day, and the time standard. It never includes a credential.
+ * Daily air temperature and wind are the keyless fallback when Meteomatics
+ * is not configured or fails (T2M in °C, WS10M in m/s). Precipitation is the
+ * PRECTOTCORR annual climatology (mm/day) and does not use Meteomatics.
+ * A missing day, a missing ANN, or the fill value -999 is no reading. A real
+ * zero is kept. Successful values are cached in this isolate: completed days
+ * (two or more days old) and the climatology for 30 days, and today,
+ * yesterday, or a future day for one day. Failures are not stored. The cache
+ * key is the layer, coordinates rounded to 4 decimal places, the UTC day
+ * (or CLIM for the annual mean), and the time standard. It never includes
+ * a credential.
  */
 
 export const POWER_NO_READING = "No reading for this place and time.";
@@ -17,8 +20,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const PAST_TTL_MS = 30 * DAY_MS;
 
 export const POWER_PARAMETERS = {
-  "air-temp": { parameter: "T2M", unit: "°C" },
-  wind: { parameter: "WS10M", unit: "m/s" },
+  "air-temp": { parameter: "T2M", unit: "°C", temporal: "daily" },
+  wind: { parameter: "WS10M", unit: "m/s", temporal: "daily" },
+  // AG and RE both publish PRECTOTCORR. RE matches the daily POWER reads.
+  precip: { parameter: "PRECTOTCORR", unit: "mm/day", temporal: "climatology" },
 } as const;
 
 export type PowerLayer = keyof typeof POWER_PARAMETERS;
@@ -31,7 +36,7 @@ export interface PowerBody {
   readonly lat: number;
   readonly lon: number;
   readonly source: "POWER";
-  readonly resolution: "daily";
+  readonly resolution: "daily" | "climatology";
 }
 
 export type PowerResult =
@@ -89,6 +94,17 @@ export function powerPointUrl(lat: number, lon: number, parameter: string, day: 
   return url.toString();
 }
 
+/** Annual climatology. PRECTOTCORR ANN is the long-term mean in mm/day. */
+export function powerClimatologyUrl(lat: number, lon: number, parameter: string): string {
+  const url = new URL("https://power.larc.nasa.gov/api/temporal/climatology/point");
+  url.searchParams.set("parameters", parameter);
+  url.searchParams.set("community", "RE");
+  url.searchParams.set("latitude", lat.toFixed(4));
+  url.searchParams.set("longitude", lon.toFixed(4));
+  url.searchParams.set("format", "JSON");
+  return url.toString();
+}
+
 export function parsePowerDaily(body: unknown, parameter: string, day: string): number | null {
   if (!body || typeof body !== "object") return null;
   const record = body as { header?: { fill_value?: unknown }; properties?: { parameter?: unknown } };
@@ -97,6 +113,21 @@ export function parsePowerDaily(body: unknown, parameter: string, day: string): 
   const series = (table as Record<string, unknown>)[parameter];
   if (!series || typeof series !== "object") return null;
   const value = (series as Record<string, unknown>)[day];
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const fill = record.header?.fill_value;
+  if (value === -999 || (typeof fill === "number" && value === fill)) return null;
+  return value;
+}
+
+/** Reads PRECTOTCORR (or another climatology parameter) ANN. Zero is a reading. */
+export function parsePowerClimatology(body: unknown, parameter: string): number | null {
+  if (!body || typeof body !== "object") return null;
+  const record = body as { header?: { fill_value?: unknown }; properties?: { parameter?: unknown } };
+  const table = record.properties?.parameter;
+  if (!table || typeof table !== "object") return null;
+  const series = (table as Record<string, unknown>)[parameter];
+  if (!series || typeof series !== "object") return null;
+  const value = (series as Record<string, unknown>).ANN;
   if (typeof value !== "number" || !Number.isFinite(value)) return null;
   const fill = record.header?.fill_value;
   if (value === -999 || (typeof fill === "number" && value === fill)) return null;
@@ -168,9 +199,11 @@ export function clearPowerCache(): void {
   powerCache.clear();
 }
 
+const POWER_HEADERS = { Accept: "application/json", "User-Agent": "SonifySphere (educational prototype)" };
+
 async function fetchPowerValue(lat: number, lon: number, parameter: string, day: string): Promise<number | null> {
   const response = await fetch(powerPointUrl(lat, lon, parameter, day), {
-    headers: { Accept: "application/json", "User-Agent": "SonifySphere (educational prototype)" },
+    headers: POWER_HEADERS,
     signal: AbortSignal.timeout(12000),
     cache: "no-store",
   });
@@ -179,17 +212,32 @@ async function fetchPowerValue(lat: number, lon: number, parameter: string, day:
   return parsePowerDaily(await response.json(), parameter, day);
 }
 
+async function fetchPowerClimatology(lat: number, lon: number, parameter: string): Promise<number | null> {
+  const response = await fetch(powerClimatologyUrl(lat, lon, parameter), {
+    headers: POWER_HEADERS,
+    signal: AbortSignal.timeout(12000),
+    cache: "no-store",
+  });
+  if (response.status >= 400 && response.status < 500) return null;
+  if (!response.ok) throw new Error("POWER request failed");
+  return parsePowerClimatology(await response.json(), parameter);
+}
+
 export async function readPowerPoint(input: { layer: string; lat: number; lon: number; time: string }, now = Date.now()): Promise<PowerResult> {
   if (!isPowerLayer(input.layer)) return { ok: false, status: 404, error: POWER_NO_READING };
   const day = powerDay(input.time);
   if (!day) return { ok: false, status: 404, error: POWER_NO_READING };
   const spec = POWER_PARAMETERS[input.layer];
-  const ttlMs = powerTtlMs(day, now);
+  const climatology = spec.temporal === "climatology";
+  const cacheDay = climatology ? "CLIM" : day;
+  const ttlMs = climatology ? PAST_TTL_MS : powerTtlMs(day, now);
   try {
     const value = await powerCache.getOrLoad(
-      powerCacheKey(input.layer, input.lat, input.lon, day),
+      powerCacheKey(input.layer, input.lat, input.lon, cacheDay),
       ttlMs,
-      () => fetchPowerValue(input.lat, input.lon, spec.parameter, day),
+      () => climatology
+        ? fetchPowerClimatology(input.lat, input.lon, spec.parameter)
+        : fetchPowerValue(input.lat, input.lon, spec.parameter, day),
     );
     if (value === null) return { ok: false, status: 404, error: POWER_NO_READING };
     return {
@@ -203,7 +251,7 @@ export async function readPowerPoint(input: { layer: string; lat: number; lon: n
         lat: input.lat,
         lon: input.lon,
         source: "POWER",
-        resolution: "daily",
+        resolution: climatology ? "climatology" : "daily",
       },
     };
   } catch {

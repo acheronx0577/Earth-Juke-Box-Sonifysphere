@@ -12,6 +12,10 @@ const PARAMETERS = {
 
 type Layer = keyof typeof PARAMETERS;
 
+function isMeteomaticsLayer(layer: string): layer is Layer {
+  return Object.hasOwn(PARAMETERS, layer);
+}
+
 const NO_STORE = { "Cache-Control": "no-store" };
 
 function jsonError(error: string, status: number) {
@@ -64,11 +68,15 @@ export async function GET(request: NextRequest) {
   const lon = Number(request.nextUrl.searchParams.get("lon"));
   const time = request.nextUrl.searchParams.get("time") ?? "";
   const layer = request.nextUrl.searchParams.get("layer") ?? "";
+  const meteomatics = isMeteomaticsLayer(layer);
+  // Precipitation is a POWER climatology and never calls Meteomatics.
+  const powerOnly = isPowerLayer(layer) && !meteomatics;
   if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180 ||
-      !Object.hasOwn(PARAMETERS, layer) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(time) ||
+      (!meteomatics && !powerOnly) || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(time) ||
       Number.isNaN(Date.parse(time)) || Date.parse(time) > Date.now() + 86_400_000) {
     return jsonError("Provide a valid location, UTC time, and layer.", 400);
   }
+  if (powerOnly) return powerFallback(lat, lon, time, layer);
   const username = process.env.METEOMATICS_USERNAME;
   const password = process.env.METEOMATICS_PASSWORD;
   // Air temperature and wind use NASA POWER when Meteomatics is absent or fails.
