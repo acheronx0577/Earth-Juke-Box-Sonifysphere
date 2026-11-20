@@ -157,6 +157,13 @@ export const ABOUT_CREDIT_ROWS: readonly AboutCreditRowSpec[] = [
     linkHref: "https://planetarycomputer.microsoft.com/dataset/modis-11A1-061",
   },
   {
+    id: "open-meteo-elevation",
+    label: "Elevation",
+    text: "Open-Meteo Elevation API, Copernicus DEM GLO-90. Listen reads point elevation in metres. Sea level and ocean return 0 and play a low tone, not an error.",
+    linkLabel: "Open-Meteo elevation ↗",
+    linkHref: "https://open-meteo.com/en/docs/elevation-api",
+  },
+  {
     id: "power",
     label: "NASA POWER",
     text: "NASA POWER API (Prediction of Worldwide Energy Resources). Hourly and daily solar irradiance and 10 m meteorological data, serving as automated fallback for weather readings. Average precipitation on Listen is the PRECTOTCORR annual climatology in mm/day; the yearly total is that daily mean times 365.",

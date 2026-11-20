@@ -41,7 +41,7 @@ import { createLatestRequest, isAbortError } from "@/components/listen/v4/latest
 import { startProbeAudio, stopProbeAudio, updateProbeAudio, useProbeAudioBinding, type HearingParams } from "@/components/listen/v4/probeAudio";
 import { LISTEN_UPLOAD_ACCEPT, validateListenUpload } from "@/lib/listen/uploadValidation";
 import { probeInstant, readingContextsMatch, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
-import { precipitationDetail, precipitationValueLabel } from "@/components/listen/v4/layerRange";
+import { elevationValueLabel, precipitationDetail, precipitationValueLabel } from "@/components/listen/v4/layerRange";
 import { formatUtcInstant, isNoDataResponse } from "@/components/listen/v4/utcLabel";
 import { WakeSlider } from "@/components/listen/v4/WakeSlider";
 import { proximityMix, type ListeningFocus } from "@/components/listen/v4/proximityAudio";
@@ -643,7 +643,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [searches, setSearches] = useState<SearchRecord[]>([...SEED_SEARCHES]);
   const resolveInitialSource = (): ListenSource => {
     if (initialSourceId === "map") return MAP_SOURCE;
-    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice" || initialLayer === "sea-temp" || initialLayer === "precip") return MAP_SOURCE;
+    if (initialLayer === "air" || initialLayer === "wind" || initialLayer === "sea-ice" || initialLayer === "sea-temp" || initialLayer === "precip" || initialLayer === "elevation") return MAP_SOURCE;
     if (initialLayer === "co2") return SEED_SOURCES.find((s) => s.id === "oco2-example") ?? DEFAULT_EIC_SOURCE;
     if (initialLayer === "currents") return SEED_SOURCES.find((s) => s.id === "currents-example") ?? DEFAULT_EIC_SOURCE;
     return DEFAULT_EIC_SOURCE;
@@ -881,7 +881,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
     readingContextRef.current = context;
     setMeasured(null);
     setReadingError("");
-    if (source.kind !== "map" || (layer !== "air" && layer !== "sea-temp" && layer !== "currents" && layer !== "wind" && layer !== "precip" && layer !== "temperature")) {
+    if (source.kind !== "map" || (layer !== "air" && layer !== "sea-temp" && layer !== "currents" && layer !== "wind" && layer !== "precip" && layer !== "elevation" && layer !== "temperature")) {
       setMeasuring(false);
       return;
     }
@@ -1010,8 +1010,8 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
           setMeasured({
             context,
             status: "reading",
-            value: layer === "precip" ? precipitationValueLabel(body.value) : `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
-            detail: layer === "precip" ? precipitationDetail(body.value) : `${body.source ?? "Matched"} · ${actualTime}`,
+            value: layer === "elevation" ? elevationValueLabel(body.value) : layer === "precip" ? precipitationValueLabel(body.value) : `${body.value.toFixed(1)} ${body.unit ?? ""}`.trim(),
+            detail: layer === "elevation" ? "Open-Meteo · Copernicus DEM" : layer === "precip" ? precipitationDetail(body.value) : `${body.source ?? "Matched"} · ${actualTime}`,
           });
         })
         .catch((error: unknown) => {
@@ -1284,7 +1284,7 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const coord = formatCoord(lat, lng);
   const when = formatUtcInstant(probeInstant(year)) ?? dateLabel(year);
   const announced =
-    layer === "air" || layer === "currents" || layer === "wind" || layer === "precip"
+    layer === "air" || layer === "currents" || layer === "wind" || layer === "precip" || layer === "elevation"
       ? reading.cards.find((card) => card.id === layer)
       : undefined;
   const layers = more ? [...PRIMARY_LAYERS, ...EXTRA_LAYERS] : PRIMARY_LAYERS;

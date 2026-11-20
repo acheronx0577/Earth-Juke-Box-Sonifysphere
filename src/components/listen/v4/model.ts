@@ -6,7 +6,7 @@ import { isSoundLayer, mapLayerToSound, readingNumber } from "@/components/liste
 import { acceptReading, probeInstant, type ReadingContext, type TaggedReading } from "@/components/listen/v4/readingContext";
 import { formatUtcInstant } from "@/components/listen/v4/utcLabel";
 
-export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "sea-temp" | "currents" | "wind" | "precip";
+export type LayerId = "all" | "temperature" | "sea-ice" | "co2" | "methane" | "air" | "sea-temp" | "currents" | "wind" | "precip" | "elevation";
 export type SoundStyle = "synth" | "orchestra";
 export type InstrumentId = "soft-synth" | "marimba" | "woodblock" | "strings";
 export type VariationId = "soft" | "bright" | "deep";
@@ -49,6 +49,7 @@ export const EXTRA_LAYERS: ReadonlyArray<{ id: LayerId; label: string; name?: st
   { id: "currents", label: "CURRENTS" },
   { id: "wind", label: "WIND" },
   { id: "precip", label: "PRECIP", name: "Average annual precipitation" },
+  { id: "elevation", label: "ELEVATION" },
 ];
 
 export const STYLES: ReadonlyArray<{ id: SoundStyle; label: string }> = [
@@ -161,7 +162,7 @@ export function layerFromParam(value: string | undefined): LayerId {
   if (value === "ch4" || value === "methane") return "methane";
   if (value === "sea-ice") return "sea-ice";
   if (value === "all") return "all";
-  if (value === "air" || value === "sea-temp" || value === "currents" || value === "wind" || value === "precip") return value;
+  if (value === "air" || value === "sea-temp" || value === "currents" || value === "wind" || value === "precip" || value === "elevation") return value;
   return "temperature";
 }
 
@@ -186,6 +187,7 @@ export function hearTitle(layer: LayerId): string {
   if (layer === "air") return "Hear Air temp as";
   if (layer === "currents") return "Hear Currents as";
   if (layer === "precip") return "Hear Precipitation as";
+  if (layer === "elevation") return "Hear Elevation as";
   return "Hear Wind as";
 }
 
@@ -280,7 +282,7 @@ function paintColor(layer: LayerId, lng: number, lat: number): string {
     if (region?.seaIce || region?.id === "arctic" || region?.id === "antarctica") return "#d5e6ee";
     return "#2a2a2a";
   }
-  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "sea-temp" || layer === "currents" || layer === "wind" || layer === "precip") {
+  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "sea-temp" || layer === "currents" || layer === "wind" || layer === "precip" || layer === "elevation") {
     return region ? "#3a3a3a" : "#161311";
   }
   if (inNino(lng, lat)) return "#e08a3c";
@@ -429,7 +431,7 @@ export function readProbe(input: {
   const methane = emptyCard("methane", "METHANE", "NO METHANE LAYER ON THIS MAP");
 
   const extras = new Map<string, ReadingCard>();
-  for (const id of ["air", "sea-temp", "currents", "wind", "precip"] as const) {
+  for (const id of ["air", "sea-temp", "currents", "wind", "precip", "elevation"] as const) {
     if (measuring && layer === id) {
       extras.set(id, {
         id,
@@ -526,6 +528,8 @@ export function readProbe(input: {
                 ? "NO CURRENT FIELD"
                 : layer === "precip"
                   ? active.state === "matched" ? active.value.replace("mm/day", "mm/d") : active.state === "loading" ? "CHECKING PRECIP" : "NO PRECIP FIELD"
+                : layer === "elevation"
+                  ? active.state === "matched" ? active.value : active.state === "loading" ? "CHECKING ELEVATION" : "NO ELEVATION"
                 : region
                   ? `${placeName} · ${warmer > 0.15 ? "WARMER ↑" : warmer < -0.15 ? "COOLER ↓" : "STEADY"}`
                   : "NO REGION FIELD";
@@ -542,6 +546,8 @@ export function readProbe(input: {
             ? "METHANE"
             : layer === "precip"
               ? "PRECIPITATION mm/day"
+            : layer === "elevation"
+              ? "ELEVATION m"
               : layerLabel(layer);
 
   return {

@@ -9,6 +9,12 @@
  * (~8.3 mm/day). Seattle (~3.4 mm/day) and the Amazon therefore sit on
  * different notes. Only wetter orographic cells, such as the Chocó
  * Pacific coast (~17 mm/day), share the top note.
+ *
+ * Elevation runs from the Dead Sea shore (−430 m) to Everest (8,849 m).
+ * A linear map puts sea level at about 0.05 and every coastal plain on the
+ * same note. The square root of that position stretches the bottom: sea
+ * level is about 0.22, 500 m is about 0.32, and the summit stays at 1.
+ * Ocean and sea level are low notes, not missing data.
  */
 export const LAYER_SOUND_RANGES = {
   temperature: { min: -50, max: 50, unit: "°C", quantity: "Land surface temperature" },
@@ -17,6 +23,7 @@ export const LAYER_SOUND_RANGES = {
   currents: { min: 0, max: 3, unit: "m/s", quantity: "Ocean current speed" },
   wind: { min: 0, max: 40, unit: "m/s", quantity: "Wind speed" },
   precip: { min: 0, max: 12, unit: "mm/day", quantity: "Average annual precipitation" },
+  elevation: { min: -430, max: 8849, unit: "m", quantity: "Elevation", curve: "sqrt" },
 } as const;
 
 export type SoundLayerId = keyof typeof LAYER_SOUND_RANGES;
@@ -41,7 +48,13 @@ export function mapLayerToSound(layer: SoundLayerId, value: number | null): numb
   const range = LAYER_SOUND_RANGES[layer];
   const span = range.max - range.min;
   if (!(span > 0)) return null;
-  return Math.min(1, Math.max(0, (value - range.min) / span));
+  const linear = Math.min(1, Math.max(0, (value - range.min) / span));
+  if ("curve" in range && range.curve === "sqrt") return Math.sqrt(linear);
+  return linear;
+}
+
+export function elevationValueLabel(meters: number): string {
+  return `${Math.round(meters)} m`;
 }
 
 /** Yearly total from a PRECTOTCORR daily mean. POWER's ANN is mm/day. */

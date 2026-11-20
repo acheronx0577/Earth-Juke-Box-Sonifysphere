@@ -11,7 +11,7 @@ import type { ListeningFocus } from "@/components/listen/v4/proximityAudio";
 
 function landFill(layer: LayerId, anomaly: number, seaIce: boolean, id: string): string {
   if (layer === "sea-ice") return seaIce || id === "antarctica" ? "#d5e6ee" : "#2a2a2a";
-  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "currents" || layer === "wind" || layer === "precip") return "#3a3a3a";
+  if (layer === "co2" || layer === "methane" || layer === "air" || layer === "currents" || layer === "wind" || layer === "precip" || layer === "elevation") return "#3a3a3a";
   if (id === "oceania" || anomaly <= -0.7) return "#5c547c";
   if (id === "antarctica") return "#2e2926";
   return "#463c34";

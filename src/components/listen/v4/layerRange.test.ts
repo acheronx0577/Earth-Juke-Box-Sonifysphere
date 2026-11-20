@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { frequencyForValue } from "./audioMapping";
-import { LAYER_SOUND_RANGES, mapLayerToSound, precipitationAnnualMm, precipitationDetail, precipitationValueLabel, readingNumber } from "./layerRange";
+import { LAYER_SOUND_RANGES, elevationValueLabel, mapLayerToSound, precipitationAnnualMm, precipitationDetail, precipitationValueLabel, readingNumber } from "./layerRange";
 
 test("air temperature uses -50 °C to 50 °C", () => {
   assert.equal(mapLayerToSound("air", -50), 0);
@@ -46,6 +46,40 @@ test("empty, blank, NaN, and non-numeric readings are null rather than zero", ()
   assert.equal(mapLayerToSound("wind", readingNumber("")), null);
   assert.equal(mapLayerToSound("currents", readingNumber(" ")), null);
   assert.notEqual(mapLayerToSound("wind", readingNumber("")), 0);
+});
+
+test("elevation uses a square-root curve from -430 m to 8849 m", () => {
+  const span = 8849 - -430;
+  assert.equal(LAYER_SOUND_RANGES.elevation.min, -430);
+  assert.equal(LAYER_SOUND_RANGES.elevation.max, 8849);
+  assert.equal(LAYER_SOUND_RANGES.elevation.unit, "m");
+  assert.equal(LAYER_SOUND_RANGES.elevation.curve, "sqrt");
+  assert.equal(mapLayerToSound("elevation", -430), 0);
+  assert.equal(mapLayerToSound("elevation", -500), 0);
+  assert.equal(mapLayerToSound("elevation", 8849), 1);
+  assert.equal(mapLayerToSound("elevation", 9000), 1);
+  assert.equal(mapLayerToSound("elevation", null), null);
+  const sea = mapLayerToSound("elevation", 0);
+  const seattle = mapLayerToSound("elevation", 59);
+  const sahara = mapLayerToSound("elevation", 962);
+  const everest = mapLayerToSound("elevation", 8724);
+  const deadSea = mapLayerToSound("elevation", -427);
+  assert.ok(sea !== null && seattle !== null && sahara !== null && everest !== null && deadSea !== null);
+  assert.equal(sea, Math.sqrt(430 / span));
+  assert.ok(sea > 0);
+  assert.ok(deadSea > 0 && deadSea < sea);
+  assert.ok(seattle > sea);
+  assert.ok(sahara > seattle);
+  assert.ok(everest > 0.99 && everest < 1);
+  const linearGap = (500 - 0) / span;
+  const curvedGap = (mapLayerToSound("elevation", 500) ?? 0) - sea;
+  assert.ok(curvedGap > linearGap);
+  assert.notEqual(frequencyForValue(sea, "soft", "continuous"), frequencyForValue(sahara, "soft", "continuous"));
+  assert.equal(readingNumber(elevationValueLabel(0)), 0);
+  assert.equal(readingNumber(elevationValueLabel(-427)), -427);
+  assert.equal(elevationValueLabel(59.4), "59 m");
+  assert.notEqual(mapLayerToSound("elevation", readingNumber("0 m")), null);
+  assert.notEqual(mapLayerToSound("elevation", readingNumber("0 m")), 0);
 });
 
 test("average precipitation uses 0 mm/day to 12 mm/day", () => {
