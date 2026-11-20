@@ -22,6 +22,7 @@ const LAYER_TIMBRES: Record<LayerId, LayerTimbre> = {
   "sea-temp": { oscillator: "triangle", filterHz: 1500, label: "warm triangle · sea temperature" },
   currents: { oscillator: "sine", filterHz: 820, label: "rounded sine · currents" },
   wind: { oscillator: "sawtooth", filterHz: 2300, label: "bright sawtooth · wind" },
+  elevation: { oscillator: "sine", filterHz: 1680, label: "clear sine · elevation" },
 };
 
 export function layerTimbreFor(layer: LayerId): LayerTimbre {
