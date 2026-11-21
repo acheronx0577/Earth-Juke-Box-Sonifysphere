@@ -385,7 +385,7 @@ export function WaveformRibbonsGame({
     const displayScore = sharedResult ? sharedResult.totalScore : score;
     const solved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
     return (
-      <main id="main-content" tabIndex={-1} className={styles.page}>
+      <main id="main-content" tabIndex={-1} className={styles.page} data-hide-target-cursor="true">
         <header className={styles.header}>
           <Link href="/challenge" className={styles.resultBack}>
             ← Challenges
@@ -452,7 +452,7 @@ export function WaveformRibbonsGame({
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page}>
+    <main id="main-content" tabIndex={-1} className={styles.page} data-hide-target-cursor="true">
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <span className={styles.num}>03</span>

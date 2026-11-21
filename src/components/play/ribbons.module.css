@@ -507,3 +507,13 @@
     transition: none;
   }
 }
+
+/* The site cursor hides the system pointer. This page keeps the system cursor. */
+.page,
+.page * {
+  cursor: auto !important;
+}
+
+.page :is(button, a, input, [role="button"], [role="slider"]):not(:disabled) {
+  cursor: pointer !important;
+}
