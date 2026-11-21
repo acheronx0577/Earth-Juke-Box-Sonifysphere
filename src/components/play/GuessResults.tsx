@@ -391,16 +391,16 @@ export function GuessResults({
           </span>
         </div>
         <div className={styles.cluster}>
-          <Link className={`${styles.ring} ${styles.hearWide}`} href={listenHref}>
-            <span className={styles.linkFace}>
-              Hear the real data
-              <span className={styles.linkArrow} aria-hidden="true">↗</span>
-            </span>
-          </Link>
           <Link className={`${styles.ring} ${styles.nextSlot}`} href="/challenge/compose">
             <span className={styles.linkFace}>
               Next · Compose
               <span className={styles.linkArrow} aria-hidden="true">→</span>
+            </span>
+          </Link>
+          <Link className={`${styles.ring} ${styles.hearWide}`} href={listenHref}>
+            <span className={styles.linkFace}>
+              Hear the real data
+              <span className={styles.linkArrow} aria-hidden="true">↗</span>
             </span>
           </Link>
         </div>

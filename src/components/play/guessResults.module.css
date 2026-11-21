@@ -855,6 +855,16 @@
   }
 }
 
+@container guess (min-width: 901px) {
+  .hearWide {
+    order: 1;
+  }
+
+  .nextSlot {
+    order: 2;
+  }
+}
+
 @media (max-width: 767px) {
   .board {
     overflow-x: hidden;
