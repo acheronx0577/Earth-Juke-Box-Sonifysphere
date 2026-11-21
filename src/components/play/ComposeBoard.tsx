@@ -118,14 +118,42 @@ function monotone(points: readonly [number, number][]): string {
 
 function sequencePath(heights: readonly number[]): string {
   const width = 800;
-  const height = 200;
-  const floor = height - 8;
-  const points = heights.map((value, index) => {
-    const x = ((index + 0.5) / heights.length) * width;
-    const y = Math.min(floor, height - (value / 100) * (height - 16));
-    return [x, y] as [number, number];
+  const plot = 200;
+  const yFor = (value: number) => plot * (1 - value / 100);
+  const known = heights.map((value) => (value > 0 ? yFor(value) : null));
+  const ys = known.map((y, index) => {
+    if (y !== null) return y;
+    let previous = -1;
+    let next = -1;
+    for (let i = index - 1; i >= 0; i -= 1) {
+      if (known[i] !== null) {
+        previous = i;
+        break;
+      }
+    }
+    for (let i = index + 1; i < known.length; i += 1) {
+      if (known[i] !== null) {
+        next = i;
+        break;
+      }
+    }
+    if (previous >= 0 && next >= 0) {
+      const span = next - previous;
+      const t = (index - previous) / span;
+      return known[previous]! + (known[next]! - known[previous]!) * t;
+    }
+    if (previous >= 0) return known[previous]!;
+    if (next >= 0) return known[next]!;
+    return plot - 1;
   });
-  return monotone(points.map(([x, y]) => [x, Math.min(y, floor)] as [number, number]));
+  const points = ys.map((y, index) => [((index + 0.5) / ys.length) * width, y] as [number, number]);
+  const first = points[0] ?? [0, plot - 1];
+  const last = points[points.length - 1] ?? first;
+  return monotone([
+    [0, first[1]],
+    ...points,
+    [width, last[1]],
+  ]);
 }
 
 function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number, count: number, focusAt: (next: number) => void) {
@@ -509,7 +537,10 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             >
               <span className={`${styles.col} sonify-slot${playing ? " is-playing" : ""}`}>
                 {slot ? (
-                  <span className={styles.bar} data-on="true" data-play={playing ? "true" : "false"} style={{ height: `${heights[index]}%` }} />
+                  <>
+                    <span className={styles.bar} data-on="true" data-play={playing ? "true" : "false"} style={{ height: `${heights[index]}%` }} />
+                    <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} />
+                  </>
                 ) : null}
                 {target ? (
                   <span className={`${styles.shell} ${styles.place}`} style={{ clipPath: clip(12) }}>
