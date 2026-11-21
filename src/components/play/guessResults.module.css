@@ -729,9 +729,9 @@
   --cut: 8px;
   width: min(100%, 36rem);
   max-height: min(70svh, 28rem);
-  padding: 1px;
-  background: var(--stroke);
-  color: var(--cream);
+  padding: 1.5px;
+  background: #555555;
+  color: #f2f2f0;
   clip-path: polygon(
     var(--cut) 0,
     calc(100% - var(--cut)) 0,
@@ -777,15 +777,16 @@
   flex-direction: column;
   gap: 8px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 16px;
   list-style: none;
 }
 
 .sheetList p {
   margin: 0;
-  color: var(--muted);
+  color: #c8c6c2;
   font-size: 13px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .sheetList a {
