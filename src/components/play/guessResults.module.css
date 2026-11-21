@@ -640,6 +640,30 @@
   color: var(--ink);
 }
 
+.linkSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  max-width: 100%;
+  background: transparent;
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+}
+
+.linkSlot:focus-visible {
+  outline: none;
+}
+
+.linkSlot:focus-visible > .ring {
+  background: #f2f2f0;
+}
+
+.linkSlot > .ring {
+  width: max-content;
+  max-width: 100%;
+}
+
 .linkArrow {
   flex: none;
 }

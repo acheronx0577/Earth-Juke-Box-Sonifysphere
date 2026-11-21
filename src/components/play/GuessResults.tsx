@@ -391,28 +391,36 @@ export function GuessResults({
           </span>
         </div>
         <div className={styles.cluster}>
-          <Link className={`${styles.ring} ${styles.hearWide} ${styles.wideTab}`} href={listenHref}>
-            <span className={styles.linkFace}>
-              Hear the real data
-              <span className={styles.linkArrow} aria-hidden="true">↗</span>
+          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.wideTab}`} href={listenHref}>
+            <span className={styles.ring}>
+              <span className={styles.linkFace}>
+                Hear the real data
+                <span className={styles.linkArrow} aria-hidden="true">↗</span>
+              </span>
             </span>
           </Link>
-          <Link className={`${styles.ring} ${styles.nextSlot} ${styles.wideTab}`} href="/challenge/compose">
-            <span className={styles.linkFace}>
-              Next · Compose
-              <span className={styles.linkArrow} aria-hidden="true">→</span>
+          <Link className={`${styles.linkSlot} ${styles.nextSlot} ${styles.wideTab}`} href="/challenge/compose">
+            <span className={styles.ring}>
+              <span className={styles.linkFace}>
+                Next · Compose
+                <span className={styles.linkArrow} aria-hidden="true">→</span>
+              </span>
             </span>
           </Link>
-          <Link className={`${styles.ring} ${styles.nextSlot} ${styles.narrowTab}`} href="/challenge/compose">
-            <span className={styles.linkFace}>
-              Next · Compose
-              <span className={styles.linkArrow} aria-hidden="true">→</span>
+          <Link className={`${styles.linkSlot} ${styles.nextSlot} ${styles.narrowTab}`} href="/challenge/compose">
+            <span className={styles.ring}>
+              <span className={styles.linkFace}>
+                Next · Compose
+                <span className={styles.linkArrow} aria-hidden="true">→</span>
+              </span>
             </span>
           </Link>
-          <Link className={`${styles.ring} ${styles.hearWide} ${styles.narrowTab}`} href={listenHref}>
-            <span className={styles.linkFace}>
-              Hear the real data
-              <span className={styles.linkArrow} aria-hidden="true">↗</span>
+          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.narrowTab}`} href={listenHref}>
+            <span className={styles.ring}>
+              <span className={styles.linkFace}>
+                Hear the real data
+                <span className={styles.linkArrow} aria-hidden="true">↗</span>
+              </span>
             </span>
           </Link>
         </div>
