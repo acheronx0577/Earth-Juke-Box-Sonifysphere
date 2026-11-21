@@ -106,10 +106,15 @@ function clip(cut: number) {
   return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
 }
 
-function monotone(points: readonly [number, number][]): string {
+function cubicAt(p0: number, c1: number, c2: number, p1: number, t: number): number {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * c1 + 3 * u * t * t * c2 + t * t * t * p1;
+}
+
+function monotoneCurve(points: readonly [number, number][]): { d: string; samples: [number, number][] } {
   const n = points.length;
-  if (n === 0) return "";
-  if (n === 1) return `M ${points[0][0]} ${points[0][1]}`;
+  if (n === 0) return { d: "", samples: [] };
+  if (n === 1) return { d: `M ${points[0][0]} ${points[0][1]}`, samples: [[points[0][0], points[0][1]]] };
   const dx: number[] = [];
   const slope: number[] = [];
   const m = new Array<number>(n).fill(0);
@@ -138,14 +143,43 @@ function monotone(points: readonly [number, number][]): string {
     }
   }
   let d = `M ${points[0][0]} ${points[0][1]}`;
+  const samples: [number, number][] = [[points[0][0], points[0][1]]];
   for (let i = 0; i < n - 1; i += 1) {
     const c1x = points[i][0] + dx[i] / 3;
     const c1y = points[i][1] + (m[i] * dx[i]) / 3;
     const c2x = points[i + 1][0] - dx[i] / 3;
     const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
     d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
+    for (let step = 1; step <= 16; step += 1) {
+      const t = step / 16;
+      samples.push([
+        cubicAt(points[i][0], c1x, c2x, points[i + 1][0], t),
+        cubicAt(points[i][1], c1y, c2y, points[i + 1][1], t),
+      ]);
+    }
   }
-  return d;
+  return { d, samples };
+}
+
+function monotone(points: readonly [number, number][]): string {
+  return monotoneCurve(points).d;
+}
+
+function yAt(samples: readonly [number, number][], x: number): number {
+  if (samples.length === 0) return BASE / 2;
+  if (x <= samples[0][0]) return samples[0][1];
+  const last = samples[samples.length - 1];
+  if (x >= last[0]) return last[1];
+  let lo = 0;
+  let hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid][0] <= x) lo = mid;
+    else hi = mid;
+  }
+  const [x0, y0] = samples[lo];
+  const [x1, y1] = samples[hi];
+  return y0 + ((x - x0) / (x1 - x0 || 1)) * (y1 - y0);
 }
 
 function phraseFreqs(regionId: string, season: GuessRound["season"], weather: GuessRound["weather"]): number[] {
@@ -177,8 +211,8 @@ function heroGeometry(freqs: readonly number[]) {
   const max = Math.max(...freqs);
   const floor = BASE - 12;
   const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 108, 430)] as [number, number]);
-  const line = monotone(extendLevel(mapped, 0, VW, floor));
-  return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
+  const curve = monotoneCurve(extendLevel(mapped, 0, VW, floor));
+  return { mapped, line: curve.d, samples: curve.samples, fill: `${curve.d} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
 
 function miniPath(freqs: readonly number[]): string {
@@ -322,9 +356,18 @@ export function GuessGame({
   const progressRef = useRef<HTMLSpanElement | null>(null);
   const progressTrackRef = useRef<HTMLDivElement | null>(null);
   const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const playheadRef = useRef<HTMLDivElement | null>(null);
+  const playheadDotRef = useRef<HTMLSpanElement | null>(null);
+  const playheadStemRef = useRef<HTMLSpanElement | null>(null);
+  const playClipRef = useRef<SVGRectElement | null>(null);
+  const samplesRef = useRef<readonly [number, number][]>([]);
+  const progressAmount = useRef(0);
+  const reduceMotion = useRef(false);
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
+  const playClipId = `${useId().replace(/:/g, "")}play`;
   phaseRef.current = phase;
 
   useEffect(() => {
@@ -437,10 +480,50 @@ export function GuessGame({
     return () => document.removeEventListener("keydown", onKey);
   }, [infoOpen]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => {
+      reduceMotion.current = media.matches;
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const placePlayhead = useCallback((amount: number, mode: "play" | "pause" | "end" | "off") => {
+    const stage = stageRef.current;
+    const head = playheadRef.current;
+    const clip = playClipRef.current;
+    const dot = playheadDotRef.current;
+    const stem = playheadStemRef.current;
+    if (!stage || !head || !clip || !dot || !stem) return;
+    if (reduceMotion.current || mode === "off") {
+      stage.removeAttribute("data-scrub");
+      head.dataset.on = "off";
+      clip.setAttribute("width", "0");
+      return;
+    }
+    const clamped = Math.min(1, Math.max(0, amount));
+    const x = clamped * VW;
+    const y = yAt(samplesRef.current, x);
+    stage.dataset.scrub = mode === "end" ? "end" : "on";
+    head.dataset.on = mode === "end" ? "end" : mode === "pause" ? "pause" : "play";
+    clip.setAttribute("width", x.toFixed(2));
+    const left = `${(x / VW) * 100}%`;
+    const top = `${(y / VH) * 100}%`;
+    dot.style.left = left;
+    dot.style.top = top;
+    stem.style.left = left;
+    stem.style.top = top;
+    stem.style.height = `${(Math.max(0, BASE - y) / VH) * 100}%`;
+  }, []);
+
   const resetProgress = useCallback(() => {
+    progressAmount.current = 0;
     if (progressRef.current) progressRef.current.style.transform = "scaleX(0)";
     progressTrackRef.current?.setAttribute("aria-valuenow", "0");
-  }, []);
+    placePlayhead(0, "off");
+  }, [placePlayhead]);
 
   const stopPhrase = useCallback((freeze = false) => {
     playingRef.current = false;
@@ -450,8 +533,9 @@ export function GuessGame({
     liveTimer.current = null;
     setLive(false);
     setSignalLive(false);
-    if (!freeze) resetProgress();
-  }, [resetProgress]);
+    if (freeze) placePlayhead(progressAmount.current, "pause");
+    else resetProgress();
+  }, [placePlayhead, resetProgress]);
 
   useEffect(() => {
     if (soundOn) return;
@@ -499,10 +583,11 @@ export function GuessGame({
         setSignalLive(false);
         if (progressRef.current) progressRef.current.style.transform = "scaleX(1)";
         progressTrackRef.current?.setAttribute("aria-valuenow", "100");
+        placePlayhead(1, "end");
         setAnnouncement((current) => (current === "Playing signal" ? "Signal ended" : current));
       }, PHRASE_MS);
     },
-    [pause, stopPhrase]
+    [pause, placePlayhead, stopPhrase]
   );
 
   useEffect(() => {
@@ -515,15 +600,18 @@ export function GuessGame({
     const tick = (now: number) => {
       if (!playingRef.current) return;
       const amount = Math.min(1, (now - started) / PHRASE_MS);
+      progressAmount.current = amount;
       fill.style.transform = `scaleX(${amount})`;
       track.setAttribute("aria-valuenow", String(Math.round(amount * 100)));
+      placePlayhead(amount, "play");
       if (amount < 1) frame = requestAnimationFrame(tick);
     };
     fill.style.transform = "scaleX(0)";
     track.setAttribute("aria-valuenow", "0");
+    placePlayhead(0, "play");
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [live, playToken]);
+  }, [live, placePlayhead, playToken]);
 
   useEffect(() => {
     if (!live) return;
@@ -815,6 +903,7 @@ export function GuessGame({
     bestStreak: best,
   };
   const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
+  samplesRef.current = geometry?.samples ?? [];
   const verdict = `${correct ? "Yes" : "No"} — ${answerText}.`;
   const tip = `${correct ? "✓" : "✕"} ${answerText}${correct && gain ? ` +${gain}` : ""}`;
 
@@ -1007,7 +1096,7 @@ export function GuessGame({
           </section>
         ) : round && geometry ? (
           <>
-            <div className={styles.stage}>
+            <div ref={stageRef} className={styles.stage}>
               <span className={`${styles.shell} ${styles.clue}`} style={{ clipPath: clip(7) }}>
                 <span className={styles.face} style={{ clipPath: clip(7) }}>
                   {`CLUE ${clueValue(round).toUpperCase()}`}
@@ -1026,14 +1115,25 @@ export function GuessGame({
                   <clipPath id={plotClipId}>
                     <rect x="0" y="0" width={VW} height={BASE} />
                   </clipPath>
+                  <clipPath id={playClipId}>
+                    <rect ref={playClipRef} x="0" y="0" height={VH} />
+                  </clipPath>
                 </defs>
                 <path className={styles.wave} d={WAVE} />
                 <g clipPath={`url(#${plotClipId})`}>
                   <path d={geometry.fill} fill={`url(#${fillId})`} />
                   <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
                   <path className={styles.line} d={geometry.line} />
+                  <g clipPath={`url(#${playClipId})`}>
+                    <path className={styles.playedGlow} d={geometry.line} filter={`url(#${glowId})`} />
+                    <path className={styles.played} d={geometry.line} />
+                  </g>
                 </g>
               </svg>
+              <div ref={playheadRef} className={styles.playhead} data-testid="guess-playhead" aria-hidden="true">
+                <span ref={playheadStemRef} className={styles.playheadStem} />
+                <span ref={playheadDotRef} className={styles.playheadDot} data-testid="guess-playhead-dot" />
+              </div>
               <div className={styles.years} aria-hidden="true">
                 {AXIS.map((year, yearIndex) => (
                   <span key={year} className={styles.year} style={{ left: `${(XS[yearIndex] / VW) * 100}%` }}>

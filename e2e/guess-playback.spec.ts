@@ -88,6 +88,29 @@ test("reduced motion keeps the playing indicator still", async ({ page }) => {
   const bar = main.getByTestId("guess-meter").locator("span").first();
   await expect(main.getByRole("button", { name: "Pause clue" })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(async () => bar.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  await expect(main.getByTestId("guess-playhead")).toBeHidden();
+  await expect.poll(async () => Number(await main.getByRole("progressbar", { name: "Clue progress" }).getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+});
+
+test("the playhead travels along the curve and stops on pause", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openGuess(page);
+  await page.mouse.move(640, 420);
+  const main = liveMain(page);
+  const dot = main.getByTestId("guess-playhead-dot");
+  await main.getByRole("button", { name: "Play clue" }).click();
+  await expect(dot).toBeVisible();
+  const first = await dot.evaluate((el) => el.getBoundingClientRect().x);
+  await page.waitForTimeout(280);
+  const second = await dot.evaluate((el) => el.getBoundingClientRect().x);
+  expect(second).toBeGreaterThan(first + 8);
+  await main.getByRole("button", { name: "Pause clue" }).click();
+  const paused = await dot.evaluate((el) => el.getBoundingClientRect().x);
+  await page.waitForTimeout(350);
+  const still = await dot.evaluate((el) => el.getBoundingClientRect().x);
+  expect(Math.abs(still - paused)).toBeLessThan(1.5);
+  await main.getByRole("button", { name: "Replay" }).click();
+  await expect.poll(async () => dot.evaluate((el) => el.getBoundingClientRect().x)).toBeLessThan(paused - 24);
 });
 
 test("the transport fits narrow and short screens", async ({ page }) => {
