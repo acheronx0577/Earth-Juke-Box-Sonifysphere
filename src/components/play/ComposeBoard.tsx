@@ -22,6 +22,7 @@ import { chamferClip } from "@/components/listen/chamfer";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { curveThroughSamples, sequencePath } from "@/components/play/composeCurve";
 import { playSlotPreview, useComposeDrag, type ComposeDrop } from "@/components/play/composeDrag";
+import { ShareSheet } from "@/components/play/ShareSheet";
 import styles from "./compose.module.css";
 
 const LAYER_NOTE: Record<LayerId, number> = {
@@ -118,6 +119,8 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const [renderError, setRenderError] = useState<string | null>(null);
   const [soundOff, setSoundOff] = useState(false);
   const [shareNote, setShareNote] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
   const [editing, setEditing] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
   const [regionCursor, setRegionCursor] = useState(0);
@@ -348,18 +351,14 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     }
   };
 
-  const share = async () => {
+  const openShare = () => {
     if (filledCount === 0) return;
     setReplaceIndex(null);
     const mix = encodeMix(slots, bpm);
     const url = `${window.location.origin}/challenge/compose?mix=${encodeURIComponent(mix)}`;
     window.history.replaceState(null, "", url);
-    try {
-      await navigator.clipboard.writeText(url);
-      setShareNote("Link copied.");
-    } catch {
-      setShareNote(url);
-    }
+    setShareUrl(url);
+    setShareOpen(true);
   };
 
   const saveImage = async () => {
@@ -640,7 +639,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           </div>
           <div className={styles.links}>
-            <button type="button" onClick={() => void share()}>
+            <button type="button" data-testid="compose-share" onClick={openShare}>
               Copy link
             </button>
             <button type="button" onClick={() => void saveImage()}>
@@ -769,7 +768,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                 <button type="button" className={styles.iconButton} aria-label="Download WAV" disabled={!filled || rendering} onClick={() => void download()}>
                   <IconDownload />
                 </button>
-                <button type="button" className={styles.iconButton} aria-label="Share link" disabled={!filled} onClick={() => void share()}>
+                <button type="button" className={styles.iconButton} aria-label="Share link" data-testid="compose-share" disabled={!filled} onClick={openShare}>
                   <ShareIcon />
                 </button>
               </span>
@@ -803,6 +802,15 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </>
       )}
       </div>
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="Share this mix"
+        detail={`${filledCount} of 8 slots · ${bpm} BPM`}
+        url={shareUrl}
+        shareText={`Earth mixtape · ${filledCount} of 8 slots · ${bpm} BPM`}
+        onSaveImage={saveImage}
+      />
       {drag.ghost ? (
         <span
           className={styles.ghost}
