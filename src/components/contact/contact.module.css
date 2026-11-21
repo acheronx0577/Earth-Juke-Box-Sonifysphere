@@ -458,11 +458,12 @@
 .icon {
   position: relative;
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
   align-items: center;
   justify-content: center;
+  overflow: visible;
   color: var(--cream);
 }
 
@@ -633,12 +634,14 @@
 }
 
 .stage[data-layout="phone"] .emailLive {
-  top: 76px;
+  top: 78px;
+  bottom: 14px;
   left: 16px;
   right: 16px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  overflow: visible;
 }
 
 .stage[data-layout="phone"] .phoneHead {

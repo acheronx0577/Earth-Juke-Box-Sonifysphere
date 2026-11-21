@@ -125,7 +125,7 @@ export function ContactStage() {
     const rows = [...list.querySelectorAll<HTMLElement>("[data-row]")];
     const gap = phone ? PHONE_REST_GAP : DESK_REST_GAP;
     const pixelsPerMember = phone ? 180 : 400;
-    const rowHeight = phone ? { off: 20, on: 124, gap: 10 } : { off: 64, on: 109, gap: 28 };
+    const rowHeight = phone ? { off: 20, on: 148, gap: 10 } : { off: 64, on: 109, gap: 28 };
     const motion = {
       c: CONTACT_REST_INDEX,
       t: CONTACT_REST_INDEX,
