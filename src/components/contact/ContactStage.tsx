@@ -187,10 +187,12 @@ export function ContactStage() {
           }
         }
         const phoneRole = row.querySelector<HTMLElement>("[data-phone-role]");
-        if (phoneRole && on) {
+        if (phoneRole) {
           phoneRole.classList.remove(styles.fadeIn);
-          void phoneRole.offsetWidth;
-          phoneRole.classList.add(styles.fadeIn);
+          if (on) {
+            void phoneRole.offsetWidth;
+            phoneRole.classList.add(styles.fadeIn);
+          }
         }
       });
       const member = CONTACT_MEMBERS[active];
@@ -401,19 +403,12 @@ export function ContactStage() {
       data-active={String(CONTACT_REST_INDEX)}
       aria-label="Contact"
     >
-      <div className={styles.deck}>
-        <ContactDeck onReady={(api) => { deckRef.current = api; setReady(true); }} />
-        <div ref={aiRef} className={styles.ai}>AI-GENERATED IMAGE</div>
-      </div>
-
       <ContactFrame intro cut={10} fill="#fff3ea" stroke="none" className={`${styles.nav} ${styles.chrome} ${styles.phoneOnly} ${styles.phoneNav}`}>
         <div className={styles.navLinks}>
           <span>SONIFYSPHERE</span>
           <span>MENU</span>
         </div>
       </ContactFrame>
-
-      <p data-intro className={`${styles.word} ${styles.deskOnly}`}>SONIFYSPHERE®</p>
       <ContactFrame intro cut={8} fill="none" stroke="rgba(255,243,234,0.72)" className={styles.sound}>
         <button
           type="button"
@@ -430,6 +425,13 @@ export function ContactStage() {
         <span className={`${styles.kicker} ${styles.deskOnly}`}>FOR INQUIRIES</span>
         <span className={styles.placeholder}>{CONTACT_PLACEHOLDERS.inquiry}</span>
       </div>
+
+      <div className={styles.deck}>
+        <ContactDeck onReady={(api) => { deckRef.current = api; setReady(true); }} />
+        <div ref={aiRef} className={styles.ai}>AI-GENERATED IMAGE</div>
+      </div>
+
+      <p data-intro className={`${styles.word} ${styles.deskOnly}`}>SONIFYSPHERE®</p>
 
       <p data-intro className={`${styles.kicker} ${styles.teamLabel} ${styles.deskOnly}`}>TEAM</p>
       <div data-intro className={`${styles.indexBlock} ${styles.deskOnly}`}>

@@ -187,7 +187,7 @@ export function ContactDeck({ onReady }: ContactDeckProps) {
           maxY = Math.max(maxY, geometry.xy[k + 1]);
         }
         const mesh = meshes[i];
-        const sliced = minX < 6 || maxX > view.width - 6;
+        const sliced = minX < 6 || maxX > view.width - 6 || (view.phone && (minY < 6 || maxY > view.height - 6));
         if (sliced || maxX < 0 || minX > view.width || maxY < 0 || minY > view.height) {
           mesh.visible = false;
           continue;

@@ -9,7 +9,7 @@ export const PAGE_COUNT = 30;
 /** World-unit break on either side of the focused page. The rest of the stack stays one unit apart. */
 export const DESK_REST_GAP = 7.2;
 /** Phone pages are smaller in world units, so the same gap throws the neighbours off the deck band. */
-export const PHONE_REST_GAP = 7.5;
+export const PHONE_REST_GAP = 9;
 /** Focused page is this much larger than a stack page, and it eases in with scroll. */
 export const HERO_BOOST = 0.42;
 export const GRID_X = 14;
@@ -216,24 +216,17 @@ function boundsOf(index: number, view: DeckView): { minX: number; maxX: number; 
   return { minX, maxX, minY, maxY };
 }
 
-/** Shift the phone stack so the active card sits in the deck band and its neighbours peek in. */
+/** Centre the phone hero in the deck band. The band itself starts below the header. */
 export function phoneView(width: number, height: number): DeckView {
   const bare: DeckView = { width, height, phone: true, originX: 0, originY: 0 };
   const page = boundsOf(2, bare);
-  const centerX = (page.minX + page.maxX) / 2;
-  const centerY = (page.minY + page.maxY) / 2;
-  let originX = width * 0.5 - centerX;
-  const originY = height * 0.5 - centerY;
-  const centered: DeckView = { width, height, phone: true, originX, originY };
-  // The inquiry line sits on the left. Slide the stack right until the card above clears it.
-  const previous = boundsOf(1, centered);
-  const clearance = 262 - previous.minX;
-  if (clearance > 0) originX += clearance;
-  const shifted: DeckView = { width, height, phone: true, originX, originY };
-  const above = boundsOf(0, shifted);
-  const overflow = above.maxX - (width - 12);
-  if (overflow > 0) originX -= overflow;
-  return { width, height, phone: true, originX, originY };
+  return {
+    width,
+    height,
+    phone: true,
+    originX: width * 0.5 - (page.minX + page.maxX) / 2,
+    originY: height * 0.5 - (page.minY + page.maxY) / 2,
+  };
 }
 
 export function viewFor(width: number, height: number, phone: boolean): DeckView {
