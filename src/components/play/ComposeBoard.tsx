@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { LAYERS, MAP_REGIONS, regionById, type LayerId } from "@/data/exploreMap";
 import { playMix, renderMixWav } from "@/lib/signalPlayback";
+import { playbackAllowed } from "@/lib/playbackGate";
 import { setSignalLive } from "@/lib/signalLive";
 import { recordDisplayName } from "@/lib/guessWhy";
 import {
@@ -50,7 +52,24 @@ const SHORT_LAYER: Record<string, string> = {
 };
 
 const HOW =
-  "Pick a place or a record, then a slot. Or pick a slot, then a sound. Empty slots are rests. The left and right arrow keys move a sound, and Delete clears it. Bar height is the base note. Places are the twelve regions. Records are temperature, sea ice, CO₂, and methane. Tempo runs from 60 to 160. Play mix compiles the row, then plays it.";
+  "Drag a sound into a slot, or pick a sound and then a slot. Empty slots are rests. Drag a placed bar out to clear it, or into another slot to move it. The left and right arrow keys move a sound, and Delete clears it. Bar height is the base note. Places are the twelve regions. Records are temperature, sea ice, CO₂, and methane. Tempo runs from 60 to 160. Play mix compiles the row, then plays it.";
+
+const LONG_PRESS_MS = 280;
+const TOUCH_SLOP = 10;
+const MOUSE_SLOP = 5;
+
+interface DragSession {
+  pointerId: number;
+  pointerType: string;
+  slot: MixSlot;
+  label: string;
+  fromIndex: number | null;
+  startX: number;
+  startY: number;
+  x: number;
+  y: number;
+  active: boolean;
+}
 
 function sameSlot(left: MixSlot | null, right: MixSlot | null): boolean {
   if (!left || !right) return false;
@@ -191,6 +210,8 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const [shareNote, setShareNote] = useState("");
   const [editing, setEditing] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [drag, setDrag] = useState<{ slot: MixSlot; label: string; fromIndex: number | null } | null>(null);
+  const [hoverSlot, setHoverSlot] = useState<number | null>(null);
   const [regionCursor, setRegionCursor] = useState(0);
   const [layerCursor, setLayerCursor] = useState(0);
   const [slotCursor, setSlotCursor] = useState(0);
@@ -202,7 +223,14 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<DragSession | null>(null);
+  const dragCleanup = useRef<(() => void) | null>(null);
+  const suppressClick = useRef(false);
+  const previewStop = useRef<(() => void) | null>(null);
+  const bpmRef = useRef(bpm);
   const glowId = `${useId().replace(/:/g, "")}glow`;
+  bpmRef.current = bpm;
 
   const stop = () => {
     stopRef.current?.();
@@ -214,9 +242,12 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   };
 
   useEffect(() => {
+    void import("tone");
     return () => {
       stopRef.current?.();
       if (endTimer.current !== null) window.clearTimeout(endTimer.current);
+      dragCleanup.current?.();
+      previewStop.current?.();
       setSignalLive(false);
     };
   }, []);
@@ -313,6 +344,207 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     invalidate();
   };
 
+  const relocate = (from: number, to: number) => {
+    setReplaceIndex(null);
+    setArmed(null);
+    setSelected(null);
+    setSlots((current) => {
+      const copy = [...current];
+      const held = copy[from] ?? null;
+      copy[from] = copy[to] ?? null;
+      copy[to] = held;
+      return copy;
+    });
+    invalidate();
+  };
+
+  const slotIndexAt = (x: number, y: number) => {
+    for (let index = 0; index < slotRefs.current.length; index += 1) {
+      const rect = slotRefs.current[index]?.getBoundingClientRect();
+      if (!rect) continue;
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) return index;
+    }
+    return null;
+  };
+
+  const moveGhost = (x: number, y: number) => {
+    const node = ghostRef.current;
+    if (!node) return;
+    node.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -58%)`;
+  };
+
+  const previewSound = async (slot: MixSlot) => {
+    if (!isSoundOn() || !playbackAllowed()) {
+      setSoundOff(true);
+      return;
+    }
+    const note = scheduleMix([slot], bpmRef.current).notes[0];
+    if (!note) return;
+    try {
+      const Tone = await import("tone");
+      await Tone.start();
+      if (!playbackAllowed()) return;
+      previewStop.current?.();
+      const synth = new Tone.Synth({
+        oscillator: { type: note.oscillator },
+        envelope: { attack: 0.01, decay: 0.14, sustain: 0, release: 0.18 },
+      }).toDestination();
+      synth.volume.value = -8;
+      let stopped = false;
+      const stop = () => {
+        if (stopped) return;
+        stopped = true;
+        synth.dispose();
+        if (previewStop.current === stop) previewStop.current = null;
+      };
+      previewStop.current = stop;
+      synth.triggerAttackRelease(note.frequency, 0.2);
+      window.setTimeout(stop, 520);
+    } catch {
+      // A blocked or missing audio device still leaves the slot filled.
+    }
+  };
+
+  const releaseDrag = () => {
+    dragCleanup.current?.();
+    dragCleanup.current = null;
+    dragRef.current = null;
+    setDrag(null);
+    setHoverSlot(null);
+  };
+
+  const dropDrag = (x: number, y: number) => {
+    const session = dragRef.current;
+    const active = session?.active ?? false;
+    releaseDrag();
+    if (!session || !active) return;
+    suppressClick.current = true;
+    const over = slotIndexAt(x, y);
+    setReplaceIndex(null);
+    setArmed(null);
+    setSelected(null);
+    if (session.fromIndex === null) {
+      if (over === null) return;
+      place(over, session.slot);
+      void previewSound(session.slot);
+      return;
+    }
+    if (over === null) {
+      clearSlot(session.fromIndex);
+      return;
+    }
+    if (over === session.fromIndex) return;
+    relocate(session.fromIndex, over);
+    void previewSound(session.slot);
+  };
+
+  const startDrag = (event: ReactPointerEvent<HTMLButtonElement>, slot: MixSlot, fromIndex: number | null) => {
+    if (event.button !== 0 || showReady || dragRef.current) return;
+    suppressClick.current = false;
+    const handle = event.currentTarget;
+    const session: DragSession = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      slot,
+      label: shortLabel(slot),
+      fromIndex,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: event.clientX,
+      y: event.clientY,
+      active: false,
+    };
+    dragRef.current = session;
+
+    const activate = () => {
+      const current = dragRef.current;
+      if (!current || current.active || current.pointerId !== session.pointerId) return;
+      current.active = true;
+      setDrag({ slot: current.slot, label: current.label, fromIndex: current.fromIndex });
+      setHoverSlot(slotIndexAt(current.x, current.y));
+      try {
+        handle.setPointerCapture(session.pointerId);
+      } catch {
+        // The pointer can end before a touch long-press completes.
+      }
+    };
+
+    const timer = event.pointerType === "mouse" ? null : window.setTimeout(activate, LONG_PRESS_MS);
+
+    const onTouchMove = (touchEvent: TouchEvent) => {
+      if (!dragRef.current?.active || !touchEvent.cancelable) return;
+      touchEvent.preventDefault();
+    };
+
+    const detach = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("keydown", onKey);
+    };
+
+    const onMove = (move: PointerEvent) => {
+      const current = dragRef.current;
+      if (!current || move.pointerId !== current.pointerId) return;
+      current.x = move.clientX;
+      current.y = move.clientY;
+      if (!current.active) {
+        const distance = Math.hypot(move.clientX - current.startX, move.clientY - current.startY);
+        if (current.pointerType === "mouse") {
+          if (distance < MOUSE_SLOP) return;
+          activate();
+        } else if (distance > TOUCH_SLOP) {
+          detach();
+          dragRef.current = null;
+          return;
+        } else {
+          return;
+        }
+      }
+      move.preventDefault();
+      moveGhost(move.clientX, move.clientY);
+      const over = slotIndexAt(move.clientX, move.clientY);
+      setHoverSlot((previous) => (previous === over ? previous : over));
+    };
+
+    const onUp = (up: PointerEvent) => {
+      if (up.pointerId !== session.pointerId) return;
+      detach();
+      dropDrag(up.clientX, up.clientY);
+    };
+
+    const onCancel = (cancel: PointerEvent) => {
+      if (cancel.pointerId !== session.pointerId) return;
+      const wasActive = dragRef.current?.active ?? false;
+      detach();
+      releaseDrag();
+      if (wasActive) suppressClick.current = true;
+    };
+
+    const onKey = (keyEvent: globalThis.KeyboardEvent) => {
+      if (keyEvent.key !== "Escape" || !dragRef.current?.active) return;
+      keyEvent.preventDefault();
+      detach();
+      releaseDrag();
+      suppressClick.current = true;
+    };
+
+    dragCleanup.current = detach;
+    window.addEventListener("pointermove", onMove, { passive: false });
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("keydown", onKey);
+  };
+
+  useLayoutEffect(() => {
+    const current = dragRef.current;
+    if (!drag || !current) return;
+    moveGhost(current.x, current.y);
+  }, [drag]);
+
   const filledCount = slots.filter(Boolean).length;
   const filled = filledCount > 0;
 
@@ -326,6 +558,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
 
   const startPlayback = async (next: MixPlan | null = plan) => {
     if (!next) return;
+    previewStop.current?.();
     setReplaceIndex(null);
     pause();
     stop();
@@ -441,7 +674,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         ? "Now pick a slot."
         : selected !== null
           ? "Now pick a sound."
-          : "Choose a sound, then a slot.";
+          : "Drag a sound into a slot.";
 
   const squares = (
     <span className={styles.squares} role="group" aria-label={`${filledCount} of 8 slots`}>
@@ -503,10 +736,19 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               }}
               className={styles.slot}
               data-on={slot ? "true" : "false"}
+              data-drop={hoverSlot === index ? "true" : undefined}
+              data-lifting={drag?.fromIndex === index ? "true" : undefined}
               aria-label={`Slot ${index + 1}, ${full}`}
               aria-pressed={selected === index}
               tabIndex={slotCursor === index ? 0 : -1}
+              onPointerDown={(event) => {
+                if (slot) startDrag(event, slot, index);
+              }}
               onClick={() => {
+                if (suppressClick.current) {
+                  suppressClick.current = false;
+                  return;
+                }
                 setSlotCursor(index);
                 onSlot(index);
               }}
@@ -547,7 +789,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           );
         })}
-        {showPlace && audio !== "playing" ? (
+        {showPlace && audio !== "playing" && !drag ? (
           <span
             className={`${styles.shell} ${styles.place}`}
             style={{
@@ -577,7 +819,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   ) : null;
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-hide-target-cursor="true">
+    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-dragging={drag ? "true" : undefined} data-hide-target-cursor="true">
       <div className={styles.board} data-testid="compose-board" data-audio={audio}>
       <p className={styles.sr} aria-live="polite">
         {prompt}
@@ -664,7 +906,12 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   aria-pressed={pressed}
                   aria-label={region.name}
                   tabIndex={regionCursor === regionIndex ? 0 : -1}
+                  onPointerDown={(event) => startDrag(event, slot, null)}
                   onClick={() => {
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
                     setRegionCursor(regionIndex);
                     onPalette(slot);
                   }}
@@ -698,7 +945,12 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   aria-pressed={pressed}
                   aria-label={recordDisplayName(layer.id)}
                   tabIndex={layerCursor === layerIndex ? 0 : -1}
+                  onPointerDown={(event) => startDrag(event, slot, null)}
                   onClick={() => {
+                    if (suppressClick.current) {
+                      suppressClick.current = false;
+                      return;
+                    }
                     setLayerCursor(layerIndex);
                     onPalette(slot);
                   }}
@@ -783,6 +1035,22 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </>
       )}
       </div>
+      {drag
+        ? createPortal(
+            <div ref={ghostRef} className={styles.ghost} data-testid="compose-ghost" aria-hidden="true">
+              <span className={`${styles.shell} ${styles.pill}`} style={{ clipPath: clip(7) }}>
+                <span className={styles.face} style={{ clipPath: clip(7) }}>
+                  <span
+                    className={styles.pitch}
+                    style={{ height: Math.max(6, Math.round((((slotNote(drag.slot) ?? 196) - 150) / 170) * 16)) }}
+                  />
+                  {drag.label}
+                </span>
+              </span>
+            </div>,
+            document.body,
+          )
+        : null}
     </main>
   );
 }
