@@ -115,38 +115,39 @@ function phraseFreqs(regionId: string, season: GuessRound["season"], weather: Gu
   return PLAY_YEARS.map((year) => signalFrequency(note, year, season, weather));
 }
 
+function plotY(freq: number, min: number, max: number, high: number, low: number): number {
+  const span = Math.max(1, max - min);
+  const t = Math.min(1, Math.max(0, (freq - min) / span));
+  const eased = 1 - (1 - t) ** 1.9;
+  return low - eased * (low - high);
+}
+
+function extendLevel(points: readonly [number, number][], left: number, right: number, floor: number): [number, number][] {
+  const clampY = (y: number) => Math.min(y, floor);
+  const leftSlope = (points[1][1] - points[0][1]) / (points[1][0] - points[0][0]);
+  const last = points.length - 1;
+  const rightSlope = (points[last][1] - points[last - 1][1]) / (points[last][0] - points[last - 1][0]);
+  return [
+    [left, clampY(points[0][1] - leftSlope * (points[0][0] - left))],
+    ...points.map(([x, y]) => [x, clampY(y)] as [number, number]),
+    [right, clampY(points[last][1] + rightSlope * (right - points[last][0]))],
+  ];
+}
+
 function heroGeometry(freqs: readonly number[]) {
   const min = Math.min(...freqs);
   const max = Math.max(...freqs);
-  const span = Math.max(36, max - min);
-  const top = 150;
-  const bottom = 348;
   const floor = BASE - 12;
-  const clampY = (y: number) => Math.max(96, Math.min(y, floor));
-  const mapped = freqs.map((freq, index) => {
-    const y = clampY(top + ((max - freq) / span) * (bottom - top));
-    return [XS[index], y] as [number, number];
-  });
-  const leftSlope = (mapped[1][1] - mapped[0][1]) / (mapped[1][0] - mapped[0][0]);
-  const rightSlope = (mapped[3][1] - mapped[2][1]) / (mapped[3][0] - mapped[2][0]);
-  const extended: [number, number][] = [
-    [0, clampY(mapped[0][1] - leftSlope * mapped[0][0])],
-    ...mapped,
-    [VW, clampY(mapped[3][1] + rightSlope * (VW - mapped[3][0]))],
-  ];
-  const line = monotone(extended);
+  const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 150, 348)] as [number, number]);
+  const line = monotone(extendLevel(mapped, 0, VW, floor));
   return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
 
 function miniPath(freqs: readonly number[]): string {
   const min = Math.min(...freqs);
   const max = Math.max(...freqs);
-  const span = Math.max(24, max - min);
-  const points = freqs.map((freq, index) => {
-    const y = 12 + ((max - freq) / span) * 36;
-    return [8 + index * 74, y] as [number, number];
-  });
-  return monotone(points);
+  const points = freqs.map((freq, index) => [16 + index * 68, plotY(freq, min, max, 14, 50)] as [number, number]);
+  return monotone(extendLevel(points, 0, 240, 58));
 }
 
 function carrierWave(): string {
@@ -845,8 +846,8 @@ export function GuessGame({
                 <g clipPath={`url(#${plotClipId})`}>
                   <path d={geometry.fill} fill={`url(#${fillId})`} />
                   <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+                  <path className={styles.line} d={geometry.line} />
                 </g>
-                <path className={styles.line} d={geometry.line} />
               </svg>
               <div className={styles.years} aria-hidden="true">
                 {AXIS.map((year, yearIndex) => (
