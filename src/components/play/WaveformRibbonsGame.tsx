@@ -105,53 +105,6 @@ function directionWord(index: number, turn: number): string {
   return "FALLING";
 }
 
-function playToneSnippet(freq: number, duration = 0.35) {
-  try {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch {
-    // AudioContext blocked or not supported
-  }
-}
-
-function playSuccessChime() {
-  try {
-    const AudioCtx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.55);
-  } catch {
-    // ignore
-  }
-}
-
 function monotone(points: readonly [number, number][]): string {
   const n = points.length;
   const dx: number[] = [];
@@ -250,6 +203,18 @@ export function WaveformRibbonsGame({
   const chartRef = useRef<SVGSVGElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
+  const eqRef = useRef<HTMLSpanElement | null>(null);
+  const previewRef = useRef<(freq: number) => void>(() => {});
+  const toneRef = useRef<typeof import("tone") | null>(null);
+  const synthRef = useRef<import("tone").Synth | null>(null);
+  const chimeRef = useRef<import("tone").Synth | null>(null);
+  const meterRef = useRef<import("tone").Meter | null>(null);
+  const tokenRef = useRef(0);
+  const timersRef = useRef<number[]>([]);
+  const [audio, setAudio] = useState<"idle" | "playing">("idle");
+  const [toneState, setToneState] = useState("suspended");
+  const [cue, setCue] = useState("");
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
@@ -267,7 +232,7 @@ export function WaveformRibbonsGame({
       const clamped = Math.max(0, Math.min(pattern.points.length - 1, next));
       setPointIdx(clamped);
       const y = pattern.points[clamped]?.[1];
-      if (y !== undefined) playToneSnippet(freqForCoord(y));
+      if (y !== undefined) previewRef.current(freqForCoord(y));
       if (announce) setLive("");
     },
     [pattern.points],
@@ -284,6 +249,125 @@ export function WaveformRibbonsGame({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [infoOpen]);
+
+  const clearTimers = () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  };
+
+  const arm = async () => {
+    const Tone = toneRef.current ?? (await import("tone"));
+    toneRef.current = Tone;
+    await Tone.start();
+    const state = Tone.getContext().state;
+    setToneState(state);
+    if (rootRef.current) rootRef.current.dataset.tone = state;
+    if (!synthRef.current) {
+      const synth = new Tone.Synth({
+        oscillator: { type: "sine" },
+        envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.16 },
+      }).toDestination();
+      synth.volume.value = -6;
+      const meter = new Tone.Meter({ normalRange: true, smoothing: 0.4 });
+      synth.connect(meter);
+      synthRef.current = synth;
+      meterRef.current = meter;
+    }
+    if (!chimeRef.current) {
+      const chimeVoice = new Tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.01, decay: 0.12, sustain: 0.2, release: 0.2 },
+      }).toDestination();
+      chimeVoice.volume.value = -4;
+      chimeRef.current = chimeVoice;
+    }
+    return Tone;
+  };
+
+  const stopPreview = () => {
+    tokenRef.current += 1;
+    clearTimers();
+    synthRef.current?.triggerRelease(toneRef.current?.now());
+    setAudio("idle");
+    setCue("Stopped.");
+  };
+
+  const preview = async (freq: number) => {
+    const token = (tokenRef.current += 1);
+    try {
+      const Tone = await arm();
+      if (tokenRef.current !== token) return;
+      clearTimers();
+      synthRef.current?.triggerAttack(freq, Tone.now());
+      setAudio("playing");
+      setCue(`Playing ${freq} hertz.`);
+      timersRef.current.push(
+        window.setTimeout(() => {
+          if (tokenRef.current !== token) return;
+          synthRef.current?.triggerRelease(Tone.now());
+          timersRef.current.push(
+            window.setTimeout(() => {
+              if (tokenRef.current !== token) return;
+              setAudio("idle");
+              setCue("Stopped.");
+            }, 200),
+          );
+        }, 900),
+      );
+    } catch {
+      if (tokenRef.current !== token) return;
+      setAudio("idle");
+      setCue("The preview did not play.");
+    }
+  };
+
+  previewRef.current = (nextFreq: number) => {
+    void preview(nextFreq);
+  };
+
+  const chime = async () => {
+    try {
+      const Tone = await arm();
+      chimeRef.current?.triggerAttackRelease(587.33, 0.14, Tone.now());
+      chimeRef.current?.triggerAttackRelease(880, 0.28, Tone.now() + 0.15);
+    } catch {
+      setCue("The preview did not play.");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimers();
+      synthRef.current?.dispose();
+      chimeRef.current?.dispose();
+      meterRef.current?.dispose();
+      synthRef.current = null;
+      chimeRef.current = null;
+      meterRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (audio !== "playing") {
+      eqRef.current?.style.setProperty("--level", "0");
+      if (rootRef.current) rootRef.current.dataset.meter = "0";
+      return;
+    }
+    let frame = 0;
+    const tick = () => {
+      const value = meterRef.current?.getValue();
+      const level = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+      eqRef.current?.style.setProperty("--level", level.toFixed(3));
+      if (rootRef.current) {
+        rootRef.current.dataset.meter = level.toFixed(3);
+        const state = toneRef.current?.getContext().state;
+        if (state) rootRef.current.dataset.tone = state;
+      }
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [audio]);
 
   const onChartKey = (event: React.KeyboardEvent<SVGSVGElement>) => {
     if (event.key === "ArrowRight") {
@@ -323,7 +407,7 @@ export function WaveformRibbonsGame({
     const correct = pointIdx === pattern.turnIndex;
     setLive(correct ? pattern.turnReason : pattern.missHint);
     if (!correct) return;
-    playSuccessChime();
+    void chime();
     setScore((value) => value + 100);
     if (patternIdx < PATTERNS.length - 1) {
       const next = patternIdx + 1;
@@ -332,6 +416,7 @@ export function WaveformRibbonsGame({
       setSeason(PATTERNS[next].defaultSeason);
       setInfoOpen(false);
     } else {
+      stopPreview();
       setIsComplete(true);
     }
   };
@@ -452,7 +537,15 @@ export function WaveformRibbonsGame({
   }
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page} data-hide-target-cursor="true">
+    <main
+      ref={rootRef}
+      id="main-content"
+      tabIndex={-1}
+      className={styles.page}
+      data-hide-target-cursor="true"
+      data-audio={audio}
+      data-tone={toneState}
+    >
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <span className={styles.num}>03</span>
@@ -580,19 +673,37 @@ export function WaveformRibbonsGame({
           })}
         </div>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${styles.shell} ${styles.play} c3-play`}
-            style={{ clipPath: clip(8) }}
-            aria-label="Hear selected point"
-            onClick={() => playToneSnippet(freq)}
-          >
-            <span className={styles.face} style={{ clipPath: clip(8) }} aria-hidden="true">
-              <svg width="12" height="12" viewBox="0 0 12 12">
-                <path d="M3 1.5 L10 6 L3 10.5 Z" fill="currentColor" />
-              </svg>
+          <div className={styles.playGroup}>
+            <button
+              type="button"
+              className={`${styles.shell} ${styles.play} c3-play`}
+              style={{ clipPath: clip(8) }}
+              aria-pressed={audio === "playing"}
+              data-testid="ribbons-play"
+              aria-label={audio === "playing" ? "Pause selected point" : "Hear selected point"}
+              onClick={() => {
+                if (audio === "playing") stopPreview();
+                else void preview(freq);
+              }}
+            >
+              <span className={styles.face} style={{ clipPath: clip(8) }} aria-hidden="true">
+                {audio === "playing" ? (
+                  <svg width="12" height="12" viewBox="0 0 12 12">
+                    <path d="M2.2 1.5 H4.4 V10.5 H2.2 Z M7.6 1.5 H9.8 V10.5 H7.6 Z" fill="currentColor" />
+                  </svg>
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 12 12">
+                    <path d="M3 1.5 L10 6 L3 10.5 Z" fill="currentColor" />
+                  </svg>
+                )}
+              </span>
+            </button>
+            <span ref={eqRef} className={styles.eq} data-audio={audio} data-testid="ribbons-eq" aria-hidden="true">
+              {[0.62, 1, 0.78, 0.46].map((bar) => (
+                <i key={bar} style={{ ["--bar" as string]: String(bar) }} />
+              ))}
             </span>
-          </button>
+          </div>
           <button type="button" className={`${styles.shell} ${styles.check} c3-check`} style={{ clipPath: clip(8) }} onClick={check}>
             <span className={styles.face} style={{ clipPath: clip(8) }}>
               Check
@@ -600,7 +711,10 @@ export function WaveformRibbonsGame({
           </button>
         </div>
       </div>
-      <p className={styles.sr} role="status" aria-live="polite">{live}</p>
+      <p className={styles.sr} role="status" aria-live="polite">
+        {live}
+        {cue ? ` ${cue}` : ""}
+      </p>
     </main>
   );
 }

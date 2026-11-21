@@ -8,6 +8,60 @@ test.beforeEach(async ({ page }) => {
   await installFinePointer(page);
 });
 
+const AUDIO_HOOK = `(() => {
+  const contexts = new Set();
+  const origConnect = AudioNode.prototype.connect;
+  AudioNode.prototype.connect = function(dest, ...rest) {
+    const result = origConnect.call(this, dest, ...rest);
+    try {
+      const ctx = this.context;
+      if (ctx && dest === ctx.destination) {
+        if (!ctx.__qaAnalyser) {
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 2048;
+          ctx.__qaAnalyser = analyser;
+          contexts.add(ctx);
+        }
+        origConnect.call(this, ctx.__qaAnalyser);
+      }
+    } catch (error) {
+      window.__qaTapError = String(error);
+    }
+    return result;
+  };
+  const Orig = window.AudioContext;
+  if (Orig) {
+    window.AudioContext = new Proxy(Orig, {
+      construct(target, args) {
+        const ctx = new target(...args);
+        contexts.add(ctx);
+        return ctx;
+      },
+    });
+  }
+  const sample = () => {
+    let peak = 0;
+    const rows = [];
+    for (const ctx of contexts) {
+      let level = 0;
+      const analyser = ctx.__qaAnalyser;
+      if (analyser) {
+        const data = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(data);
+        for (let i = 0; i < data.length; i += 1) level = Math.max(level, Math.abs(data[i] - 128));
+      }
+      peak = Math.max(peak, level);
+      rows.push({ state: ctx.state, level });
+    }
+    window.__qaPeak = Math.max(window.__qaPeak || 0, peak);
+    window.__qaRows = rows;
+    requestAnimationFrame(sample);
+  };
+  requestAnimationFrame(sample);
+  window.__qaReset = () => { window.__qaPeak = 0; };
+  window.__qaSnap = () => ({ peak: window.__qaPeak || 0, rows: window.__qaRows || [], tapError: window.__qaTapError || "" });
+})();`;
+
 test("ribbons keeps a visible system cursor on a fine pointer", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/challenge/ribbons");
@@ -18,4 +72,47 @@ test("ribbons keeps a visible system cursor on a fine pointer", async ({ page })
   await expect.poll(async () => play.evaluate((node) => getComputedStyle(node).cursor)).toBe("pointer");
   await expect.poll(async () => liveMain(page).evaluate((node) => getComputedStyle(node).cursor)).not.toBe("none");
   await expect(page.locator(".target-cursor")).toHaveAttribute("data-suppressed", "true");
+});
+
+test("ribbons preview runs a Tone context, meters it, and pauses", async ({ page }) => {
+  await page.addInitScript(AUDIO_HOOK);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/challenge/ribbons");
+  const main = liveMain(page);
+  const play = main.getByRole("button", { name: "Hear selected point" });
+  await page.evaluate(() => {
+    (window as unknown as { __qaReset?: () => void }).__qaReset?.();
+  });
+  await play.click();
+  await expect(main).toHaveAttribute("data-audio", "playing");
+  await expect(main).toHaveAttribute("data-tone", "running");
+  await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "playing");
+  await expect(main.getByRole("button", { name: "Pause selected point" })).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => Number(await main.getAttribute("data-meter"))).toBeGreaterThan(0);
+  const heard = await page.evaluate(() => (window as unknown as { __qaSnap?: () => { peak: number; rows: Array<{ state: string }> } }).__qaSnap?.());
+  expect(heard?.peak ?? 0).toBeGreaterThan(0);
+  expect(heard?.rows.some((row) => row.state === "running")).toBe(true);
+
+  await main.getByRole("button", { name: "Pause selected point" }).click();
+  await expect(main).toHaveAttribute("data-audio", "idle");
+  await expect(main.getByRole("button", { name: "Hear selected point" })).toBeVisible();
+  await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "idle");
+  await expect.poll(async () => Number(await main.getAttribute("data-meter"))).toBe(0);
+
+  const contextsAfterFirst = heard?.rows.length ?? 0;
+  const toggle = main.getByTestId("ribbons-play");
+  for (let tap = 0; tap < 8; tap += 1) await toggle.click();
+  const afterBurst = await page.evaluate(() => (window as unknown as { __qaSnap?: () => { rows: unknown[] } }).__qaSnap?.());
+  expect(afterBurst?.rows.length ?? 0).toBeLessThanOrEqual(Math.max(1, contextsAfterFirst));
+
+  if ((await main.getAttribute("data-audio")) === "playing") {
+    await main.getByRole("button", { name: "Pause selected point" }).click();
+    await expect(main).toHaveAttribute("data-audio", "idle");
+  }
+  const chart = main.getByRole("slider");
+  await chart.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(main).toHaveAttribute("data-audio", "playing");
+  await expect(main).toHaveAttribute("data-audio", "idle", { timeout: 4000 });
+  await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "idle");
 });

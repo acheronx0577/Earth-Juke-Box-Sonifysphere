@@ -317,6 +317,37 @@
   padding: 0;
 }
 
+.playGroup {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: clamp(6px, 0.7vw, 10px);
+  min-width: 0;
+}
+
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: clamp(2px, 0.3vw, 3px);
+  width: clamp(16px, 1.8vw, 22px);
+  height: clamp(16px, 2vw, 20px);
+  color: #f2f2f0;
+}
+
+.eq i {
+  display: block;
+  flex: 1 1 0;
+  height: 100%;
+  background: currentColor;
+  transform: scaleY(calc(0.16 + var(--level, 0) * var(--bar, 1)));
+  transform-origin: bottom center;
+  transition: transform 70ms linear;
+}
+
+.eq[data-audio="idle"] i {
+  transform: scaleY(0.16);
+}
+
 .check {
   flex: none;
   background: var(--c3-cream);
@@ -503,7 +534,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .page :global(.sonify-cut-shell) {
+  .page :global(.sonify-cut-shell),
+  .eq i {
     transition: none;
   }
 }
