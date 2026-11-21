@@ -2,12 +2,16 @@
 
 import { useState, useCallback, useRef, useId } from "react";
 import Link from "next/link";
-import { PlayFrame } from "@/components/play/PlayFrame";
 import { CutButton } from "@/components/play/CutControls";
 import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
-import { ChamferMark } from "@/components/listen/ChamferMark";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
 import styles from "./ribbons.module.css";
+
+const PLOT = { x: -48, y: 0, w: 696, h: 320 };
+
+function clip(cut: number) {
+  return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
+}
 
 interface RibbonPattern {
   readonly id: string;
@@ -17,6 +21,7 @@ interface RibbonPattern {
   readonly seasonClues: Record<string, string>;
   readonly turnIndex: number;
   readonly points: readonly [number, number][];
+  readonly months: readonly string[];
   readonly turnReason: string;
   readonly missHint: string;
   readonly scientificFact: string;
@@ -44,6 +49,7 @@ const PATTERNS: readonly RibbonPattern[] = [
       [500, 145],
       [600, 190],
     ],
+    months: ["Nov", "Jan", "Mar", "May", "Jul", "Sep", "Nov"],
     turnReason: "Yes! At point 4 (late spring / May), atmospheric CO₂ crests before Northern Hemisphere photosynthesis accelerates.",
     missHint: "Look for point 4, where the curve reaches its maximum peak before declining into the summer drawdown.",
     scientificFact: "Charles Keeling first observed this planetary 'inhale' in 1958 atop Mauna Loa. The curve turns when forest uptake overtakes respiration.",
@@ -69,6 +75,7 @@ const PATTERNS: readonly RibbonPattern[] = [
       [500, 125],
       [600, 85],
     ],
+    months: ["Mar", "May", "Jul", "Sep", "Nov", "Jan", "Mar"],
     turnReason: "Correct! Point 4 marks the annual September minimum extent, after which freezing resumes.",
     missHint: "Check point 4, the deepest trough where the summer melt stops and freeze-up begins.",
     scientificFact: "NASA passive microwave satellites have tracked this September turning point continuously since 1979.",
@@ -94,6 +101,7 @@ const PATTERNS: readonly RibbonPattern[] = [
       [500, 140],
       [600, 185],
     ],
+    months: ["Feb", "Apr", "Jun", "Aug", "Oct", "Dec", "Feb"],
     turnReason: "Spot on! Point 4 represents the late-summer crest in upper ocean heat content before autumn cooling.",
     missHint: "Point 4 represents the thermal peak where heat accumulation crests before releasing back to the atmosphere.",
     scientificFact: "Over 90% of Earth's trapped excess energy resides in oceans, tracked by the Argo profiling array and ECCO-2 models.",
@@ -164,6 +172,8 @@ export function WaveformRibbonsGame({
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(Boolean(sharedResult));
   const sliderId = useId();
+  const glowId = `${useId().replace(/:/g, "")}glow`;
+  const fillId = `${useId().replace(/:/g, "")}fill`;
   const plotRef = useRef<SVGSVGElement | null>(null);
 
   const pattern = PATTERNS[patternIdx] ?? PATTERNS[0];
@@ -194,8 +204,10 @@ export function WaveformRibbonsGame({
     const svg = plotRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const pad = 28;
-    const relativeX = ((event.clientX - rect.left) / rect.width) * (600 + pad * 2) - pad;
+    const scale = Math.min(rect.width / PLOT.w, rect.height / PLOT.h);
+    if (!(scale > 0)) return;
+    const offsetX = (rect.width - PLOT.w * scale) / 2;
+    const relativeX = (event.clientX - rect.left - offsetX) / scale + PLOT.x;
 
     let closestIdx = 0;
     let minDistance = Number.POSITIVE_INFINITY;
@@ -245,29 +257,32 @@ export function WaveformRibbonsGame({
   const polylinePoints = pattern.points.map(([x, y]) => `${x},${y}`).join(" ");
   const ribbonArea = `M${pattern.points.map(([x, y]) => `${x},${y}`).join(" L")} L600,220 L0,220 Z`;
 
+  const month = pattern.months[pointIdx] ?? "";
+  const shell = (cut: number) => ({ clipPath: clip(cut) });
+
   if (isComplete) {
     const displayScore = sharedResult ? sharedResult.totalScore : score;
     const displaySolved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
 
     return (
-      <PlayFrame className={styles.page} title="Challenge 03 · Waveform Ribbons Complete">
+      <main id="main-content" tabIndex={-1} className={styles.page}>
         <div className={styles.result} data-testid="ribbons-result">
-          <div className={`${styles.mark} c3-readout`} aria-hidden="true">
-            <ChamferMark />
-            ✓
+          <Link href="/challenge" className={styles.back}>
+            ← Challenges
+          </Link>
+          <div className={`${styles.mark} c3-readout`} style={shell(10)} aria-hidden="true">
+            <span className={styles.markFace} style={shell(10)}>
+              ✓
+            </span>
           </div>
-
-          <h2>{sharedResult ? "Waveform Ribbons Shared Score" : "Seasonal Harmonics Aligned"}</h2>
-
+          <h1>{sharedResult ? "Waveform Ribbons Shared Score" : "Seasonal Harmonics Aligned"}</h1>
           <p className={styles.points}>
             Total Score: <strong>{displayScore} PTS</strong>
           </p>
-
           <p>
             You tracked Earth&apos;s atmospheric respiration and ocean cycles by ear. Each seasonal curve
             reflects planetary-scale biome energy exchanges.
           </p>
-
           <ChallengeShareActions
             path="/challenge/ribbons"
             params={{
@@ -281,7 +296,6 @@ export function WaveformRibbonsGame({
             detail={`${displaySolved} of ${PATTERNS.length} seasonal cycles resolved`}
             fileName="sonifysphere-waveform-ribbons-result.png"
           />
-
           <div className={styles.resultActions}>
             {!sharedResult ? (
               <CutButton solid onClick={handleRestart}>
@@ -297,116 +311,136 @@ export function WaveformRibbonsGame({
             </Link>
           </div>
         </div>
-      </PlayFrame>
+      </main>
     );
   }
 
   return (
-    <PlayFrame
-      className={styles.page}
-      title="Challenge 03 · Waveform Ribbons"
-    >
-      <div className={styles.stack}>
-        <header className={styles.intro}>
-          <div>
-            <p className={styles.scorebar}>
-              <span>03 / Seasonal pattern / Planetary respiration</span>
-              <span>
-                Score <strong>{score}</strong>
-              </span>
-              <span>
-                Pattern {patternIdx + 1} of {PATTERNS.length}
-              </span>
-            </p>
-            <h2 className={styles.title}>{pattern.title}</h2>
-            <p className={styles.copy}>
-              {pattern.subtitle}. Tap the curve or move the slider to find where the annual acoustic
-              profile turns.
-            </p>
-          </div>
-          <div className={styles.tags}>
-            <span className={styles.tag}>
-              <ChamferMark />
+    <main id="main-content" tabIndex={-1} className={styles.page}>
+      <header className={styles.top}>
+        <div className={styles.identity}>
+          <Link href="/challenge" className={styles.back}>
+            ← Challenges
+          </Link>
+          <p className={styles.kicker}>03 / Seasonal pattern / Planetary respiration</p>
+          <h1>Challenge 03 · Waveform Ribbons</h1>
+        </div>
+        <div className={styles.tools}>
+          <span className={styles.tag} style={shell(8)}>
+            <span className={styles.tagFace} style={shell(8)}>
+              Score <strong>{score}</strong>
+            </span>
+          </span>
+          <span className={styles.tag} style={shell(8)}>
+            <span className={styles.tagFace} style={shell(8)}>
+              Pattern {patternIdx + 1} of {PATTERNS.length}
+            </span>
+          </span>
+          <span className={styles.tag} style={shell(8)}>
+            <span className={styles.tagFace} style={shell(8)}>
               <strong>Input</strong> Season + Point
             </span>
-            <span className={styles.tag}>
-              <ChamferMark />
+          </span>
+          <span className={styles.tag} style={shell(8)}>
+            <span className={styles.tagFace} style={shell(8)}>
               <strong>Audio</strong> Cycle Sweep
             </span>
-          </div>
-        </header>
+          </span>
+        </div>
+      </header>
 
-        <div className={styles.board}>
-          <section className={styles.panel} aria-labelledby="ribbon-question">
+      <div className={styles.lede}>
+        <h2>{pattern.title}</h2>
+        <p>
+          {pattern.subtitle}. Tap the curve or move the slider to find where the annual acoustic profile turns.
+        </p>
+      </div>
+
+      <div className={`${styles.stage} c3-plot`}>
+        <svg
+          ref={plotRef}
+          viewBox={`${PLOT.x} ${PLOT.y} ${PLOT.w} ${PLOT.h}`}
+          preserveAspectRatio="xMidYMid meet"
+          onClick={handlePlotClick}
+          role="img"
+          aria-label={`Interactive seasonal curve for ${pattern.title}. Marker at ${month}, point ${pointIdx + 1} of 7.`}
+        >
+          <defs>
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.42" />
+              <stop offset="72%" stopColor="#f2f2f0" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
+            </linearGradient>
+            <filter id={glowId} x="-20%" y="-60%" width="140%" height="220%">
+              <feGaussianBlur stdDeviation="7" />
+            </filter>
+          </defs>
+          <line className={styles.baseline} x1="0" y1="220" x2="600" y2="220" />
+          {pattern.points.map(([x], idx) => (
+            <line
+              key={idx}
+              className={idx === pointIdx ? styles.guideOn : styles.guide}
+              x1={x}
+              y1="36"
+              x2={x}
+              y2="220"
+            />
+          ))}
+          <path className={styles.fill} d={ribbonArea} fill={`url(#${fillId})`} />
+          <polyline className={styles.glow} points={polylinePoints} filter={`url(#${glowId})`} />
+          <polyline className={styles.ribbon} points={polylinePoints} />
+          <g className={styles.marker}>
+            <line x1={currentCoord[0]} y1={currentCoord[1]} x2={currentCoord[0]} y2="220" />
+            <circle cx={currentCoord[0]} cy={currentCoord[1]} r="18" />
+            <circle cx={currentCoord[0]} cy={currentCoord[1]} r="6" />
+          </g>
+          {pattern.points.map(([x], idx) => (
+            <text
+              key={`m-${idx}`}
+              className={idx === pointIdx ? styles.monthOn : styles.month}
+              x={x}
+              y="268"
+              textAnchor="middle"
+            >
+              {pattern.months[idx]}
+            </text>
+          ))}
+        </svg>
+      </div>
+
+      <section className={`${styles.rail} c3-readout`} style={shell(18)} aria-label="Cycle controls">
+        <div className={styles.railFace} style={shell(18)}>
+          <div className={styles.railGrid}>
             <div>
-              <p className={styles.kicker}>Explore the cycle</p>
-              <h3 id="ribbon-question" className={styles.question}>
+              <p className={styles.kicker} id="ribbon-question">
                 Where does the line turn?
-              </h3>
-              <p className={styles.copy}>
-                Choose a season context, then tap the chart to place the marker. The audio follows the
-                selected point.
               </p>
+              <div className={styles.seasons} role="group" aria-label="Select season context">
+                {SEASONS.map((s) => {
+                  const isActive = season === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSeason(s)}
+                      aria-pressed={isActive}
+                      className={`${styles.shell} ${styles.season} c3-season${isActive ? ` ${styles.on} bg-[#f2f2f0]` : ""}`}
+                      style={shell(11)}
+                    >
+                      <span className={styles.face} style={shell(11)}>
+                        {s}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className={styles.seasons} role="group" aria-label="Select season context">
-              {SEASONS.map((s) => {
-                const isActive = season === s;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setSeason(s)}
-                    aria-pressed={isActive}
-                    className={`${styles.season} c3-season${isActive ? ` ${styles.on} bg-[#f2f2f0]` : ""}`}
-                  >
-                    <ChamferMark />
-                    {s}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={`${styles.plot} c3-plot`}>
-              <ChamferMark />
-              <svg
-                ref={plotRef}
-                viewBox="-28 0 656 260"
-                preserveAspectRatio="none"
-                onClick={handlePlotClick}
-                role="img"
-                aria-label={`Interactive seasonal curve for ${pattern.title}. Marker currently at point ${pointIdx + 1} of 7.`}
-              >
-                {[70, 120, 170, 220].map((y) => (
-                  <line key={y} className={styles.guide} x1="16" y1={y} x2="584" y2={y} />
-                ))}
-                {pattern.points.map(([x], idx) => (
-                  <line
-                    key={idx}
-                    className={idx === pointIdx ? styles.guideOn : styles.guide}
-                    x1={x}
-                    y1="28"
-                    x2={x}
-                    y2="220"
-                  />
-                ))}
-                <path className={styles.fill} d={ribbonArea} />
-                <polyline className={styles.ribbon} points={polylinePoints} />
-                <circle cx={currentCoord[0]} cy={currentCoord[1]} r="8" fill="#f2f2f0" />
-                <circle cx={currentCoord[0]} cy={currentCoord[1]} r="3" fill="#141414" />
-                {pattern.points.map(([x], idx) => (
-                  <text key={`n-${idx}`} className={styles.tick} x={x} y="246" textAnchor="middle">
-                    {idx + 1}
-                  </text>
-                ))}
-              </svg>
-            </div>
-
-            <div className={styles.sliderRow}>
+            <div className={styles.play}>
               <div className={styles.sliderMeta}>
                 <label htmlFor={sliderId}>Point in cycle</label>
                 <b>
-                  Point {pointIdx + 1} of {pattern.points.length} ({currentFreq} Hz)
+                  Point {pointIdx + 1} of {pattern.points.length} · {month} · {currentFreq} Hz
                 </b>
               </div>
               <input
@@ -417,61 +451,51 @@ export function WaveformRibbonsGame({
                 value={pointIdx}
                 onChange={(e) => handleSelectPoint(Number(e.target.value))}
                 className={styles.range}
-                aria-valuetext={`Point ${pointIdx + 1} of 7, ${directionText}, frequency ${currentFreq} hertz`}
+                aria-valuetext={`Point ${pointIdx + 1} of 7, ${month}, ${directionText}, frequency ${currentFreq} hertz`}
               />
+              <div className={styles.actions}>
+                <CutButton onClick={() => playToneSnippet(currentFreq)}>Hear selected point</CutButton>
+                {!checked || !isCorrect ? (
+                  <CutButton onClick={handleCheckAnswer}>Check my answer</CutButton>
+                ) : (
+                  <CutButton solid onClick={handleNextPattern}>
+                    {patternIdx < PATTERNS.length - 1 ? "Next Pattern →" : "See Result ↗"}
+                  </CutButton>
+                )}
+              </div>
             </div>
 
-            <div className={styles.actions}>
-              <CutButton onClick={() => playToneSnippet(currentFreq)}>Hear selected point</CutButton>
-              {!checked || !isCorrect ? (
-                <CutButton onClick={handleCheckAnswer}>Check my answer</CutButton>
-              ) : (
-                <CutButton solid onClick={handleNextPattern}>
-                  {patternIdx < PATTERNS.length - 1 ? "Next Pattern →" : "See Result ↗"}
-                </CutButton>
-              )}
-            </div>
-          </section>
-
-          <aside className={`${styles.panel} c3-readout`} aria-label="Signal readout">
-            <div>
-              <p className={styles.kicker}>Read the signal</p>
-              <h3 className={styles.question}>{season} Context</h3>
-              <p className={styles.copy}>{pattern.seasonClues[season] ?? pattern.subtitle}</p>
-            </div>
-            <dl className={styles.stats}>
-              <div className={styles.stat}>
-                <dt>Point</dt>
-                <dd>
-                  {pointIdx + 1} of {pattern.points.length}
-                </dd>
-              </div>
-              <div className={styles.stat}>
-                <dt>Direction</dt>
-                <dd>{directionText}</dd>
-              </div>
-              <div className={styles.stat}>
-                <dt>Acoustic pitch</dt>
-                <dd>{currentFreq} Hz</dd>
-              </div>
-            </dl>
-            <div
-              role="status"
-              aria-live="polite"
-              data-tone={checked && isCorrect ? "yes" : "idle"}
-              className={styles.status}
-            >
-              <ChamferMark />
-              {checked
-                ? isCorrect
-                  ? pattern.turnReason
-                  : pattern.missHint
-                : "Find the point where the pattern changes direction, then test your answer."}
-            </div>
-            <p className={styles.fact}>{pattern.scientificFact}</p>
-          </aside>
+            <aside className={styles.read} aria-label="Signal readout">
+              <h3>{season} Context</h3>
+              <p>{pattern.seasonClues[season] ?? pattern.subtitle}</p>
+              <dl className={styles.stats}>
+                <div>
+                  <dt>Point</dt>
+                  <dd>
+                    {pointIdx + 1} of {pattern.points.length}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Direction</dt>
+                  <dd>{directionText}</dd>
+                </div>
+                <div>
+                  <dt>Acoustic pitch</dt>
+                  <dd>{currentFreq} Hz</dd>
+                </div>
+              </dl>
+              <p className={styles.fact}>{pattern.scientificFact}</p>
+            </aside>
+          </div>
+          <div className={styles.status} role="status" aria-live="polite" data-tone={checked && isCorrect ? "yes" : "idle"}>
+            {checked
+              ? isCorrect
+                ? pattern.turnReason
+                : pattern.missHint
+              : "Find the point where the pattern changes direction, then test your answer."}
+          </div>
         </div>
-      </div>
-    </PlayFrame>
+      </section>
+    </main>
   );
 }
