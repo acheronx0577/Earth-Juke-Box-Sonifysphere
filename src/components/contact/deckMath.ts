@@ -103,7 +103,7 @@ interface Scale {
 }
 
 /** Phone hero width as a share of the viewport. The deck band stays where it is. */
-const PHONE_HERO_WIDTH = 0.82;
+const PHONE_HERO_WIDTH = 0.72;
 
 function scaleFor(view: DeckView): Scale {
   if (!view.phone) {
@@ -118,7 +118,7 @@ function scaleFor(view: DeckView): Scale {
     };
   }
   const byWidth = view.width * PHONE_HERO_WIDTH;
-  const byHeight = view.height * 0.9 * 1.253;
+  const byHeight = view.height * (0.9 * PHONE_HERO_WIDTH / 0.82) * 1.253;
   const target = Math.min(byWidth, byHeight);
   return {
     depth: 4.492,
