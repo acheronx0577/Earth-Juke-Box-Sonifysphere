@@ -204,7 +204,8 @@ export function pageGeometry(
     }
   }
   const samples = (GRID_X + 1) * (GRID_Y + 1);
-  const focusWeight = HERO_BOOST === 0 ? 0 : (hero - 1) / HERO_BOOST;
+  const boost: number = HERO_BOOST;
+  const focusWeight = boost === 0 ? 0 : (hero - 1) / boost;
   return { xy, depth: depthSum / samples - focusWeight * 30, distance, flat: wrapped };
 }
 
