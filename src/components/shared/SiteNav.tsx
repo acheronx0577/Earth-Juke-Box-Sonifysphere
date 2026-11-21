@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 export function SiteNav() {
   const navRef = useRef<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [compact, setCompact] = useState(false);
   const pathname = usePathname();
 
   const handleLinkClick = () => {
@@ -16,13 +17,14 @@ export function SiteNav() {
   };
 
   useEffect(() => {
+    const media = window.matchMedia("(max-width: 1000px)");
     const onResize = () => {
-      if (window.innerWidth > 1000) {
-        setIsOpen(false);
-      }
+      setCompact(media.matches);
+      if (!media.matches) setIsOpen(false);
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    onResize();
+    media.addEventListener("change", onResize);
+    return () => media.removeEventListener("change", onResize);
   }, []);
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export function SiteNav() {
           <p className="nav-menu-toggle">Menu</p>
         </button>
 
-        <div className="nav-overlay">
+        <div className="nav-overlay" inert={compact && !isOpen ? true : undefined}>
           <div className="nav-items">
             {navLinks.map((link) => (
               <div key={link.href} className="nav-item">

@@ -13,6 +13,7 @@ export interface GuessShareRequest {
   readonly title: string;
   readonly text: string;
   readonly path: string;
+  readonly marks?: readonly ("yes" | "no")[];
 }
 
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -147,32 +148,53 @@ export function GuessSharePopup({
         <div className={styles.cutFace}>
         <div className={styles.head}>
           <h2 id={titleId}>Share this result</h2>
-          <button type="button" className={`${styles.close} ${styles.cutShell}`} aria-label="Close share" onClick={onClose}>
-            <span className={styles.cutFace} aria-hidden="true">×</span>
-          </button>
+          <span className={styles.focusRing}>
+            <button type="button" className={`${styles.close} ${styles.cutShell}`} aria-label="Close share" onClick={onClose}>
+              <span className={styles.cutFace} aria-hidden="true">×</span>
+            </button>
+          </span>
         </div>
-        <p className={styles.summary}>
-          <span>{request.title}</span>
-          <span>{request.text}</span>
-        </p>
+        <div className={styles.preview} data-testid="guess-share-preview">
+          <p>{request.title}</p>
+          <p>{request.text}</p>
+          {request.marks?.length ? (
+            <ol>
+              {request.marks.map((mark, index) => (
+                <li key={`${mark}-${index}`} data-correct={mark === "yes" ? "true" : "false"}>
+                  <span>
+                    {String(index + 1).padStart(2, "0")} {mark === "yes" ? "✓" : "✗"}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </div>
         <p className={styles.url} data-testid="guess-share-url">
           {url}
         </p>
         <div className={styles.actions}>
-          <button type="button" className={`${styles.action} ${styles.cutShell}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
-            <span className={styles.cutFace}>{copied ? "Copied" : "Copy link"}</span>
-          </button>
-          {nativeShare ? (
-            <button type="button" className={`${styles.action} ${styles.cutShell}`} data-testid="guess-share-native" onClick={() => void native()}>
-              <span className={styles.cutFace}>Share</span>
+          <span className={styles.focusRing}>
+            <button type="button" className={`${styles.action} ${styles.cutShell}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
+              <span className={styles.cutFace}>{copied ? "Copied" : "Copy link"}</span>
             </button>
+          </span>
+          {nativeShare ? (
+            <span className={styles.focusRing}>
+              <button type="button" className={`${styles.action} ${styles.cutShell}`} data-testid="guess-share-native" onClick={() => void native()}>
+                <span className={styles.cutFace}>Share</span>
+              </button>
+            </span>
           ) : null}
-          <button type="button" className={`${styles.action} ${styles.cutShell}`} onClick={() => void onSaveImage()}>
-            <span className={styles.cutFace}>Save image</span>
-          </button>
-          <a className={`${styles.action} ${styles.cutShell}`} href={xHref(url || absoluteUrl(request.path), request.title, request.text)} target="_blank" rel="noopener noreferrer">
-            <span className={styles.cutFace}>Share to X</span>
-          </a>
+          <span className={styles.focusRing}>
+            <button type="button" className={`${styles.action} ${styles.cutShell}`} onClick={() => void onSaveImage()}>
+              <span className={styles.cutFace}>Save image</span>
+            </button>
+          </span>
+          <span className={styles.focusRing}>
+            <a className={`${styles.action} ${styles.cutShell}`} href={xHref(url || absoluteUrl(request.path), request.title, request.text)} target="_blank" rel="noopener noreferrer">
+              <span className={styles.cutFace}>Share to X</span>
+            </a>
+          </span>
         </div>
         <p className={styles.live} role="status">
           {notice}

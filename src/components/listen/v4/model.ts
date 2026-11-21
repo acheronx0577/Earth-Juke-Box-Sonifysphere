@@ -340,15 +340,6 @@ export function readProbe(input: {
       value: accepted.value,
       detail: accepted.detail,
     };
-  } else if (accepted && accepted.status === "no-data" && layer === "temperature" && !accepted.value.includes("could not be reached")) {
-    temperature = {
-      id: "temperature",
-      label: "TEMPERATURE",
-      swatch: "#3a3a3a",
-      state: "empty",
-      value: accepted.value,
-      detail: accepted.detail,
-    };
   } else if (source.kind === "map" && region) {
     const anomaly = scaleAnomaly(region.anomaly, year);
     const nino = region.id === "nino34";
@@ -418,17 +409,35 @@ export function readProbe(input: {
   }
 
   const co2: ReadingCard =
-    source.layer === "co2" || source.id === "oco2-example" || source.id === "dyamond-co2"
+    source.kind === "map"
       ? {
           id: "co2",
           label: "CO₂",
-          swatch: source.kind !== "map" && !pixelColor ? "#3a3a3a" : color,
+          swatch: "#f2f2f0",
+          state: "matched",
+          value: "427 ppm",
+          detail: "NOAA GML MAUNA LOA ANNUAL MEAN · 2025 · EXAMPLE",
+        }
+      : source.layer === "co2" || source.id === "oco2-example" || source.id === "dyamond-co2"
+      ? {
+          id: "co2",
+          label: "CO₂",
+          swatch: !pixelColor ? "#3a3a3a" : color,
           state: "image",
-          value: source.kind !== "map" && !pixelColor ? "No data" : bandName(color),
+          value: !pixelColor ? "No data" : bandName(color),
           detail: "FROM PIXELS · NOT A MEASUREMENT",
         }
       : emptyCard("co2", "CO₂", "NEEDS A NASA CO₂ SOURCE");
-  const methane = emptyCard("methane", "METHANE", "NO METHANE LAYER ON THIS MAP");
+  const methane: ReadingCard = source.kind === "map"
+    ? {
+        id: "methane",
+        label: "METHANE",
+        swatch: "#f2f2f0",
+        state: "matched",
+        value: "1936 ppb",
+        detail: "NOAA GML GLOBAL ANNUAL MEAN · 2025 · EXAMPLE",
+      }
+    : emptyCard("methane", "METHANE", "NO METHANE LAYER ON THIS MAP");
 
   const extras = new Map<string, ReadingCard>();
   for (const id of ["air", "sea-temp", "currents", "wind", "precip", "elevation"] as const) {
@@ -515,9 +524,9 @@ export function readProbe(input: {
     : layer === "sea-ice"
       ? region?.seaIce ? `${placeName} · ICE` : "NO SEA ICE HERE"
       : layer === "co2"
-        ? "NO CO₂ FIELD"
+        ? source.kind === "map" ? "CO₂ · 427 PPM" : "NO CO₂ FIELD"
         : layer === "methane"
-          ? "NO METHANE FIELD"
+          ? source.kind === "map" ? "METHANE · 1936 PPB" : "NO METHANE FIELD"
           : layer === "wind"
             ? "NO WIND FIELD"
             : layer === "air"

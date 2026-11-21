@@ -634,7 +634,17 @@ const DEFAULT_EIC_SOURCE: ListenSource = {
   preview: EIC_FRAME_IMAGE,
 };
 
-export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLayer: LayerId; readonly initialSourceId?: string }) {
+export function ListenV4({
+  initialLayer,
+  initialSourceId,
+  initialLat,
+  initialLng,
+}: {
+  readonly initialLayer: LayerId;
+  readonly initialSourceId?: string;
+  readonly initialLat?: number;
+  readonly initialLng?: number;
+}) {
   const { setSoundEnabled } = useSonifyPlayer();
   const fileRef = useRef<HTMLInputElement>(null);
   const uploadUrls = useRef(new Map<string, string>());
@@ -656,8 +666,8 @@ export function ListenV4({ initialLayer, initialSourceId }: { readonly initialLa
   const [uploadError, setUploadError] = useState("");
   const [layer, setLayer] = useState<LayerId>(initialLayer);
   const [more, setMore] = useState(EXTRA_LAYERS.some((item) => item.id === initialLayer));
-  const [lat, setLat] = useState(0);
-  const [lng, setLng] = useState(-145);
+  const [lat, setLat] = useState(initialLat ?? 0);
+  const [lng, setLng] = useState(initialLng ?? -145);
   const [year, setYear] = useState(YEAR_END);
   const [styleId, setStyleId] = useState<SoundStyle>("synth");
   const [instrument, setInstrument] = useState<InstrumentId>("soft-synth");

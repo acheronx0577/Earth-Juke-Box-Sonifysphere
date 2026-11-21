@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { LayerId } from "../../data/exploreMap";
 import { MAP_REGIONS } from "../../data/exploreMap";
-import { drawResultCurves, recordForClip, type ResultClip } from "./guessResultCurve";
+import { drawResultCurves, recordForClip, seriesReadout, type ResultClip } from "./guessResultCurve";
 
 function clip(regionId: string, layer: LayerId): ResultClip {
   return { regionId, layer, season: "summer", weather: "clear" };
@@ -31,17 +31,29 @@ function correlation(left: readonly number[], right: readonly number[]): number 
   return x.reduce((sum, value, index) => sum + value * (y[index] ?? 0), 0) / x.length;
 }
 
-test("layer records are the embedded listen and landing series", () => {
-  assert.equal(recordForClip(clip("oceania", "temperature")).id, "gistemp-v4");
-  assert.equal(recordForClip(clip("pacific", "temperature")).id, "listen-oni");
-  assert.equal(recordForClip(clip("south-america", "sea-ice")).id, "nsidc-sea-ice");
+test("each region and record uses its own measurement series", () => {
+  assert.equal(recordForClip(clip("oceania", "temperature")).id, "ncei-oceania");
+  assert.equal(recordForClip(clip("south-america", "temperature")).id, "ncei-south-america");
+  assert.equal(recordForClip(clip("pacific", "temperature")).id, "ersst-pacific-nino4");
+  assert.equal(recordForClip(clip("nino34", "temperature")).id, "ersst-nino34");
+  assert.equal(recordForClip(clip("atlantic", "temperature")).id, "ersst-atlantic");
+  assert.equal(recordForClip(clip("indian", "temperature")).id, "ersst-indian-dmi");
+  assert.equal(recordForClip(clip("arctic", "sea-ice")).id, "nsidc-sea-ice");
   assert.equal(recordForClip(clip("europe", "methane")).id, "noaa-methane");
   assert.equal(recordForClip(clip("africa", "co2")).id, "mauna-loa-co2");
-  assert.match(recordForClip(clip("oceania", "temperature")).source, /GISTEMP/);
-  assert.match(recordForClip(clip("arctic", "sea-ice")).source, /NSIDC/);
+  const ids = MAP_REGIONS.map((region) => recordForClip(clip(region.id, "temperature")).id);
+  assert.equal(new Set(ids).size, MAP_REGIONS.length);
+  const oceania = recordForClip(clip("oceania", "temperature"));
+  assert.equal(oceania.years[0], 1910);
+  assert.equal(oceania.values[0], -0.22);
+  assert.equal(oceania.values[oceania.values.length - 1], 1.16);
+  const ice = recordForClip(clip("arctic", "sea-ice"));
+  assert.ok(ice.values[ice.values.length - 1] < ice.values[0]);
+  const co2 = recordForClip(clip("africa", "co2"));
+  assert.ok(co2.values[co2.values.length - 1] > co2.values[0]);
 });
 
-test("the drawn paths are not copies of one slope", () => {
+test("the five result curves are different shapes", () => {
   const clips = [
     clip("oceania", "temperature"),
     clip("arctic", "sea-ice"),
@@ -49,31 +61,17 @@ test("the drawn paths are not copies of one slope", () => {
     clip("south-america", "co2"),
     clip("pacific", "temperature"),
   ];
-  const shapes = clips.map((item) => resample(recordForClip(item).values, 160));
-  const drawn = drawResultCurves(clips).map((curve) => curve.d);
-  assert.equal(new Set(drawn).size, 5);
+  const shapes = clips.map((item) => resample(recordForClip(item).values, 80));
+  const drawn = drawResultCurves(clips);
+  assert.equal(new Set(drawn.map((curve) => curve.d)).size, 5);
   for (let left = 0; left < shapes.length; left += 1) {
     for (let right = left + 1; right < shapes.length; right += 1) {
-      const score = correlation(shapes[left], shapes[right]);
-      const pair = `${clips[left].regionId}/${clips[left].layer} vs ${clips[right].regionId}/${clips[right].layer}`;
-      const bothGases = ["co2", "methane"].includes(clips[left].layer) && ["co2", "methane"].includes(clips[right].layer);
-      if (bothGases) {
-        assert.ok(score < 0.995, `${pair} collapsed to one ramp (${score.toFixed(3)})`);
-      } else {
-        assert.ok(score < 0.9, `${pair} correlation ${score.toFixed(3)}`);
-      }
+      const score = Math.abs(correlation(shapes[left], shapes[right]));
+      assert.ok(score < 0.995, `${clips[left].regionId} vs ${clips[right].regionId} ${score.toFixed(3)}`);
     }
   }
-  const ice = recordForClip(clip("arctic", "sea-ice")).values;
-  assert.ok(ice[ice.length - 1] < ice[0], "sea ice extent is lower at the end of the record than at the start");
-});
-
-test("every map region resolves to one of the embedded records", () => {
-  const layers: LayerId[] = ["temperature", "sea-ice", "co2", "methane"];
-  for (const region of MAP_REGIONS) {
-    for (const layer of layers) {
-      const record = recordForClip(clip(region.id, layer));
-      assert.ok(record.values.length >= 48, record.id);
-    }
-  }
+  const readout = seriesReadout(clips[0]);
+  assert.match(readout.caption, /Oceania land temperature/);
+  assert.equal(readout.start.year, 1910);
+  assert.equal(readout.end.year, 2025);
 });

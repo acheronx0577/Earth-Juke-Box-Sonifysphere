@@ -171,15 +171,105 @@
   color: #141414;
 }
 
+.focusRing {
+  --cut: 8px;
+  display: flex;
+  padding: 3px;
+  background: #161616;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+
+.focusRing:focus-within {
+  background: #f2f2f0;
+}
+
 .close:focus,
 .action:focus {
   outline: none;
 }
 
-.close:focus-visible,
-.action:focus-visible {
-  outline: 2px solid #f2f2f0;
-  outline-offset: 3px;
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: #141414;
+}
+
+.preview p {
+  margin: 0;
+  color: #f2f2f0;
+}
+
+.preview p:last-of-type {
+  color: #c8c6c2;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.preview ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.preview li {
+  --cut: 8px;
+  display: inline-flex;
+  padding: 1px;
+  background: #555555;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+
+.preview li span {
+  --cut: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.15rem 0.4rem;
+  background: #141414;
+  color: #f2f2f0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 13px;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+
+.preview li[data-correct="true"],
+.preview li[data-correct="true"] span {
+  background: #f2f2f0;
+  color: #141414;
 }
 
 .live {

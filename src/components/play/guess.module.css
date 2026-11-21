@@ -26,8 +26,16 @@
   height: 100svh;
   min-height: 100svh;
   max-height: 100svh;
+  padding-top: clamp(3.15rem, 6.2svh, 4.5rem);
+  padding-bottom: clamp(0.35rem, 1svh, 0.75rem);
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+@media (max-width: 1000px) {
+  .page[data-result="true"] {
+    padding-top: clamp(4.15rem, 6.4svh, 4.75rem);
+  }
 }
 
 .game {
