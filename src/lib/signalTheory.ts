@@ -97,40 +97,44 @@ function shuffle<T>(rng: () => number, items: readonly T[]): T[] {
   return copy;
 }
 
-function layerLabel(layer: LayerId): string {
-  return LAYERS.find((item) => item.id === layer)?.label ?? layer;
-}
+const RECORD_LAYERS: readonly LayerId[] = ["co2", "methane", "sea-ice"];
 
 export function buildGuessRounds(count: number, rng: () => number): GuessRound[] {
+  const regionSlots = Math.ceil(count / 2);
+  const layerSlots = Math.floor(count / 2);
+  const regions = shuffle(rng, MAP_REGIONS).slice(0, Math.min(regionSlots, MAP_REGIONS.length));
+  const records = shuffle(rng, RECORD_LAYERS).slice(0, Math.min(layerSlots, RECORD_LAYERS.length));
+  let regionCursor = 0;
+  let recordCursor = 0;
   return Array.from({ length: count }, (_, index) => {
-    const kind: GuessKind = index % 2 === 0 ? "region" : "layer";
-    const region = MAP_REGIONS[Math.floor(rng() * MAP_REGIONS.length)];
-    const layer = LAYERS[Math.floor(rng() * LAYERS.length)].id;
     const season = SEASONS[Math.floor(rng() * SEASONS.length)];
     const weather = WEATHERS[Math.floor(rng() * WEATHERS.length)];
-    if (kind === "region") {
+    if (index % 2 === 0) {
+      const region = regions[regionCursor++] ?? MAP_REGIONS[index % MAP_REGIONS.length];
       const distractors = shuffle(rng, MAP_REGIONS.filter((item) => item.id !== region.id)).slice(0, 3);
       const choices = shuffle(rng, [region, ...distractors]).map((item) => ({ id: item.id, label: item.name }));
       return {
-        kind,
+        kind: "region" as const,
         regionId: region.id,
-        layer,
+        layer: "temperature" as const,
         season,
         weather,
         choices,
         answerId: region.id,
-        prompt: `${layerLabel(layer)} · ${season} · ${weather}`,
+        prompt: `temperature · ${season} · ${weather}`,
       };
     }
+    const layer = records[recordCursor++] ?? RECORD_LAYERS[index % RECORD_LAYERS.length];
+    const place = MAP_REGIONS[Math.floor(rng() * MAP_REGIONS.length)];
     return {
-      kind,
-      regionId: region.id,
+      kind: "layer" as const,
+      regionId: place.id,
       layer,
       season,
       weather,
       choices: shuffle(rng, LAYERS.map((item) => ({ id: item.id, label: item.label }))),
       answerId: layer,
-      prompt: region.name,
+      prompt: place.name,
     };
   });
 }
