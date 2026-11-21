@@ -697,7 +697,7 @@ export function GuessGame({
             <span>BEST STREAK {sharedResult.bestStreak}</span>
           </p>
           <p className={styles.note}>A shared result. The five signals stay on the player’s own run.</p>
-          <Link href="/challenge/guess" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(10), textDecoration: "none" }}>
+          <Link href="/challenge/guess" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(10), textDecoration: "none" }}>
             <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
               Play again
             </span>
@@ -749,12 +749,12 @@ export function GuessGame({
             <h2>A saved round is still open.</h2>
             <p>Starting this one replaces round {savedRun.index + 1}.</p>
             <div className={styles.actions}>
-              <button type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} onClick={() => openFresh(seed ?? freshSeed())}>
+              <button type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} onClick={() => openFresh(seed ?? freshSeed())}>
                 <span className={styles.face} style={{ clipPath: clip(8) }}>
                   Start this one
                 </span>
               </button>
-              <button type="button" className={styles.shell} style={{ clipPath: clip(8) }} onClick={() => router.replace(`/challenge/guess?seed=${savedRun.seed}`, { scroll: false })}>
+              <button type="button" className={`${styles.shell} ${styles.plain}`} style={{ clipPath: clip(8) }} onClick={() => router.replace(`/challenge/guess?seed=${savedRun.seed}`, { scroll: false })}>
                 <span className={styles.face} style={{ clipPath: clip(8) }}>
                   Resume saved round
                 </span>
@@ -795,7 +795,7 @@ export function GuessGame({
                 </li>
               ))}
             </ol>
-            <button ref={resultRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(10) }} onClick={again}>
+            <button ref={resultRef} type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(10) }} onClick={again}>
               <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
                 Play again
               </span>
@@ -909,7 +909,7 @@ export function GuessGame({
                       <button
                         key={choice.id}
                         type="button"
-                        className={`${styles.shell} ${styles.choice}${cream ? " bg-[#f2f2f0]" : ""}`}
+                        className={`${styles.shell} ${styles.plain} ${styles.choice}${cream ? " bg-[#f2f2f0]" : ""}`}
                         style={{ clipPath: clip(8) }}
                         data-testid="guess-choice"
                         data-result={phase === "answered" ? (choice.id === round.answerId ? "correct" : picked ? "wrong" : undefined) : undefined}
@@ -935,7 +935,7 @@ export function GuessGame({
                 </div>
                 {phase === "answered" ? (
                   <div className={`sonify-next ${styles.cta}`}>
-                    <button ref={nextRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} aria-keyshortcuts="Enter" onClick={advance}>
+                    <button ref={nextRef} type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} aria-keyshortcuts="Enter" onClick={advance}>
                       <span className={styles.face} style={{ clipPath: clip(8) }}>
                         Next signal
                       </span>
@@ -943,7 +943,7 @@ export function GuessGame({
                   </div>
                 ) : phase === "ready" || blocked ? (
                   <div className={styles.cta}>
-                    <button ref={hearRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} data-testid="guess-hear" onClick={hear}>
+                    <button ref={hearRef} type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} data-testid="guess-hear" onClick={hear}>
                       <span className={styles.face} style={{ clipPath: clip(8) }}>
                         Hear signal
                       </span>

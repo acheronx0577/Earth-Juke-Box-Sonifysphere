@@ -366,6 +366,14 @@ a.shell {
   background: var(--stroke);
 }
 
+.plain .face {
+  font-family: inherit;
+  font-size: clamp(14px, 0.78rem + 0.22vw, 16px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
 .choice .face {
   justify-content: flex-start;
   gap: 8px;
@@ -381,7 +389,9 @@ a.shell {
 .key {
   flex: none;
   color: var(--muted);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 11px;
+  letter-spacing: 0.04em;
 }
 
 .choice[class*="bg-[#f2f2f0]"] .key {
