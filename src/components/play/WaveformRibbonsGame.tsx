@@ -269,6 +269,24 @@ function chartGeometry(raw: readonly [number, number][]) {
   return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
 
+function ChallengeTitle({ text }: { text: string }) {
+  const co2 = text.startsWith("CO\u2082");
+  return (
+    <h1>
+      <span className={styles.titlePlain}>{text}</span>
+      <span className={styles.titleSet}>
+        {co2 ? (
+          <>
+            CO<sub>2</sub> Cycle
+          </>
+        ) : (
+          text
+        )}
+      </span>
+    </h1>
+  );
+}
+
 function uForIndex(index: number): number {
   return (index / (XS.length - 1)) * (1 - GLIDE);
 }
@@ -951,7 +969,7 @@ export function WaveformRibbonsGame({
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <span className={styles.num}>03</span>
-          <h1>{pattern.shortTitle}</h1>
+          <ChallengeTitle text={pattern.shortTitle} />
           <span className={styles.infoWrap}>
             <button
               ref={infoRef}

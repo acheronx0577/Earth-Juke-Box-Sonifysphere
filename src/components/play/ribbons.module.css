@@ -56,6 +56,10 @@
   font-size: clamp(13px, 0.95vw, 16px);
 }
 
+.titleSet {
+  display: none;
+}
+
 .titleRow h1,
 .result h1 {
   margin: 0;
@@ -672,9 +676,49 @@
   }
 }
 
-/* Desktop only. The container is the page content box, so 880px
-   starts at a 1024 viewport and stays off at 853. */
+/* Desktop title lockup. The container is the page content box, so this
+   starts at a 1024 viewport and stays off at 853 and on the phone. */
 @container c3 (min-width: 880px) {
+  .header,
+  .titleRow {
+    align-items: center;
+  }
+
+  .titleRow {
+    gap: clamp(10px, 0.75vw, 18px);
+  }
+
+  .titleRow .num {
+    font-family: var(--font-mono), monospace;
+    font-size: clamp(0.82rem, 0.27rem + 0.8vw, 1.3rem);
+    font-weight: 560;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .titlePlain {
+    display: none;
+  }
+
+  .titleSet {
+    display: inline;
+  }
+
+  .titleSet sub {
+    font-family: inherit;
+    font-size: 0.55em;
+    font-weight: inherit;
+    line-height: 0;
+    vertical-align: baseline;
+    position: relative;
+    top: -0.02em;
+  }
+
+  .info {
+    width: clamp(32px, 2.2vw, 40px);
+    height: clamp(32px, 2.2vw, 40px);
+  }
+
   .feedback {
     position: absolute;
     width: 1px;
