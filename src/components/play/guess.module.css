@@ -44,6 +44,17 @@
   }
 }
 
+@container guess (min-width: 901px) {
+  .page[data-result="true"] .resultEyebrow {
+    display: none;
+  }
+
+  .page[data-result="true"] .header {
+    justify-content: flex-start;
+    margin-bottom: clamp(6px, 1svh, 12px);
+  }
+}
+
 @media (max-width: 767px) {
   .page[data-result="true"] .resultBack {
     flex: none;

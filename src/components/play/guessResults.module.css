@@ -76,6 +76,19 @@
   text-transform: uppercase;
 }
 
+.scoreAside {
+  display: contents;
+}
+
+.deskTitle,
+.deskName,
+.baseline,
+.yearStart,
+.yearEnd,
+.rule {
+  display: none;
+}
+
 .summary {
   margin: 0;
   color: var(--muted);
@@ -880,6 +893,8 @@
   .hearWide {
     order: 4;
     grid-column: 1 / -1;
+    justify-self: start;
+    width: max-content;
   }
 }
 
@@ -1080,5 +1095,306 @@
     transform: none;
     opacity: 1;
     transition: none;
+  }
+}
+
+@container guess (min-width: 901px) {
+  .board {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "hero hero"
+      "tiles tiles"
+      "sources actions";
+    align-items: stretch;
+    justify-content: stretch;
+    gap: clamp(8px, 1.4svh, 16px);
+    min-height: 0;
+  }
+
+  .hero {
+    grid-area: hero;
+  }
+
+  .phoneTitle {
+    display: none;
+  }
+
+  .deskTitle {
+    display: inline;
+  }
+
+  .heroLine h1 {
+    font-size: inherit;
+    line-height: 0.85;
+  }
+
+  .scoreDigits {
+    color: var(--cream);
+    font-size: clamp(52px, 8.4svh, 92px);
+    font-weight: 560;
+    letter-spacing: -0.05em;
+  }
+
+  .scoreOf,
+  .scoreWord {
+    color: #b4b2ae;
+    font-size: clamp(22px, 3svh, 36px);
+    font-weight: 560;
+    letter-spacing: -0.04em;
+  }
+
+  .score {
+    align-items: flex-end;
+    gap: clamp(8px, 0.8vw, 14px);
+  }
+
+  .score b {
+    font-size: clamp(52px, 8.4svh, 92px);
+    line-height: 0.85;
+  }
+
+  .scoreAside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .chips,
+  .kicker,
+  .carouselBar,
+  .pager,
+  .replayLabel {
+    display: none;
+  }
+
+  .kickerRow,
+  .rows,
+  .actions {
+    margin-top: 0;
+  }
+
+  .kickerRow {
+    grid-area: sources;
+    align-self: end;
+  }
+
+  .carouselRegion {
+    grid-area: tiles;
+    min-height: 0;
+    display: flex;
+  }
+
+  .rows {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-auto-flow: row;
+    gap: clamp(8px, 0.7vw, 14px);
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  .row {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+  }
+
+  .rowFace {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "meta meta"
+      "name name"
+      "plot plot"
+      "rule rule"
+      "said play";
+    align-items: stretch;
+    align-content: stretch;
+    gap: clamp(6px, 0.8svh, 10px);
+    width: 100%;
+    min-height: 0;
+    padding: clamp(8px, 1svh, 14px);
+  }
+
+  .row[data-correct="true"] {
+    background: var(--stroke);
+  }
+
+  .row[data-playing="true"] {
+    background: var(--cream);
+  }
+
+  .identity {
+    display: contents;
+  }
+
+  .meta {
+    grid-area: meta;
+    justify-content: space-between;
+  }
+
+  .name {
+    grid-area: name;
+    font-size: clamp(22px, 3.2svh, 32px);
+  }
+
+  .phoneName {
+    display: none;
+  }
+
+  .deskName {
+    display: inline;
+  }
+
+  .deskName sub {
+    font-size: 0.62em;
+  }
+
+  .plotBlock {
+    display: flex;
+    flex-direction: column;
+    grid-area: plot;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .plot {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-self: stretch;
+    height: auto;
+    min-height: 0;
+  }
+
+  .plot svg {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .baseline {
+    display: block;
+    stroke: #555555;
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .yearStart,
+  .yearEnd {
+    display: block;
+    position: static;
+    margin-top: 4px;
+    color: #c8c6c2;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+
+  .yearStart {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .yearEnd {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .rule {
+    display: block;
+    grid-area: rule;
+    height: 1px;
+    background: #555555;
+  }
+
+  .verdict {
+    grid-area: said;
+    align-self: end;
+  }
+
+  .said {
+    font-size: clamp(12px, 1.3svh, 14px);
+  }
+
+  .replay {
+    grid-area: play;
+    align-self: end;
+    width: auto;
+  }
+
+  .replayButton .face {
+    width: clamp(44px, 5svh, 52px);
+    min-width: clamp(44px, 5svh, 52px);
+    height: clamp(44px, 5svh, 52px);
+    min-height: clamp(44px, 5svh, 52px);
+  }
+
+  .actions {
+    --cut: 10px;
+    grid-area: actions;
+    align-self: end;
+    justify-self: end;
+    justify-content: flex-end;
+    width: max-content;
+    max-width: 100%;
+    margin: 0;
+    padding: 1.5px;
+    gap: 0;
+    background: #555555;
+    clip-path: polygon(
+      var(--cut) 0,
+      calc(100% - var(--cut)) 0,
+      100% var(--cut),
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      var(--cut) 100%,
+      0 calc(100% - var(--cut)),
+      0 var(--cut)
+    );
+  }
+
+  .actions .cluster {
+    gap: 0;
+  }
+
+  .actions .ring {
+    background: #1c1c1c;
+  }
+
+  .actions .shell {
+    background: transparent;
+    padding: 0;
+  }
+
+  .actions .primary {
+    padding: 1.5px;
+    background: #555555;
+  }
+
+  .actions .face,
+  .actions .linkFace {
+    background: #1c1c1c;
+  }
+
+  .actions .primary .face {
+    background: #f2f2f0;
+    color: #141414;
   }
 }

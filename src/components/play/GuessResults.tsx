@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboard
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import type { GuessHistoryEntry } from "@/lib/guessSession";
-import { RESULT_CURVE_VIEW, recordForClip, type DrawnCurve } from "./guessResultCurve";
+import { RESULT_CURVE_VIEW, recordForClip, seriesReadout, type DrawnCurve } from "./guessResultCurve";
 import styles from "./guessResults.module.css";
 
 function PlayIcon() {
@@ -20,6 +20,23 @@ function PauseIcon() {
     <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
       <path d="M3.1 2.2h2.5v9.6H3.1V2.2Zm5.3 0h2.5v9.6H8.4V2.2Z" fill="currentColor" />
     </svg>
+  );
+}
+
+function SignalName({ label }: { readonly label: string }) {
+  const parts = label.split(/(CO₂|CO2)/g);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part === "CO₂" || part === "CO2" ? (
+          <span key={`${part}-${index}`}>
+            CO<sub>2</sub>
+          </span>
+        ) : (
+          <span key={`${part}-${index}`}>{part}</span>
+        ),
+      )}
+    </>
   );
 }
 
@@ -229,12 +246,16 @@ export function GuessResults({
       <div className={styles.hero}>
         <div className={styles.heroLine}>
           <h1 id="guess-result-title">
-            {history.filter((entry) => entry.correct).length} of {history.length} named
+            <span className={styles.phoneTitle}>{history.filter((entry) => entry.correct).length} of {history.length} named</span>
+            <span className={styles.deskTitle}>
+              <span className={styles.scoreDigits}>{history.filter((entry) => entry.correct).length}</span>
+              <span className={styles.scoreOf}>/{history.length}</span>
+              <span className={styles.scoreWord}> named</span>
+            </span>
           </h1>
           <p className={styles.score}>
             <b>{score}</b>
-            <span>PTS</span>
-            <span>Best streak {best}</span>
+            <span className={styles.scoreAside}><span>PTS</span><span>Best streak {best}</span></span>
           </p>
         </div>
         <ol className={styles.chips} aria-label="Round results">
@@ -269,6 +290,7 @@ export function GuessResults({
       >
         {history.map((entry, index) => {
           const curve = curves[index];
+          const readout = seriesReadout(entry);
           const active = playing && playingIndex === index;
           const clipId = `guess-heard-${index}`;
           return (
@@ -291,7 +313,10 @@ export function GuessResults({
                       <span className={styles.tagFace}>{entry.correct ? "Named" : "Missed"}</span>
                     </span>
                   </p>
-                  <p className={styles.name}>{entry.answerLabel}</p>
+                  <p className={styles.name}>
+                    <span className={styles.phoneName}>{entry.answerLabel}</span>
+                    <span className={styles.deskName}><SignalName label={entry.answerLabel} /></span>
+                  </p>
                 </div>
                 <div className={styles.plotBlock}>
                   <div className={styles.plot}>
@@ -313,7 +338,16 @@ export function GuessResults({
                       {curve?.marks.map((mark) => (
                         <circle key={mark.kind} className={styles.mark} cx={mark.x} cy={mark.y} r={mark.kind === "end" ? 3.5 : 2.4} />
                       ))}
+                      <line
+                        className={styles.baseline}
+                        x1="0"
+                        x2={RESULT_CURVE_VIEW.width}
+                        y1={RESULT_CURVE_VIEW.height - 1}
+                        y2={RESULT_CURVE_VIEW.height - 1}
+                      />
                     </svg>
+                    <span className={styles.yearStart}>{readout.start.year}</span>
+                    <span className={styles.yearEnd}>{readout.end.year}</span>
                     <span
                       ref={(node) => bindDot(index, node)}
                       className={styles.heardDot}
@@ -321,6 +355,7 @@ export function GuessResults({
                     />
                   </div>
                 </div>
+                <span className={styles.rule} />
                 <div className={styles.verdict}>
                   <p className={styles.said}>
                     You said: {entry.correct ? "✓" : "✗"} {entry.pickedLabel}
