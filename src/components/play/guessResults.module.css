@@ -856,13 +856,17 @@
   }
 }
 
-@container guess (min-width: 901px) {
-  .hearWide {
-    order: 1;
+.narrowTab {
+  display: none;
+}
+
+@container guess (max-width: 900px) {
+  .wideTab {
+    display: none;
   }
 
-  .nextSlot {
-    order: 2;
+  .narrowTab {
+    display: inline-flex;
   }
 }
 
