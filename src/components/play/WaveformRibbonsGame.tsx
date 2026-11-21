@@ -273,6 +273,18 @@ function uForIndex(index: number): number {
   return (index / (XS.length - 1)) * (1 - GLIDE);
 }
 
+function pathYAtX(path: SVGPathElement, x: number): number {
+  const total = path.getTotalLength();
+  let low = 0;
+  let high = total;
+  for (let step = 0; step < 32; step += 1) {
+    const mid = (low + high) / 2;
+    if (path.getPointAtLength(mid).x < x) low = mid;
+    else high = mid;
+  }
+  return path.getPointAtLength((low + high) / 2).y;
+}
+
 function nearestIndex(mapped: readonly [number, number][], x: number): number {
   let closest = 0;
   let best = Number.POSITIVE_INFINITY;
@@ -338,6 +350,7 @@ export function WaveformRibbonsGame({
   const [shareNote, setShareNote] = useState("");
   const chartRef = useRef<SVGSVGElement | null>(null);
   const plotRef = useRef<HTMLDivElement | null>(null);
+  const lineRef = useRef<SVGPathElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -364,6 +377,7 @@ export function WaveformRibbonsGame({
   const [cue, setCue] = useState("");
   const [tipShift, setTipShift] = useState(0);
   const [tipAnchor, setTipAnchor] = useState<"center" | "start" | "end">("center");
+  const [guideTops, setGuideTops] = useState<number[] | null>(null);
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const underId = `${useId().replace(/:/g, "")}under`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
@@ -419,6 +433,29 @@ export function WaveformRibbonsGame({
       window.removeEventListener("resize", place);
     };
   }, [playheadX, month, direction, freq]);
+
+  useLayoutEffect(() => {
+    const path = lineRef.current;
+    const plot = plotRef.current;
+    const svg = path?.ownerSVGElement;
+    if (!path || !plot || !svg) return;
+    const place = () => {
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return;
+      const plotTop = plot.getBoundingClientRect().top;
+      const tops = XS.map((x) => {
+        const point = svg.createSVGPoint();
+        point.x = x;
+        point.y = pathYAtX(path, x);
+        return point.matrixTransform(ctm).y - plotTop;
+      });
+      setGuideTops((prev) => (prev && prev.every((top, index) => Math.abs(top - tops[index]) < 0.25) ? prev : tops));
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(plot);
+    return () => observer.disconnect();
+  }, [pattern.id, geometry.line]);
 
   const publishGate = (next: { starts: number; stops: number }) => {
     gateRef.current = next;
@@ -1010,9 +1047,17 @@ export function WaveformRibbonsGame({
                 />
               ))}
             </g>
-            <path className={styles.line} d={geometry.line} />
+            <path ref={lineRef} className={styles.line} d={geometry.line} />
             <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           </svg>
+          {guideTops?.map((top, index) => (
+            <span
+              key={`guide-${XS[index]}`}
+              className={styles.guide}
+              data-month-line=""
+              style={{ left: `${(XS[index] / VW) * 100}%`, top: `${top}px`, height: `calc(100% - ${top}px)` }}
+            />
+          ))}
           <div className={styles.markerCol} style={{ left: `${(posePoint[0] / VW) * 100}%` }} aria-hidden="true">
             <div
               ref={tipRef}
