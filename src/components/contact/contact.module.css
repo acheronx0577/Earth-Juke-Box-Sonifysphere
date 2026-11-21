@@ -36,8 +36,8 @@
 .stage[data-layout="phone"] .deck {
   position: sticky;
   top: 0;
-  height: 78vh;
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 132px, #000 58%, transparent 76%);
+  height: 56vh;
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 140px, #000 172px, #000 78%, transparent 100%);
 }
 
 .deck canvas {
@@ -556,7 +556,7 @@
   right: auto;
   width: auto;
   height: auto;
-  margin: -8vh clamp(16px, 5vw, 24px) 32px;
+  margin: 0 clamp(16px, 5vw, 24px) 32px;
   mask-image: none;
   background: linear-gradient(to bottom, transparent, var(--ink) 64px);
 }
