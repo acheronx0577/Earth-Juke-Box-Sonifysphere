@@ -25,7 +25,9 @@ test("contact lists six members and arrow keys move the active one", async ({ pa
   await rows.nth(5).focus();
   await expect(stage).toHaveAttribute("data-active", "5");
   await expect(stage.getByText("AI-GENERATED IMAGE")).toBeAttached();
-  await expect(stage.getByText("PLACEHOLDER · project email")).toBeVisible();
+  const inquiry = stage.getByRole("link", { name: "richardhuynh0824@gmail.com" });
+  await expect(inquiry).toBeVisible();
+  await expect(inquiry).toHaveAttribute("href", "mailto:richardhuynh0824@gmail.com");
   await expect(page.locator(".sonify-nav a[href='/contact']")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Contact", exact: true })).toHaveAttribute("href", "/contact");
 });
