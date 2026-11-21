@@ -9,7 +9,9 @@ export const PAGE_COUNT = 30;
 /** World-unit break on either side of the focused page. The rest of the stack stays one unit apart. */
 export const DESK_REST_GAP = 7.2;
 /** Phone pages are smaller in world units, so the same gap throws the neighbours off the deck band. */
-export const PHONE_REST_GAP = 9;
+export const PHONE_REST_GAP = 6.6;
+/** Hero width, in CSS pixels, per pixel of deck height at scale 1. Measured from the projection. */
+const PHONE_HERO_UNIT = 0.6022;
 /** Focused page is this much larger than a stack page, and it eases in with scroll. */
 export const HERO_BOOST = 0.42;
 export const GRID_X = 14;
@@ -98,6 +100,11 @@ interface Scale {
   readonly originY: number;
 }
 
+/** About 74% of a 390px screen, easing to 55% from 768px up. */
+function phoneHeroFraction(width: number): number {
+  return Math.min(0.78, Math.max(0.55, 288 / Math.max(width, 1)));
+}
+
 function scaleFor(view: DeckView): Scale {
   if (!view.phone) {
     return {
@@ -110,15 +117,13 @@ function scaleFor(view: DeckView): Scale {
       originY: -5 * (view.height / 900),
     };
   }
-  // Full scale, not the prototype's 0.8 shrink. The origin is filled in
-  // after a first pass so the active card sits in the upper half and the
-  // neighbours stay inside the viewport.
+  const target = view.width * phoneHeroFraction(view.width);
   return {
     depth: 4.492,
     height: 3.658,
     pivotX: 4.3,
     curve: 1.15,
-    scale: 0.5,
+    scale: target / (PHONE_HERO_UNIT * Math.max(view.height, 1)),
     originX: view.originX ?? 0,
     originY: view.originY ?? 0,
   };
@@ -151,7 +156,8 @@ export function pageGeometry(
   const base = -(index - (PAGE_COUNT - 1) * 0.5);
   const wrapped = ((base - scroll + MAX_Z) % (2 * MAX_Z) + 2 * MAX_Z) % (2 * MAX_Z) - MAX_Z;
   const distance = Math.abs(wrapped);
-  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap;
+  const side = view.phone && wrapped < 0 ? 0.72 : 1;
+  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap * side;
   const hero = 1 + HERO_BOOST * (1 - smooth(0.02, 0.88, distance)) * focusAmount;
   const facing = smooth(0, 1, 1 - smooth(0, 0.8, distance)) * focusAmount;
   const focus = multiply(

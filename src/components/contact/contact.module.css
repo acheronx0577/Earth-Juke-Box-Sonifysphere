@@ -36,8 +36,10 @@
 .stage[data-layout="phone"] .deck {
   position: relative;
   top: auto;
-  height: clamp(300px, 42vh, 460px);
-  margin-top: 18px;
+  height: clamp(320px, 62vh, 680px);
+  height: clamp(320px, 62svh, 680px);
+  margin-top: clamp(12px, 2.2svh, 22px);
+  overflow: hidden;
   mask-image: none;
 }
 
