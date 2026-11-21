@@ -1,8 +1,8 @@
 import { TEAM } from "@/data/aboutData";
 
-/** Inquiry, focus, and missing GitHub handles stay visibly marked as placeholders. */
+/** Focus and missing GitHub handles stay visibly marked as placeholders. */
 export const CONTACT_PLACEHOLDERS = {
-  inquiry: "PLACEHOLDER · project email",
+  inquiry: "richardhuynh0824@gmail.com",
   focus: "PLACEHOLDER",
   github: "PLACEHOLDER",
 } as const;
@@ -25,7 +25,7 @@ export interface ContactMember {
 /**
  * Names, roles, and portraits come from the About team. GitHub handles are
  * not on that type, so the approved contact prototype is the source for them.
- * The project inbox stays in CONTACT_PLACEHOLDERS.
+ * The project inbox is CONTACT_PLACEHOLDERS.inquiry.
  */
 const DETAILS: readonly Omit<ContactMember, "name" | "role" | "image">[] = [
   { email: "richardhuynh0828@gmail.com", emailIsPlaceholder: false, github: "acheronx0577", githubIsPlaceholder: false, icon: "github", wave: 2, aiGenerated: false },

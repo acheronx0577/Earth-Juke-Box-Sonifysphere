@@ -553,7 +553,7 @@ export function ContactStage() {
       </ContactFrame>
       <div data-intro className={styles.inquiry}>
         <span className={`${styles.kicker} ${styles.deskOnly}`}>FOR INQUIRIES</span>
-        <span className={styles.placeholder}>{CONTACT_PLACEHOLDERS.inquiry}</span>
+        <a className={styles.placeholder} href={`mailto:${CONTACT_PLACEHOLDERS.inquiry}`}>{CONTACT_PLACEHOLDERS.inquiry}</a>
       </div>
 
       <div className={styles.deck}>
