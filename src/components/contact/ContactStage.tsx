@@ -404,17 +404,18 @@ export function ContactStage() {
       </ContactFrame>
 
       <p data-intro className={`${styles.word} ${styles.deskOnly}`}>SONIFYSPHERE®</p>
-      <button
-        data-intro
-        type="button"
-        className={styles.sound}
-        aria-pressed={soundOn}
-        onClick={() => setSoundOn((value) => !value)}
-      >
-        <Eq on={soundOn} />
-        <span className={styles.soundLabel}>SOUND:</span>
-        <span>{soundOn ? "ON" : "OFF"}</span>
-      </button>
+      <ContactFrame intro cut={8} fill="none" stroke="rgba(255,243,234,0.72)" className={styles.sound}>
+        <button
+          type="button"
+          className={styles.soundButton}
+          aria-pressed={soundOn}
+          onClick={() => setSoundOn((value) => !value)}
+        >
+          <Eq on={soundOn} />
+          <span className={styles.soundLabel}>SOUND:</span>
+          <span>{soundOn ? "ON" : "OFF"}</span>
+        </button>
+      </ContactFrame>
       <div data-intro className={styles.inquiry}>
         <span className={`${styles.kicker} ${styles.deskOnly}`}>FOR INQUIRIES</span>
         <span className={styles.placeholder}>{CONTACT_PLACEHOLDERS.inquiry}</span>
