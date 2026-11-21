@@ -490,7 +490,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         {slots.map((slot, index) => {
           const full = slot ? slotLabel(slot) : "empty";
           const target = !slot && targetIndex === index;
-          const name = slot ? shortLabel(slot) : target ? "Place here" : "Rest";
+          const name = slot ? shortLabel(slot) : "Rest";
           return (
             <button
               key={`slot-${index}`}
