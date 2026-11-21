@@ -685,35 +685,39 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             <p className={styles.prompt} data-testid="compose-status">
               {prompt}
             </p>
-            <label className={styles.tempo}>
-              TEMPO
-              <input
-                aria-label="Tempo"
-                type="range"
-                min={60}
-                max={160}
-                step={1}
-                value={bpm}
-                style={{ ["--wind" as string]: `${tempoPercent}%` }}
-                onChange={(event) => retune(Number(event.target.value))}
-                onKeyDown={(event) => {
-                  if (event.key !== "PageUp" && event.key !== "PageDown") return;
-                  event.preventDefault();
-                  const delta = event.key === "PageUp" ? 10 : -10;
-                  retune(Math.min(160, Math.max(60, bpm + delta)));
-                }}
-              />
-              <span>{bpm} BPM</span>
-            </label>
-            <button type="button" className={styles.textLink} onClick={clear}>
-              Clear
-            </button>
-            <button type="button" className={styles.iconButton} aria-label="Download WAV" disabled={!filled || rendering} onClick={() => void download()}>
-              <IconDownload />
-            </button>
-            <button type="button" className={styles.iconButton} aria-label="Share link" disabled={!filled} onClick={() => void share()}>
-              <ShareIcon />
-            </button>
+            <div className={styles.toolRow}>
+              <label className={styles.tempo}>
+                TEMPO
+                <input
+                  aria-label="Tempo"
+                  type="range"
+                  min={60}
+                  max={160}
+                  step={1}
+                  value={bpm}
+                  style={{ ["--wind" as string]: `${tempoPercent}%` }}
+                  onChange={(event) => retune(Number(event.target.value))}
+                  onKeyDown={(event) => {
+                    if (event.key !== "PageUp" && event.key !== "PageDown") return;
+                    event.preventDefault();
+                    const delta = event.key === "PageUp" ? 10 : -10;
+                    retune(Math.min(160, Math.max(60, bpm + delta)));
+                  }}
+                />
+                <span>{bpm} BPM</span>
+              </label>
+              <button type="button" className={styles.textLink} onClick={clear}>
+                Clear
+              </button>
+              <span className={styles.iconPair}>
+                <button type="button" className={styles.iconButton} aria-label="Download WAV" disabled={!filled || rendering} onClick={() => void download()}>
+                  <IconDownload />
+                </button>
+                <button type="button" className={styles.iconButton} aria-label="Share link" disabled={!filled} onClick={() => void share()}>
+                  <ShareIcon />
+                </button>
+              </span>
+            </div>
             <div className={styles.play}>
               <button
                 type="button"

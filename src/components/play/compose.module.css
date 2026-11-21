@@ -381,13 +381,12 @@ a.shell {
 }
 
 .pill {
-  flex: 1 1 clamp(6.5rem, 11vw, 8.6rem);
-  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .pill .face {
   justify-content: flex-start;
-  width: 100%;
+  width: auto;
   padding-inline: 10px;
 }
 
@@ -425,9 +424,24 @@ a.shell {
   white-space: nowrap;
 }
 
+.toolRow {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: clamp(8px, 1vw, 14px);
+  min-width: 0;
+}
+
+.iconPair {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
 .tempo {
   display: flex;
-  flex: 1 1 14rem;
+  flex: 1 1 auto;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -709,6 +723,8 @@ a.shell {
     display: inline;
   }
 
+  .prompt,
+  .toolRow,
   .play {
     flex: 1 1 100%;
   }
