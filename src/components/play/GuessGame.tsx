@@ -944,6 +944,7 @@ export function GuessGame({
     setBlocked(false);
     setGain(0);
     setShareNote("");
+    setAnnouncement("");
     setSavedRun(null);
     router.replace(`/challenge/guess?seed=${nextSeed}`, { scroll: false });
     pendingFocus.current = "hear";
