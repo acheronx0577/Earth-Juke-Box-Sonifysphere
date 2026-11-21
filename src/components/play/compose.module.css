@@ -732,6 +732,28 @@ a.shell {
   border: 0;
 }
 
+/* TargetCursor hides the system cursor on the document, then this page suppresses the bracket. */
+.page,
+.page *,
+.page *::before,
+.page *::after {
+  cursor: auto !important;
+}
+
+.page :is(a, button, input, [role="button"], [role="slider"]),
+.page :is(a, button, input, [role="button"], [role="slider"]) * {
+  cursor: pointer !important;
+}
+
+.page button:disabled,
+.page button:disabled *,
+.page input:disabled,
+.page input:disabled *,
+.page [aria-disabled="true"][disabled],
+.page [aria-disabled="true"][disabled] * {
+  cursor: default !important;
+}
+
 @container compose (max-width: 640px) {
   .slotName,
   .placeWord {
