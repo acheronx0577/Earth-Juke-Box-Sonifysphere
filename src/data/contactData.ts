@@ -30,7 +30,7 @@ export interface ContactMember {
 const DETAILS: readonly Omit<ContactMember, "name" | "role" | "image">[] = [
   { email: "richardhuynh0828@gmail.com", emailIsPlaceholder: false, github: "acheronx0577", githubIsPlaceholder: false, icon: "github", wave: 2, aiGenerated: false },
   { email: "erinsur@outlook.com", emailIsPlaceholder: false, github: "erinsur", githubIsPlaceholder: false, icon: "github", wave: 3, aiGenerated: false },
-  { email: "phamquocthang1608@gmail.com", emailIsPlaceholder: false, github: CONTACT_PLACEHOLDERS.github, githubIsPlaceholder: true, icon: "link", wave: 1.5, aiGenerated: false },
+  { email: "phamquocthang1608@gmail.com", emailIsPlaceholder: false, github: "TP610820", githubIsPlaceholder: false, icon: "github", wave: 1.5, aiGenerated: false },
   { email: "ryanwang2689@gmail.com", emailIsPlaceholder: false, github: CONTACT_PLACEHOLDERS.github, githubIsPlaceholder: true, icon: "link", wave: 4, aiGenerated: false },
   { email: "aqila.nasiry@gmail.com", emailIsPlaceholder: false, github: "Devcode5", githubIsPlaceholder: false, icon: "github", wave: 2.5, aiGenerated: false },
   { email: "itemuulel0140@gmail.com", emailIsPlaceholder: false, github: "irmuunt29", githubIsPlaceholder: false, icon: "github", wave: 3.5, aiGenerated: true },
