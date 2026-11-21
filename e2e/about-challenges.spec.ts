@@ -200,10 +200,6 @@ test("compose plays a compiled mix and sound off stops it", async ({ page }) => 
   await expect(liveMain(page).getByTestId("compose-play")).toBeDisabled();
   await page.getByRole("button", { name: "Arctic", exact: true }).click();
   await page.getByRole("button", { name: "Slot 1, empty" }).click();
-  await liveMain(page).getByTestId("compose-play").click({ force: true });
-  await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "idle");
-
-  await liveMain(page).getByTestId("compose-compile").click();
   await liveMain(page).getByTestId("compose-play").click();
   await expect(liveMain(page).getByText("Sound is off.")).toBeVisible();
   await expect(liveMain(page).getByTestId("compose-board")).toHaveAttribute("data-audio", "idle");
@@ -217,8 +213,9 @@ test("compose plays a compiled mix and sound off stops it", async ({ page }) => 
   await expect(liveMain(page).locator(".sonify-slot.is-playing")).toHaveCount(0);
 
   await liveMain(page).getByTestId("compose-play").click();
-  await page.getByRole("button", { name: "Copy share link" }).click();
-  const share = await page.getByTestId("compose-share-url").inputValue();
+  await page.getByRole("button", { name: "Share link" }).click();
+  await expect(page).toHaveURL(/\/challenge\/compose\?mix=/);
+  const share = page.url();
   expect(share).toContain("/challenge/compose?mix=");
   await page.goto(share);
   await expect(page.getByRole("button", { name: "Slot 1, Arctic" })).toBeVisible();
