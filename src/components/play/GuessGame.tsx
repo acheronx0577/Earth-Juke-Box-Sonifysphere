@@ -23,8 +23,8 @@ import styles from "./guess.module.css";
 type Phase = "ready" | "listening" | "answered" | "result";
 
 const VW = 1440;
-const VH = 520;
-const BASE = 430;
+const VH = 560;
+const BASE = 528;
 const XS = [220, 540, 860, 1180];
 const AXIS = ["1968", "1987", "2005", "2024"];
 const PLAY_YEARS = [1968, 1988, 2006, 2024];
@@ -138,7 +138,7 @@ function heroGeometry(freqs: readonly number[]) {
   const min = Math.min(...freqs);
   const max = Math.max(...freqs);
   const floor = BASE - 12;
-  const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 150, 348)] as [number, number]);
+  const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 108, 430)] as [number, number]);
   const line = monotone(extendLevel(mapped, 0, VW, floor));
   return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
