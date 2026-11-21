@@ -222,17 +222,6 @@ function miniPath(freqs: readonly number[]): string {
   return monotone(extendLevel(points, 0, 240, 58));
 }
 
-function carrierWave(): string {
-  let d = "";
-  for (let x = 0; x <= VW; x += 8) {
-    const y = 300 + Math.sin(x / 92) * 22 + Math.sin(x / 31) * 7;
-    d += d ? ` L ${x.toFixed(1)} ${y.toFixed(1)}` : `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }
-  return d;
-}
-
-const WAVE = carrierWave();
-
 function ReplayIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
@@ -1119,7 +1108,6 @@ export function GuessGame({
                     <rect ref={playClipRef} x="0" y="0" height={VH} />
                   </clipPath>
                 </defs>
-                <path className={styles.wave} d={WAVE} />
                 <g clipPath={`url(#${plotClipId})`}>
                   <path d={geometry.fill} fill={`url(#${fillId})`} />
                   <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
