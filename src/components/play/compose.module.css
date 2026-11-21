@@ -246,12 +246,12 @@
 .bar {
   position: relative;
   z-index: 1;
-  width: min(100%, clamp(28px, 4.2vw, 72px));
-  background: linear-gradient(to bottom, rgba(242, 242, 240, 0.92), rgba(242, 242, 240, 0));
+  width: 35%;
+  background: linear-gradient(to bottom, #f2f2f0 0 3px, rgba(242, 242, 240, 0.72) 3px, rgba(242, 242, 240, 0.28) 42%, rgba(242, 242, 240, 0) 100%);
 }
 
 .bar[data-play="true"] {
-  background: linear-gradient(to bottom, #f2f2f0, rgba(242, 242, 240, 0.08));
+  background: linear-gradient(to bottom, #f2f2f0 0 3px, rgba(242, 242, 240, 0.95) 3px, rgba(242, 242, 240, 0.35) 42%, rgba(242, 242, 240, 0) 100%);
 }
 
 .captions {
