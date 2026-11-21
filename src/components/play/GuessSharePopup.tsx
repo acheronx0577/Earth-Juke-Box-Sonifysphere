@@ -26,6 +26,15 @@ function xHref(url: string, title: string, text: string): string {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${title}. ${text} ${url}`)}`;
 }
 
+function CopyIcon() {
+  return (
+    <svg className={styles.copyGlyph} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M9 8.75h10.25V19H9V8.75Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4.75 15.25V4.75H15.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 async function writeClipboard(value: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(value);
@@ -76,7 +85,9 @@ export function GuessSharePopup({
     const dialog = dialogRef.current;
     if (!dialog) return;
     const focusables = () =>
-      Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((node) => !node.hasAttribute("disabled") && node.tabIndex !== -1);
+      Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+        (node) => !node.hasAttribute("disabled") && node.tabIndex !== -1 && node.getClientRects().length > 0,
+      );
     const initial = window.setTimeout(() => focusables()[0]?.focus(), 0);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -169,17 +180,34 @@ export function GuessSharePopup({
             </ol>
           ) : null}
         </div>
-        <p className={styles.url} data-testid="guess-share-url">
+        <p className={`${styles.url} ${styles.wideOnly}`} data-testid="guess-share-url">
           {url}
         </p>
+        <div className={`${styles.urlShell} ${styles.cutShell}`}>
+          <div className={`${styles.urlFace} ${styles.cutFace}`}>
+            <p className={styles.urlNarrow} data-testid="guess-share-url">
+              {url}
+            </p>
+            <button
+              type="button"
+              className={`${styles.copyButton} ${styles.cutShell}`}
+              data-testid="guess-share-copy"
+              data-done={copied ? "true" : "false"}
+              aria-label="Copy link"
+              onClick={() => void copy()}
+            >
+              <span className={styles.cutFace}>{copied ? "Copied" : <CopyIcon />}</span>
+            </button>
+          </div>
+        </div>
         <div className={styles.actions}>
-          <span className={styles.focusRing}>
+          <span className={`${styles.focusRing} ${styles.wideOnly}`}>
             <button type="button" className={`${styles.action} ${styles.cutShell}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
               <span className={styles.cutFace}>{copied ? "Copied" : "Copy link"}</span>
             </button>
           </span>
           {nativeShare ? (
-            <span className={styles.focusRing}>
+            <span className={`${styles.focusRing} ${styles.wideOnly}`}>
               <button type="button" className={`${styles.action} ${styles.cutShell}`} data-testid="guess-share-native" onClick={() => void native()}>
                 <span className={styles.cutFace}>Share</span>
               </button>
