@@ -20,6 +20,7 @@ import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
+import { resultCurvePaths } from "./guessResultCurve";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -161,10 +162,6 @@ function monotoneCurve(points: readonly [number, number][]): { d: string; sample
   return { d, samples };
 }
 
-function monotone(points: readonly [number, number][]): string {
-  return monotoneCurve(points).d;
-}
-
 function yAt(samples: readonly [number, number][], x: number): number {
   if (samples.length === 0) return BASE / 2;
   if (x <= samples[0][0]) return samples[0][1];
@@ -215,12 +212,6 @@ function heroGeometry(freqs: readonly number[]) {
   return { mapped, line: curve.d, samples: curve.samples, fill: `${curve.d} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
 
-function miniPath(freqs: readonly number[]): string {
-  const min = Math.min(...freqs);
-  const max = Math.max(...freqs);
-  const points = freqs.map((freq, index) => [16 + index * 68, plotY(freq, min, max, 14, 50)] as [number, number]);
-  return monotone(extendLevel(points, 0, 240, 58));
-}
 
 function ReplayIcon() {
   return (
@@ -892,6 +883,7 @@ export function GuessGame({
     bestStreak: best,
   };
   const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
+  const resultCurves = phase === "result" ? resultCurvePaths(history) : [];
   samplesRef.current = geometry?.samples ?? [];
   const verdict = `${correct ? "Yes" : "No"} — ${answerText}.`;
   const tip = `${correct ? "✓" : "✕"} ${answerText}${correct && gain ? ` +${gain}` : ""}`;
@@ -1040,7 +1032,7 @@ export function GuessGame({
               {history.map((entry, entryIndex) => (
                 <li key={`${entry.answerId}-${entryIndex}`} className={styles.mini}>
                   <svg viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true">
-                    <path d={miniPath(phraseFreqs(entry.regionId, entry.season, entry.weather))} fill="none" stroke="#f2f2f0" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+                    <path d={resultCurves[entryIndex] ?? ""} fill="none" stroke="#f2f2f0" strokeWidth="1.6" vectorEffect="non-scaling-stroke" data-testid="guess-result-curve" />
                   </svg>
                   <div className={styles.miniHead}>
                     <span>
