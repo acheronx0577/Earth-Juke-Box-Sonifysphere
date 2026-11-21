@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
@@ -13,6 +13,7 @@ const XS = [150, 350, 550, 750, 950, 1150, 1350];
 const CYCLE = 2;
 /** Tail of each cycle that glides the last pitch back to the first so the join is continuous. */
 const GLIDE = 0.045;
+const TIP_GUTTER = 12;
 
 const SEASONS = ["Spring", "Summer", "Autumn", "Winter"] as const;
 type SeasonName = (typeof SEASONS)[number];
@@ -336,6 +337,8 @@ export function WaveformRibbonsGame({
   const [verdict, setVerdict] = useState<"idle" | "choice" | "correct" | "wrong" | "empty">("idle");
   const [shareNote, setShareNote] = useState("");
   const chartRef = useRef<SVGSVGElement | null>(null);
+  const plotRef = useRef<HTMLDivElement | null>(null);
+  const tipRef = useRef<HTMLDivElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(null);
@@ -359,6 +362,8 @@ export function WaveformRibbonsGame({
   const [cycle, setCycle] = useState(0);
   const [gate, setGate] = useState({ starts: 0, stops: 0 });
   const [cue, setCue] = useState("");
+  const [tipShift, setTipShift] = useState(0);
+  const [tipAnchor, setTipAnchor] = useState<"center" | "start" | "end">("center");
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
@@ -375,6 +380,44 @@ export function WaveformRibbonsGame({
   const valueText = `${month}, ${direction.toLowerCase()}, ${freq} hertz`;
   const spans = season ? seasonSpans(pattern.months, season) : [];
   const answer = answerSeason(pattern);
+  const playheadX = posePoint[0];
+
+  useLayoutEffect(() => {
+    const tip = tipRef.current;
+    const plot = plotRef.current;
+    if (!tip || !plot) return;
+    const place = () => {
+      const width = tip.offsetWidth;
+      if (width < 1) return;
+      const plotBox = plot.getBoundingClientRect();
+      const playhead = plotBox.left + (playheadX / VW) * plotBox.width;
+      const minLeft = TIP_GUTTER;
+      const maxLeft = window.innerWidth - TIP_GUTTER - width;
+      let shift = -width / 2;
+      let anchor: "center" | "start" | "end" = "center";
+      const leftOf = (next: number) => playhead + next;
+      if (leftOf(shift) < minLeft) {
+        anchor = "start";
+        shift = 0;
+      } else if (leftOf(shift) + width > window.innerWidth - TIP_GUTTER) {
+        anchor = "end";
+        shift = -width;
+      }
+      const clampedLeft = Math.min(Math.max(leftOf(shift), minLeft), Math.max(minLeft, maxLeft));
+      shift = clampedLeft - playhead;
+      setTipShift((prev) => (Math.abs(prev - shift) < 0.5 ? prev : shift));
+      setTipAnchor((prev) => (prev === anchor ? prev : anchor));
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(tip);
+    observer.observe(plot);
+    window.addEventListener("resize", place);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", place);
+    };
+  }, [playheadX, month, direction, freq]);
 
   const publishGate = (next: { starts: number; stops: number }) => {
     gateRef.current = next;
@@ -783,8 +826,6 @@ export function WaveformRibbonsGame({
     setShareNote("Result image downloaded.");
   };
 
-  const tipShift = posePoint[0] / VW < 0.16 ? "0%" : posePoint[0] / VW > 0.84 ? "-100%" : "-50%";
-
   if (isComplete) {
     const displayScore = sharedResult ? sharedResult.totalScore : score;
     const solved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
@@ -918,7 +959,7 @@ export function WaveformRibbonsGame({
       </header>
 
       <div className={`${styles.stage} c3-plot`}>
-        <div className={styles.plot}>
+        <div className={styles.plot} ref={plotRef}>
           <svg
             ref={chartRef}
             className={styles.curve}
@@ -955,7 +996,12 @@ export function WaveformRibbonsGame({
             <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           </svg>
           <div className={styles.markerCol} style={{ left: `${(posePoint[0] / VW) * 100}%` }} aria-hidden="true">
-            <div className={`${styles.frame} ${styles.tip} lv-cut c3-tip`} style={{ ...cutStyle(6), transform: `translate(${tipShift}, calc(-100% - 14px))`, top: `${(posePoint[1] / BASE) * 100}%` }}>
+            <div
+              ref={tipRef}
+              className={`${styles.frame} ${styles.tip} lv-cut c3-tip`}
+              data-tip-anchor={tipAnchor}
+              style={{ ...cutStyle(6), transform: `translate(${tipShift}px, calc(-100% - 14px))`, top: `${(posePoint[1] / BASE) * 100}%` }}
+            >
               <ChamferMark />
               <span className={styles.tipFace}>
                 {month.toUpperCase()} · {direction} · {freq} HZ
