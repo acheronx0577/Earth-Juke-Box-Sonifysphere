@@ -1049,14 +1049,12 @@ export function GuessGame({
           </div>
           <p className={styles.note}>A shared result. The five signals stay on the player’s own run.</p>
           <div className={styles.footer}>
-            <Link href="/challenge/guess" className={`${styles.playAgain} ${styles.frame}`}>
-              <ChamferMark />
-              Play again
+            <Link href="/challenge/guess" className={`${styles.playAgain} ${styles.cutShell}`}>
+              <span className={styles.cutFace}>Play again</span>
             </Link>
             <div className={styles.links}>
-              <button type="button" className={`${styles.shareButton} ${styles.frame}`} onClick={() => setShareOpen(true)}>
-                <ChamferMark />
-                Share
+              <button type="button" className={`${styles.shareButton} ${styles.cutShell}`} onClick={() => setShareOpen(true)}>
+                <span className={styles.cutFace}>Share</span>
               </button>
             </div>
           </div>
@@ -1136,8 +1134,8 @@ export function GuessGame({
                 const playing = replayOn && replayIndex === entryIndex;
                 const clipId = `${fillId}heard${entryIndex}`;
                 return (
-                  <li key={`${entry.answerId}-${entryIndex}`} className={`${styles.card} ${styles.frame}`} data-correct={entry.correct ? "true" : "false"} data-playing={playing ? "true" : "false"} data-testid="guess-result-card">
-                    <ChamferMark />
+                  <li key={`${entry.answerId}-${entryIndex}`} className={`${styles.card} ${styles.cutShell}`} data-correct={entry.correct ? "true" : "false"} data-playing={playing ? "true" : "false"} data-testid="guess-result-card">
+                    <div className={styles.cutFace}>
                     <div className={styles.plot}>
                       <svg viewBox={`0 0 ${RESULT_CURVE_VIEW.width} ${RESULT_CURVE_VIEW.height}`} preserveAspectRatio="none" aria-hidden="true">
                         <defs>
@@ -1174,30 +1172,28 @@ export function GuessGame({
                       <p className={styles.cardSaid}>{entry.correct ? (entry.kind === "region" ? "Region" : "Record") : `You said ${entry.pickedLabel}`}</p>
                       <button
                         type="button"
-                        className={`${styles.cardReplay} ${styles.frame}`}
+                        className={`${styles.cardReplay} ${styles.cutShell}`}
                         aria-pressed={playing}
                         aria-label={playing ? `Pause round ${entryIndex + 1}` : `Play round ${entryIndex + 1}`}
                         onClick={() => replayHistory(entry, entryIndex)}
                       >
-                        <ChamferMark />
-                        {playing ? <PauseIcon /> : <PlayIcon />}
+                        <span className={styles.cutFace}>{playing ? <PauseIcon /> : <PlayIcon />}</span>
                       </button>
+                    </div>
                     </div>
                   </li>
                 );
               })}
             </ol>
             <div className={styles.footer}>
-              <button ref={resultRef} type="button" className={`${styles.playAgain} ${styles.frame}`} onClick={again}>
-                <ChamferMark />
-                Play again
+              <button ref={resultRef} type="button" className={`${styles.playAgain} ${styles.cutShell}`} onClick={again}>
+                <span className={styles.cutFace}>Play again</span>
               </button>
               <div className={styles.links}>
                 <Link href={lastHeard ? `/listen?region=${lastHeard.regionId}&data=${dataParam(lastHeard.layer)}` : "/listen"}>Hear the real data</Link>
                 <Link href="/challenge/compose">Next · Compose</Link>
-                <button type="button" className={`${styles.shareButton} ${styles.frame}`} onClick={() => setShareOpen(true)}>
-                  <ChamferMark />
-                  Share
+                <button type="button" className={`${styles.shareButton} ${styles.cutShell}`} onClick={() => setShareOpen(true)}>
+                  <span className={styles.cutFace}>Share</span>
                 </button>
               </div>
             </div>

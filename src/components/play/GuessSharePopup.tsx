@@ -2,7 +2,6 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChamferMark } from "@/components/listen/ChamferMark";
 import styles from "./guessShare.module.css";
 
 /**
@@ -138,19 +137,18 @@ export function GuessSharePopup({
     <div className={styles.backdrop} data-testid="guess-share-backdrop" data-hide-target-cursor="true" onMouseDown={onClose}>
       <div
         ref={dialogRef}
-        className={`${styles.dialog} ${styles.frame}`}
+        className={`${styles.dialog} ${styles.cutShell}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="guess-share-popup"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <ChamferMark />
+        <div className={styles.cutFace}>
         <div className={styles.head}>
           <h2 id={titleId}>Share this result</h2>
-          <button type="button" className={`${styles.close} ${styles.frame}`} aria-label="Close share" onClick={onClose}>
-            <ChamferMark />
-            <span aria-hidden="true">×</span>
+          <button type="button" className={`${styles.close} ${styles.cutShell}`} aria-label="Close share" onClick={onClose}>
+            <span className={styles.cutFace} aria-hidden="true">×</span>
           </button>
         </div>
         <p className={styles.summary}>
@@ -161,28 +159,25 @@ export function GuessSharePopup({
           {url}
         </p>
         <div className={styles.actions}>
-          <button type="button" className={`${styles.action} ${styles.frame}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
-            <ChamferMark />
-            {copied ? "Copied" : "Copy link"}
+          <button type="button" className={`${styles.action} ${styles.cutShell}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
+            <span className={styles.cutFace}>{copied ? "Copied" : "Copy link"}</span>
           </button>
           {nativeShare ? (
-            <button type="button" className={`${styles.action} ${styles.frame}`} data-testid="guess-share-native" onClick={() => void native()}>
-              <ChamferMark />
-              Share
+            <button type="button" className={`${styles.action} ${styles.cutShell}`} data-testid="guess-share-native" onClick={() => void native()}>
+              <span className={styles.cutFace}>Share</span>
             </button>
           ) : null}
-          <button type="button" className={`${styles.action} ${styles.frame}`} onClick={() => void onSaveImage()}>
-            <ChamferMark />
-            Save image
+          <button type="button" className={`${styles.action} ${styles.cutShell}`} onClick={() => void onSaveImage()}>
+            <span className={styles.cutFace}>Save image</span>
           </button>
-          <a className={`${styles.action} ${styles.frame}`} href={xHref(url || absoluteUrl(request.path), request.title, request.text)} target="_blank" rel="noopener noreferrer">
-            <ChamferMark />
-            Share to X
+          <a className={`${styles.action} ${styles.cutShell}`} href={xHref(url || absoluteUrl(request.path), request.title, request.text)} target="_blank" rel="noopener noreferrer">
+            <span className={styles.cutFace}>Share to X</span>
           </a>
         </div>
         <p className={styles.live} role="status">
           {notice}
         </p>
+        </div>
       </div>
     </div>,
     document.body,

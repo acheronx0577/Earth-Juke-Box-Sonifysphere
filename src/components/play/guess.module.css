@@ -797,7 +797,7 @@ a.shell {
   font-size: clamp(3.4rem, min(8.8vw, 13svh), 9.25rem);
   font-weight: 560;
   letter-spacing: -0.06em;
-  line-height: 0.78;
+  line-height: 1;
 }
 
 .heroMeta {
@@ -822,10 +822,15 @@ a.shell {
   text-transform: uppercase;
 }
 
-.frame {
+/* Shell is the chamfered stroke colour. The face is inset by the padding and
+   clipped to the same cut, so the border follows the diagonal. A stroke drawn
+   on the clipped element sits on the clip edge and gets notched. */
+.cutShell {
   --cut: 10px;
-  position: relative;
+  box-sizing: border-box;
+  padding: 1.5px;
   border: 0;
+  background: #555555;
   clip-path: polygon(
     var(--cut) 0,
     calc(100% - var(--cut)) 0,
@@ -838,23 +843,24 @@ a.shell {
   );
 }
 
-.frame > :global(.lv-chamfer-svg) {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: block;
-  width: 100%;
+.cutFace {
+  --cut: 10px;
+  box-sizing: border-box;
   height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.frame > :global(.lv-chamfer-svg) polygon {
-  fill: none;
-  stroke: #555555;
-  stroke-width: 1.5px;
-  stroke-linejoin: miter;
-  vector-effect: non-scaling-stroke;
+  min-width: 0;
+  min-height: 0;
+  background: #141414;
+  color: inherit;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
 }
 
 .rounds {
@@ -872,23 +878,29 @@ a.shell {
 
 .card {
   --cut: clamp(8px, 0.7vw, 14px);
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  gap: clamp(8px, 1.1svh, 14px);
   min-width: 0;
   min-height: 0;
-  padding: clamp(10px, 0.9vw, 18px);
-  background: #141414;
+  height: 100%;
   color: #c8c6c2;
 }
 
 .card[data-correct="true"] {
-  background: #1c1c1c;
+  background: #f2f2f0;
   color: var(--cream);
 }
 
-.card[data-correct="true"] > :global(.lv-chamfer-svg) polygon {
-  stroke: #f2f2f0;
+.card .cutFace {
+  --cut: clamp(8px, 0.7vw, 14px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: clamp(8px, 1.1svh, 14px);
+  padding: clamp(10px, 0.9vw, 18px);
+  background: #141414;
+  position: relative;
+}
+
+.card[data-correct="true"] .cutFace {
+  background: #1c1c1c;
 }
 
 .plot {
@@ -1005,20 +1017,29 @@ a.shell {
   --cut: 8px;
   position: absolute;
   z-index: 4;
-  right: clamp(10px, 0.9vw, 16px);
-  bottom: clamp(10px, 1svh, 16px);
-  display: grid;
-  place-items: center;
+  right: clamp(12px, 1vw, 18px);
+  bottom: clamp(12px, 1.1svh, 18px);
+  display: block;
   width: clamp(44px, 2.8vw, 64px);
   height: clamp(44px, 2.8vw, 64px);
-  padding: 0;
-  background: #101010;
+  padding: 1.5px;
+  background: #555555;
   color: #f2f2f0;
   cursor: pointer;
 }
 
-.card[data-correct="true"] .cardReplay,
-.card[data-playing="true"] .cardReplay {
+.cardReplay .cutFace {
+  --cut: 8px;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  background: #101010;
+  color: inherit;
+}
+
+.card[data-correct="true"] .cardReplay .cutFace,
+.card[data-playing="true"] .cardReplay .cutFace {
   background: #f2f2f0;
   color: #141414;
 }
@@ -1042,11 +1063,8 @@ a.shell {
 .playAgain {
   --cut: clamp(8px, 0.6vw, 12px);
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: clamp(48px, 6.2svh, 72px);
-  padding: 0 clamp(22px, 2.2vw, 48px);
-  background: #f2f2f0;
+  padding: 1.5px;
+  background: #555555;
   color: #141414;
   font-size: clamp(1.05rem, min(1.35vw, 2.6svh), 1.55rem);
   font-weight: 560;
@@ -1054,6 +1072,17 @@ a.shell {
   line-height: 1;
   text-decoration: none;
   cursor: pointer;
+}
+
+.playAgain .cutFace {
+  --cut: clamp(8px, 0.6vw, 12px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(48px, 6.2svh, 72px);
+  padding: 0 clamp(22px, 2.2vw, 48px);
+  background: #f2f2f0;
+  color: #141414;
 }
 
 .links {
@@ -1083,11 +1112,9 @@ a.shell {
 .links .shareButton {
   --cut: 8px;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 clamp(14px, 1.2vw, 22px);
-  background: #141414;
+  min-height: 0;
+  padding: 1.5px;
+  background: #555555;
   color: #f2f2f0;
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: clamp(0.75rem, min(0.95vw, 2svh), 1.05rem);
@@ -1096,6 +1123,17 @@ a.shell {
   text-decoration: none;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.links .shareButton .cutFace {
+  --cut: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 clamp(14px, 1.2vw, 22px);
+  background: #141414;
+  color: #f2f2f0;
 }
 
 .resultBack {
