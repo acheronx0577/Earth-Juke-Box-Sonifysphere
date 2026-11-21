@@ -249,20 +249,26 @@
 .slot {
   position: relative;
   height: 1em;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Outer side only, so the gap between the digits stays the unpadded one. */
+.slot:first-child {
+  clip-path: inset(0 0 0 -0.2em);
+}
+
+.slot:last-child {
+  clip-path: inset(0 -0.2em 0 0);
 }
 
 .phantom {
   visibility: hidden;
-  padding-inline: 0.08em;
 }
 
 .strip {
   position: absolute;
   left: 0;
   top: 0;
-  padding-inline: 0.08em;
-  box-sizing: content-box;
 }
 
 .slot span {
