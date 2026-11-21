@@ -5,7 +5,9 @@ import Link from "next/link";
 import { PlayFrame } from "@/components/play/PlayFrame";
 import { CutButton } from "@/components/play/CutControls";
 import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
+import { ChamferMark } from "@/components/listen/ChamferMark";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
+import styles from "./ribbons.module.css";
 
 interface RibbonPattern {
   readonly id: string;
@@ -192,7 +194,8 @@ export function WaveformRibbonsGame({
     const svg = plotRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const relativeX = ((event.clientX - rect.left) / rect.width) * 600;
+    const pad = 28;
+    const relativeX = ((event.clientX - rect.left) / rect.width) * (600 + pad * 2) - pad;
 
     let closestIdx = 0;
     let minDistance = Number.POSITIVE_INFINITY;
@@ -240,34 +243,27 @@ export function WaveformRibbonsGame({
   };
 
   const polylinePoints = pattern.points.map(([x, y]) => `${x},${y}`).join(" ");
+  const ribbonArea = `M${pattern.points.map(([x, y]) => `${x},${y}`).join(" L")} L600,220 L0,220 Z`;
 
   if (isComplete) {
     const displayScore = sharedResult ? sharedResult.totalScore : score;
     const displaySolved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
 
     return (
-      <PlayFrame title="Challenge 03 · Waveform Ribbons Complete">
-        <div
-          className="mx-auto flex max-w-2xl flex-col items-center justify-center gap-6 py-12 text-center"
-          data-testid="ribbons-result"
-        >
-          <div
-            className="flex size-20 items-center justify-center rounded-full border border-[#f2f2f0]/20 bg-[#f2f2f0]/5 text-3xl text-[#f2f2f0]"
-            aria-hidden="true"
-          >
+      <PlayFrame className={styles.page} title="Challenge 03 · Waveform Ribbons Complete">
+        <div className={styles.result} data-testid="ribbons-result">
+          <div className={`${styles.mark} c3-readout`} aria-hidden="true">
+            <ChamferMark />
             ✓
           </div>
 
-          <h2 className="font-sans text-3xl font-medium tracking-tight text-[#f2f2f0]">
-            {sharedResult ? "Waveform Ribbons Shared Score" : "Seasonal Harmonics Aligned"}
-          </h2>
+          <h2>{sharedResult ? "Waveform Ribbons Shared Score" : "Seasonal Harmonics Aligned"}</h2>
 
-          <p className="font-mono text-sm text-[#f2f2f0]/70">
-            Total Score:{" "}
-            <strong className="text-[#f2f2f0]">{displayScore} PTS</strong>
+          <p className={styles.points}>
+            Total Score: <strong>{displayScore} PTS</strong>
           </p>
 
-          <p className="max-w-md font-sans text-sm text-[#f2f2f0]/80">
+          <p>
             You tracked Earth&apos;s atmospheric respiration and ocean cycles by ear. Each seasonal curve
             reflects planetary-scale biome energy exchanges.
           </p>
@@ -286,26 +282,18 @@ export function WaveformRibbonsGame({
             fileName="sonifysphere-waveform-ribbons-result.png"
           />
 
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+          <div className={styles.resultActions}>
             {!sharedResult ? (
-              <CutButton
-                solid
-                onClick={handleRestart}
-                className="font-mono text-xs font-bold uppercase tracking-wider"
-              >
+              <CutButton solid onClick={handleRestart}>
                 Play Again
               </CutButton>
             ) : (
               <Link href="/challenge/ribbons">
-                <CutButton solid className="font-mono text-xs font-bold uppercase tracking-wider">
-                  Play Waveform Ribbons
-                </CutButton>
+                <CutButton solid>Play Waveform Ribbons</CutButton>
               </Link>
             )}
             <Link href="/challenge">
-              <CutButton className="font-mono text-xs font-semibold uppercase tracking-wider">
-                Back to Challenges
-              </CutButton>
+              <CutButton>Back to Challenges</CutButton>
             </Link>
           </div>
         </div>
@@ -315,64 +303,53 @@ export function WaveformRibbonsGame({
 
   return (
     <PlayFrame
+      className={styles.page}
       title="Challenge 03 · Waveform Ribbons"
-      toolbar={
-        <div className="flex items-center gap-3 font-mono text-xs text-[#f2f2f0]/70">
-          <span>
-            Score: <strong className="text-[#f2f2f0]">{score}</strong>
-          </span>
-          <span>·</span>
-          <span>
-            Pattern {patternIdx + 1} of {PATTERNS.length}
-          </span>
-        </div>
-      }
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-6 py-4">
-        {/* Intro Banner */}
-        <div className="grid items-end gap-6 border-b border-[#f2f2f0]/10 pb-6 md:grid-cols-[1.4fr_0.6fr]">
+      <div className={styles.stack}>
+        <header className={styles.intro}>
           <div>
-            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.17em] text-[#aaaaaa]">
-              03 / Seasonal Pattern / Planetary Respiration
-            </div>
-            <h2 className="my-2 font-sans text-2xl font-semibold tracking-tight text-[#f2f2f0] sm:text-3xl">
-              {pattern.title}
-            </h2>
-            <p className="max-w-2xl font-sans text-sm leading-relaxed text-[#f2f2f0]/70">
+            <p className={styles.scorebar}>
+              <span>03 / Seasonal pattern / Planetary respiration</span>
+              <span>
+                Score <strong>{score}</strong>
+              </span>
+              <span>
+                Pattern {patternIdx + 1} of {PATTERNS.length}
+              </span>
+            </p>
+            <h2 className={styles.title}>{pattern.title}</h2>
+            <p className={styles.copy}>
               {pattern.subtitle}. Tap the curve or move the slider to find where the annual acoustic
               profile turns.
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-2 md:justify-end">
-            <span className="sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#141414] px-3 py-2 font-mono text-xs text-[#f2f2f0]/70">
-              <strong className="text-[#f2f2f0]">Input:</strong> Season + Point
+          <div className={styles.tags}>
+            <span className={styles.tag}>
+              <ChamferMark />
+              <strong>Input</strong> Season + Point
             </span>
-            <span className="sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#141414] px-3 py-2 font-mono text-xs text-[#f2f2f0]/70">
-              <strong className="text-[#f2f2f0]">Audio:</strong> Cycle Sweep
+            <span className={styles.tag}>
+              <ChamferMark />
+              <strong>Audio</strong> Cycle Sweep
             </span>
           </div>
-        </div>
+        </header>
 
-        {/* Main Stage Grid */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-          {/* Main Play Card */}
-          <div className="flex flex-col gap-5 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-5 sm:p-6">
+        <div className={styles.board}>
+          <section className={styles.panel} aria-labelledby="ribbon-question">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaaaaa]">
-                Explore the cycle
-              </span>
-              <h3 className="my-1 font-sans text-xl font-medium tracking-tight text-[#f2f2f0] sm:text-2xl">
+              <p className={styles.kicker}>Explore the cycle</p>
+              <h3 id="ribbon-question" className={styles.question}>
                 Where does the line turn?
               </h3>
-              <p className="font-sans text-xs text-[#f2f2f0]/70 sm:text-sm">
-                Choose a season context, then tap the chart to place the marker. The audio follows
-                the selected point.
+              <p className={styles.copy}>
+                Choose a season context, then tap the chart to place the marker. The audio follows the
+                selected point.
               </p>
             </div>
 
-            {/* Season Selectors */}
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Select season context">
+            <div className={styles.seasons} role="group" aria-label="Select season context">
               {SEASONS.map((s) => {
                 const isActive = season === s;
                 return (
@@ -380,90 +357,57 @@ export function WaveformRibbonsGame({
                     key={s}
                     type="button"
                     onClick={() => setSeason(s)}
-                    className={`min-h-[38px] sonify-chamfer-panel px-3.5 py-1.5 font-mono text-xs font-semibold uppercase tracking-wider transition-all ${
-                      isActive
-                        ? "bg-[#f2f2f0] text-[#141414]"
-                        : "border border-[#f2f2f0]/15 bg-[#141414] text-[#aaaaaa] hover:border-[#f2f2f0]/30 hover:text-[#f2f2f0]"
-                    }`}
+                    aria-pressed={isActive}
+                    className={`${styles.season} c3-season${isActive ? ` ${styles.on} bg-[#f2f2f0]` : ""}`}
                   >
+                    <ChamferMark />
                     {s}
                   </button>
                 );
               })}
             </div>
 
-            {/* Interactive SVG Plot */}
-            <div
-              className="relative h-[240px] w-full overflow-hidden sonify-chamfer-panel border border-[#f2f2f0]/10 sm:h-[270px]"
-              style={{
-                background: `
-                  linear-gradient(180deg, transparent 24%, rgba(242,242,240,0.04) 25%, transparent 26%, transparent 49%, rgba(242,242,240,0.04) 50%, transparent 51%, transparent 74%, rgba(242,242,240,0.04) 75%, transparent 76%),
-                  linear-gradient(90deg, #1b1b1b, #141414)
-                `,
-              }}
-            >
+            <div className={`${styles.plot} c3-plot`}>
+              <ChamferMark />
               <svg
                 ref={plotRef}
-                viewBox="0 0 600 260"
+                viewBox="-28 0 656 260"
                 preserveAspectRatio="none"
                 onClick={handlePlotClick}
-                className="size-full cursor-crosshair select-none"
                 role="img"
                 aria-label={`Interactive seasonal curve for ${pattern.title}. Marker currently at point ${pointIdx + 1} of 7.`}
               >
-                {/* Baseline reference */}
-                <line
-                  x1="0"
-                  y1="220"
-                  x2="600"
-                  y2="220"
-                  stroke="rgba(242,242,240,0.18)"
-                  strokeWidth="1"
-                />
-
-                {/* Subtle vertical marker lines */}
+                {[70, 120, 170, 220].map((y) => (
+                  <line key={y} className={styles.guide} x1="16" y1={y} x2="584" y2={y} />
+                ))}
                 {pattern.points.map(([x], idx) => (
                   <line
                     key={idx}
+                    className={idx === pointIdx ? styles.guideOn : styles.guide}
                     x1={x}
-                    y1="40"
+                    y1="28"
                     x2={x}
                     y2="220"
-                    stroke={idx === pointIdx ? "rgba(242,242,240,0.4)" : "rgba(242,242,240,0.08)"}
-                    strokeWidth={idx === pointIdx ? "2" : "1"}
-                    strokeDasharray={idx === pointIdx ? "4 4" : undefined}
                   />
                 ))}
-
-                {/* Seasonal Polyline Ribbon */}
-                <polyline
-                  points={polylinePoints}
-                  fill="none"
-                  stroke="#f2f2f0"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-
-                {/* Interactive marker dot */}
-                <circle
-                  cx={currentCoord[0]}
-                  cy={currentCoord[1]}
-                  r="9"
-                  fill="#f2f2f0"
-                  stroke="#141414"
-                  strokeWidth="2.5"
-                />
+                <path className={styles.fill} d={ribbonArea} />
+                <polyline className={styles.ribbon} points={polylinePoints} />
+                <circle cx={currentCoord[0]} cy={currentCoord[1]} r="8" fill="#f2f2f0" />
+                <circle cx={currentCoord[0]} cy={currentCoord[1]} r="3" fill="#141414" />
+                {pattern.points.map(([x], idx) => (
+                  <text key={`n-${idx}`} className={styles.tick} x={x} y="246" textAnchor="middle">
+                    {idx + 1}
+                  </text>
+                ))}
               </svg>
             </div>
 
-            {/* Accessible slider */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between font-mono text-xs text-[#f2f2f0]/70">
-                <label htmlFor={sliderId}>Point in cycle:</label>
-                <span className="font-semibold text-[#f2f2f0]">
+            <div className={styles.sliderRow}>
+              <div className={styles.sliderMeta}>
+                <label htmlFor={sliderId}>Point in cycle</label>
+                <b>
                   Point {pointIdx + 1} of {pattern.points.length} ({currentFreq} Hz)
-                </span>
+                </b>
               </div>
               <input
                 id={sliderId}
@@ -472,92 +416,59 @@ export function WaveformRibbonsGame({
                 max={pattern.points.length - 1}
                 value={pointIdx}
                 onChange={(e) => handleSelectPoint(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer accent-[#f2f2f0]"
+                className={styles.range}
                 aria-valuetext={`Point ${pointIdx + 1} of 7, ${directionText}, frequency ${currentFreq} hertz`}
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <CutButton
-                onClick={() => playToneSnippet(currentFreq)}
-                className="font-mono text-xs font-semibold uppercase tracking-wider"
-              >
-                ▶ Hear selected point
-              </CutButton>
-
+            <div className={styles.actions}>
+              <CutButton onClick={() => playToneSnippet(currentFreq)}>Hear selected point</CutButton>
               {!checked || !isCorrect ? (
-                <CutButton
-                  onClick={handleCheckAnswer}
-                  className="font-mono text-xs font-semibold uppercase tracking-wider"
-                >
-                  Check my answer
-                </CutButton>
+                <CutButton onClick={handleCheckAnswer}>Check my answer</CutButton>
               ) : (
-                <CutButton
-                  solid
-                  onClick={handleNextPattern}
-                  className="font-mono text-xs font-bold uppercase tracking-wider"
-                >
+                <CutButton solid onClick={handleNextPattern}>
                   {patternIdx < PATTERNS.length - 1 ? "Next Pattern →" : "See Result ↗"}
                 </CutButton>
               )}
             </div>
-          </div>
+          </section>
 
-          {/* Side Context & Feedback Card */}
-          <aside className="flex flex-col gap-4 sonify-chamfer-panel border border-[#f2f2f0]/10 bg-[#262626] p-5 text-[#f2f2f0]">
+          <aside className={`${styles.panel} c3-readout`} aria-label="Signal readout">
             <div>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#aaaaaa]">
-                Read the signal
-              </span>
-              <h3 className="my-1 font-sans text-xl font-medium tracking-tight text-[#f2f2f0]">
-                {season} Context
-              </h3>
-              <p className="font-sans text-xs leading-relaxed text-[#f2f2f0]/70">
-                {pattern.seasonClues[season] ?? pattern.subtitle}
-              </p>
+              <p className={styles.kicker}>Read the signal</p>
+              <h3 className={styles.question}>{season} Context</h3>
+              <p className={styles.copy}>{pattern.seasonClues[season] ?? pattern.subtitle}</p>
             </div>
-
-            <div className="flex flex-col border-t border-[#f2f2f0]/10 pt-3 text-xs">
-              <div className="flex items-center justify-between border-b border-[#f2f2f0]/10 py-2">
-                <span className="text-[#aaaaaa]">Point</span>
-                <b className="font-mono text-[#f2f2f0]">
+            <dl className={styles.stats}>
+              <div className={styles.stat}>
+                <dt>Point</dt>
+                <dd>
                   {pointIdx + 1} of {pattern.points.length}
-                </b>
+                </dd>
               </div>
-              <div className="flex items-center justify-between border-b border-[#f2f2f0]/10 py-2">
-                <span className="text-[#aaaaaa]">Direction</span>
-                <b className="font-mono text-[#f2f2f0]">{directionText}</b>
+              <div className={styles.stat}>
+                <dt>Direction</dt>
+                <dd>{directionText}</dd>
               </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-[#aaaaaa]">Acoustic Pitch</span>
-                <b className="font-mono text-[#f2f2f0]">{currentFreq} Hz</b>
+              <div className={styles.stat}>
+                <dt>Acoustic pitch</dt>
+                <dd>{currentFreq} Hz</dd>
               </div>
-            </div>
-
-            {/* Dynamic Status / Feedback Block */}
+            </dl>
             <div
               role="status"
               aria-live="polite"
-              className={`sonify-chamfer-panel p-3.5 text-xs leading-relaxed transition-all ${
-                checked
-                  ? isCorrect
-                    ? "border border-[#f2f2f0]/30 bg-[#141414] text-[#f2f2f0]"
-                    : "border border-[#f2f2f0]/20 bg-[#1a1a1a] text-[#f2f2f0]/80"
-                  : "border border-[#f2f2f0]/10 bg-[#141414] text-[#aaaaaa]"
-              }`}
+              data-tone={checked && isCorrect ? "yes" : "idle"}
+              className={styles.status}
             >
+              <ChamferMark />
               {checked
                 ? isCorrect
                   ? pattern.turnReason
                   : pattern.missHint
                 : "Find the point where the pattern changes direction, then test your answer."}
             </div>
-
-            <p className="mt-auto font-sans text-[11px] leading-relaxed text-[#f2f2f0]/50">
-              {pattern.scientificFact}
-            </p>
+            <p className={styles.fact}>{pattern.scientificFact}</p>
           </aside>
         </div>
       </div>
