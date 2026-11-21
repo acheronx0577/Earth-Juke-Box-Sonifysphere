@@ -149,9 +149,16 @@ async function publishSilence(token: number): Promise<void> {
   }
 }
 
+const RESULT_REPLAY_MS = 8000;
+
+function replayClock(ms: number): string {
+  const seconds = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 function queueSeries(clip: ResultClip, elapsed: number, onError?: () => void): number[] {
   const pitches = seriesPitches(clip);
-  const gap = PHRASE_MS / Math.max(1, pitches.length);
+  const gap = RESULT_REPLAY_MS / Math.max(1, pitches.length);
   const timers: number[] = [];
   pitches.forEach((frequency, index) => {
     const at = index * gap;
@@ -988,7 +995,7 @@ export function GuessGame({
       setPlayToken((value) => value + 1);
       const tick = (now: number) => {
         if (!replayOnRef.current) return;
-        const amount = Math.min(1, (elapsed + (now - started)) / PHRASE_MS);
+        const amount = Math.min(1, (elapsed + (now - started)) / RESULT_REPLAY_MS);
         replayAmountRef.current = amount;
         paintHeard(entryIndex, amount, "play");
         if (amount < 1) replayFrameRef.current = requestAnimationFrame(tick);
@@ -1010,7 +1017,7 @@ export function GuessGame({
         hushSeries();
         requestSilence();
         setAnnouncement(`Round ${entryIndex + 1} ended`);
-      }, Math.max(0, PHRASE_MS - elapsed));
+      }, Math.max(0, RESULT_REPLAY_MS - elapsed));
       setAnnouncement(`Playing round ${entryIndex + 1}`);
     };
     arm(() => {
@@ -1025,7 +1032,7 @@ export function GuessGame({
         return;
       }
       const restart = !same || replayAmountRef.current >= 0.98;
-      const elapsed = restart ? 0 : replayAmountRef.current * PHRASE_MS;
+      const elapsed = restart ? 0 : replayAmountRef.current * RESULT_REPLAY_MS;
       if (restart) {
         replayAmountRef.current = 0;
         paintHeard(entryIndex, 0, "off");
@@ -1178,7 +1185,7 @@ export function GuessGame({
       <main id="main-content" tabIndex={-1} className={styles.page} data-result="true" data-hide-target-cursor="true">
         <header className={styles.header}>
           <Link href="/challenge" className={styles.resultBack}>
-            ← Challenges
+            <span>← Challenges</span>
           </Link>
           <span className={styles.resultEyebrow}>Guess the signal</span>
         </header>
@@ -1225,7 +1232,7 @@ export function GuessGame({
       <header className={styles.header}>
         {showResult ? (
           <Link href="/challenge" className={styles.resultBack}>
-            ← Challenges
+            <span>← Challenges</span>
           </Link>
         ) : (
           <div className={styles.titleRow}>
@@ -1270,7 +1277,7 @@ export function GuessGame({
             best={best}
             playingIndex={replayIndex}
             playing={replayOn}
-            phraseLabel="0:01"
+            phraseLabel={replayClock(RESULT_REPLAY_MS)}
             listenHref={lastHeard ? listenHref(lastHeard) : "/listen"}
             shareNote={shareNote}
             soundOff={soundOff}

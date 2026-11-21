@@ -364,7 +364,7 @@ export function GuessResults({
             aria-label={`Signal ${index + 1} of ${history.length}, ${entry.correct ? "named" : "missed"}`}
             onClick={() => goTo(index)}
           >
-            <span />
+            <span>{entry.correct ? "✓" : "✗"}</span>
           </button>
         ))}
       </div>

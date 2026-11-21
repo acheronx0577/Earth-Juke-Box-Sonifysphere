@@ -93,6 +93,17 @@
   list-style: none;
 }
 
+@media (min-width: 768px) {
+  .summary {
+    margin-top: clamp(8px, 0.7vw, 12px);
+  }
+
+  .chips {
+    margin-top: clamp(14px, 1.15vw, 20px);
+    gap: clamp(8px, 0.65vw, 10px);
+  }
+}
+
 .chip {
   --cut: 8px;
   display: inline-flex;
@@ -313,6 +324,12 @@
   min-width: 0;
 }
 
+@media (min-width: 768px) {
+  .plot {
+    height: clamp(40px, 5.2svh, 84px);
+  }
+}
+
 .plot svg {
   display: block;
   width: 100%;
@@ -369,7 +386,7 @@
   margin: 0;
   color: var(--muted);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: clamp(13px, 0.85vw, 14px);
+  font-size: clamp(13px, 1vw, 15px);
   letter-spacing: 0.02em;
   line-height: 1.25;
   overflow: visible;
@@ -387,7 +404,7 @@
 .real {
   margin: 0;
   color: var(--cream);
-  font-size: clamp(13px, 0.9vw, 15px);
+  font-size: clamp(13px, 1vw, 15px);
   letter-spacing: 0.04em;
   line-height: 1.25;
   text-transform: uppercase;
@@ -460,13 +477,11 @@
   outline: none;
 }
 
-.ring:focus-visible,
-.ring:focus-within,
-.row .ring:focus-within {
+.ring:has(:focus-visible) {
   background: #f2f2f0;
 }
 
-.ring:focus-within .shell {
+.ring:has(:focus-visible) .shell {
   background: #f2f2f0;
 }
 
@@ -827,10 +842,12 @@
   .segment {
     --cut: 8px;
     display: flex;
-    min-height: 44px;
+    height: 30px;
+    min-height: 30px;
     padding: 1px;
     border: 0;
     background: var(--stroke);
+    color: var(--cream);
     cursor: pointer;
     clip-path: polygon(
       var(--cut) 0,
@@ -846,9 +863,15 @@
 
   .segment span {
     --cut: 8px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     background: #141414;
+    color: var(--cream);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1;
     clip-path: polygon(
       var(--cut) 0,
       calc(100% - var(--cut)) 0,
@@ -861,13 +884,17 @@
     );
   }
 
-  .segment[data-correct="true"],
-  .segment[data-correct="true"] span {
-    background: var(--cream);
+  .segment[data-correct="false"] span {
+    color: #c8c6c2;
   }
 
   .segment[aria-current="true"] {
     background: var(--cream);
+  }
+
+  .segment[aria-current="true"][data-correct="true"] span {
+    background: var(--cream);
+    color: var(--ink);
   }
 }
 

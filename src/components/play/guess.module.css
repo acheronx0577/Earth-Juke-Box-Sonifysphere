@@ -38,6 +38,12 @@
   }
 }
 
+@media (min-width: 768px) {
+  .page[data-result="true"] .header {
+    margin-bottom: clamp(6px, 0.55vw, 9px);
+  }
+}
+
 .game {
   display: flex;
   flex: 1 1 auto;
@@ -721,7 +727,6 @@ a.shell {
 .alert button:focus-visible,
 .links button:focus-visible,
 .links a:focus-visible,
-.resultBack:focus-visible,
 .playAgain:focus-visible,
 .shareButton:focus-visible,
 .cardReplay:focus-visible {
@@ -1145,6 +1150,10 @@ a.shell {
 }
 
 .resultBack {
+  --cut: 8px;
+  display: inline-flex;
+  padding: 3px;
+  background: transparent;
   color: #b4b2ae;
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: clamp(0.75rem, min(0.9vw, 2svh), 1rem);
@@ -1152,6 +1161,44 @@ a.shell {
   text-decoration: none;
   text-transform: uppercase;
   white-space: nowrap;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+
+.resultBack:focus {
+  outline: none;
+}
+
+.resultBack:focus-visible {
+  background: #f2f2f0;
+}
+
+.resultBack span {
+  --cut: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 0.2rem;
+  background: #141414;
+  color: inherit;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
 }
 
 .note {
