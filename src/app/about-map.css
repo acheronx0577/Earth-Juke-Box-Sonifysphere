@@ -800,12 +800,8 @@
   width: max-content;
   min-width: max-content;
   overflow: hidden;
-  /* Slim Geist display numeral, matched to the contact TEAM odometer. */
-  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 100;
   font-size: clamp(7rem, 2.8rem + 5.3vw + 4vh, 16rem);
   line-height: 1;
-  letter-spacing: normal;
   height: 1em;
 }
 
@@ -819,16 +815,15 @@
   width: max-content;
   height: 1em;
   margin-left: auto;
-  padding-inline: 0.03em;
+  padding-inline: 0.06em;
   box-sizing: content-box;
   position: relative;
   text-transform: uppercase;
-  font-family: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 100;
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
   font-size: 1em;
   line-height: 1;
-  letter-spacing: normal;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.06em;
   color: #f2f2f0;
   text-align: center;
 }
