@@ -90,9 +90,9 @@ test("sound off persists and blocks a new Hear", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Turn sound on" })).toBeVisible();
 
   await page.goto("/challenge/guess?seed=4");
-  await page.getByRole("button", { name: "Hear the signal" }).click();
+  await page.getByRole("button", { name: "Hear signal" }).click();
   await expect(liveMain(page).getByText("Sound is off.")).toBeVisible();
-  await expect(liveMain(page).getByText("Round 1 of 5").first()).toBeVisible();
+  await expect(liveMain(page).getByRole("group", { name: "Round 1 of 5" })).toBeVisible();
 });
 
 test("listen regions open a place and link to the challenge", async ({ page }) => {

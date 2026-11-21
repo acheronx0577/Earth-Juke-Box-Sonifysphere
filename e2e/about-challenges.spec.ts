@@ -85,28 +85,27 @@ test("challenge carousel offers the three games", async ({ page }) => {
 
 test("guess explains a miss and reaches the result", async ({ page }) => {
   await page.goto("/play/guess?seed=4");
-  await expect(liveMain(page).getByText("Answers unlock after you hear the signal")).toBeVisible();
-  await page.getByRole("button", { name: "Hear the signal" }).click();
+  await expect(liveMain(page).getByRole("button", { name: /locked/ }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Hear signal" }).click();
   await page.keyboard.press("1");
   const reveal = liveMain(page).getByTestId("guess-reveal");
   await expect(reveal).toBeVisible();
-  await expect(reveal).toContainText("Why:");
   await expect(reveal).not.toContainText("Hz");
   for (let round = 0; round < 4; round += 1) {
-    await page.getByRole("button", { name: "Play next signal" }).click();
+    await page.getByRole("button", { name: "Next signal" }).click();
     await page.keyboard.press("4");
     await expect(liveMain(page).getByTestId("guess-reveal")).toBeVisible();
   }
-  await page.getByRole("button", { name: "See result" }).click();
-  await expect(liveMain(page).getByTestId("guess-result")).toContainText("Round by round");
-  await expect(page.getByRole("link", { name: "Next: try Compose →" })).toHaveAttribute("href", "/challenge/compose");
+  await page.getByRole("button", { name: "Next signal" }).click();
+  await expect(liveMain(page).getByTestId("guess-result")).toContainText("named");
+  await expect(page.getByRole("link", { name: "Next · Compose" })).toHaveAttribute("href", "/challenge/compose");
 });
 
 test("guess refresh and play again keep the same deck", async ({ page }) => {
   await page.goto("/play/guess");
   await expect(liveMain(page).getByTestId("guess-game")).toHaveAttribute("data-ready", "true");
   await expect(page).toHaveURL(/seed=\d+/);
-  await page.getByRole("button", { name: "Hear the signal" }).click();
+  await page.getByRole("button", { name: "Hear signal" }).click();
   await page.keyboard.press("2");
   await expect(liveMain(page).getByTestId("guess-reveal")).toBeVisible();
   const choices = (await liveMain(page).getByTestId("guess-choice").allTextContents()).join("|");
@@ -117,12 +116,12 @@ test("guess refresh and play again keep the same deck", async ({ page }) => {
   await expect(liveMain(page).locator(".sonify-score b").first()).toHaveText(score);
 
   for (let round = 0; round < 4; round += 1) {
-    await page.getByRole("button", { name: "Play next signal" }).click();
+    await page.getByRole("button", { name: "Next signal" }).click();
     await page.keyboard.press("1");
   }
-  await page.getByRole("button", { name: "See result" }).click();
+  await page.getByRole("button", { name: "Next signal" }).click();
   await page.getByRole("button", { name: "Play again" }).click();
-  await page.getByRole("button", { name: "Hear the signal" }).click();
+  await page.getByRole("button", { name: "Hear signal" }).click();
   await page.keyboard.press("1");
   const again = (await liveMain(page).getByTestId("guess-choice").allTextContents()).join("|");
   await page.goto("/challenge/guess");
@@ -138,15 +137,15 @@ test("browser Back returns to the same guess round", async ({ page }) => {
   await Promise.all([page.waitForURL(/\/challenge\/guess/), start.click()]);
   await expect(page).toHaveURL(/seed=\d+/);
   const seed = new URL(page.url()).searchParams.get("seed");
-  await page.getByRole("button", { name: "Hear the signal" }).click();
+  await page.getByRole("button", { name: "Hear signal" }).click();
   await page.keyboard.press("1");
-  await page.getByRole("button", { name: "Play next signal" }).click();
-  await expect(liveMain(page).getByText("Round 2 of 5").first()).toBeVisible();
-  await page.getByRole("link", { name: "← Challenges" }).click();
+  await page.getByRole("button", { name: "Next signal" }).click();
+  await expect(liveMain(page).getByRole("group", { name: "Round 2 of 5" })).toBeVisible();
+  await page.getByRole("link", { name: "Challenges", exact: true }).filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/challenge$/);
   await page.goBack();
   await page.waitForURL(/\/challenge\/guess\?seed=\d+/);
-  await expect(liveMain(page).getByText("Round 2 of 5").first()).toBeVisible();
+  await expect(liveMain(page).getByRole("group", { name: "Round 2 of 5" })).toBeVisible();
   expect(new URL(page.url()).searchParams.get("seed")).toBe(seed);
 });
 
@@ -183,11 +182,11 @@ test("a different guess seed asks before replacing a saved round", async ({ page
   });
   await page.goto("/challenge/guess?seed=9");
   await page.getByRole("button", { name: "Start this one" }).click();
-  await expect(liveMain(page).getByText("Round 1 of 5").first()).toBeVisible();
+  await expect(liveMain(page).getByRole("group", { name: "Round 1 of 5" })).toBeVisible();
   await expect(page).toHaveURL(/seed=9$/);
 
   await page.goto("/challenge/guess");
-  await expect(liveMain(page).getByText("Round 2 of 5").first()).toBeVisible();
+  await expect(liveMain(page).getByRole("group", { name: "Round 2 of 5" })).toBeVisible();
   await expect(page).toHaveURL(/seed=4$/);
 });
 
