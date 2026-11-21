@@ -23,9 +23,6 @@
 }
 
 .page[data-result="true"] {
-  height: auto;
-  min-height: 100svh;
-  max-height: none;
   overflow: auto;
 }
 
@@ -638,12 +635,17 @@ a.shell {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(14px, 2.4svh, 28px);
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: clamp(12px, 2svh, 20px);
   min-height: 0;
-  padding-top: clamp(12px, 3svh, 36px);
+  padding-top: clamp(4px, 1svh, 12px);
   text-align: center;
+}
+
+.result .stage {
+  flex: 1 1 auto;
+  min-height: clamp(200px, 36svh, 560px);
 }
 
 .result h1 {
@@ -656,15 +658,6 @@ a.shell {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: clamp(12px, 0.8vw, 14px);
   letter-spacing: 0.12em;
-}
-
-.mini {
-  width: min(100%, 40rem);
-}
-
-.mini .lane {
-  height: clamp(72px, 16svh, 140px);
-  min-height: 0;
 }
 
 .resultActions {
