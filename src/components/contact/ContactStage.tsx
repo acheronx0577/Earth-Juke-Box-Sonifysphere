@@ -244,10 +244,18 @@ export function ContactStage() {
       const center = deck.draw(scrollForMember(motion.c), motion.speed, motion.gap, motion.focus);
       const active = ((Math.round(motion.c) % CONTACT_COUNT) + CONTACT_COUNT) % CONTACT_COUNT;
       setActive(active);
-      const digit = stripRef.current?.parentElement?.getBoundingClientRect().height || (phone ? 64 : 200);
       const roll = ((motion.c % CONTACT_COUNT) + CONTACT_COUNT) % CONTACT_COUNT + CONTACT_COUNT;
+      const resting = reduced || (!motion.drag && now - motion.last > 150);
+      const steps = resting ? Math.round(roll) : roll;
       stage.querySelectorAll<HTMLElement>("[data-strip]").forEach((strip) => {
-        strip.style.transform = `translateY(${(-roll * digit).toFixed(2)}px)`;
+        const digit = Math.round(strip.parentElement?.getBoundingClientRect().height ?? 0);
+        if (digit < 2) return;
+        for (const node of strip.children) {
+          const glyph = node as HTMLElement;
+          glyph.style.height = `${digit}px`;
+          glyph.style.lineHeight = `${digit}px`;
+        }
+        strip.style.transform = `translateY(${-steps * digit}px)`;
       });
       if (!phone && motion.listY != null && list) {
         const placed = layout(active);
