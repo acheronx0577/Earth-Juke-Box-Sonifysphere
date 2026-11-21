@@ -261,7 +261,7 @@ export function GuessResults({
           </h1>
           <p className={styles.score}>
             <b>{score}</b>
-            <span className={styles.scoreAside}><span>PTS</span><span>Best streak {best}</span></span>
+            <span className={styles.scoreAside}><span>PTS</span><span className={styles.streak}>Best streak {best}</span></span>
           </p>
         </div>
         <ol className={styles.chips} aria-label="Round results">

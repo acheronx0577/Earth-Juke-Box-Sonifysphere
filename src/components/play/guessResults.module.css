@@ -1438,7 +1438,7 @@
 
   .heroLine {
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: flex-end;
     justify-content: space-between;
     gap: clamp(8px, 2vw, 16px);
@@ -1479,6 +1479,10 @@
     align-items: flex-start;
     gap: 0.15rem;
     padding-bottom: 0.2rem;
+  }
+
+  .streak {
+    display: none;
   }
 
   .chips,
