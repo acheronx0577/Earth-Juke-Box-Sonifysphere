@@ -396,7 +396,6 @@ export function ContactStage() {
       data-layout={phone ? "phone" : "desk"}
       data-motion="live"
       data-active={String(CONTACT_REST_INDEX)}
-      data-hide-target-cursor="true"
       aria-label="Contact"
     >
       <div className={styles.deck}>
