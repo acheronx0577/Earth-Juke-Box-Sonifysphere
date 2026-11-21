@@ -86,6 +86,18 @@ function resample(values: readonly number[], count: number): number[] {
   return out;
 }
 
+const CURVE_SAMPLES = 160;
+
+function contourOf(values: readonly number[]): number[] {
+  const count = Math.min(CURVE_SAMPLES, Math.max(values.length, 2));
+  return resample(values, count);
+}
+
+/** Value samples shared by the result sparkline and the quiz graph. */
+export function seriesContour(clip: ResultClip): readonly number[] {
+  return contourOf(recordForClip(clip).values);
+}
+
 function cubicAt(p0: number, c1: number, c2: number, p1: number, t: number): number {
   const u = 1 - t;
   return u * u * u * p0 + 3 * u * u * t * c1 + 3 * u * t * t * c2 + t * t * t * p1;
@@ -177,8 +189,7 @@ export interface DrawnCurve {
 }
 
 function curvePath(record: SignalRecord): DrawnCurve {
-  const count = Math.min(160, Math.max(record.values.length, 2));
-  const samples = resample(record.values, count);
+  const samples = contourOf(record.values);
   const min = Math.min(...samples);
   const max = Math.max(...samples);
   const span = max - min || 1;

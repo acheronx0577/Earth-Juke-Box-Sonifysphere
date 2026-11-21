@@ -15,7 +15,6 @@ import {
   buildGuessRounds,
   mulberry32,
   scoreGain,
-  signalFrequency,
   type GuessRound,
 } from "@/lib/signalTheory";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
@@ -25,7 +24,7 @@ import { chamferClip } from "@/components/listen/chamfer";
 import { GuessResults } from "./GuessResults";
 import { GuessSharePopup, type GuessShareRequest } from "./GuessSharePopup";
 import { saveGuessResultImage } from "./guessResultImage";
-import { RESULT_CURVE_VIEW, curveY, drawResultCurves, recordForClip, seriesPitches, type DrawnCurve, type ResultClip } from "./guessResultCurve";
+import { RESULT_CURVE_VIEW, curveY, drawResultCurves, recordForClip, seriesContour, seriesPitches, type DrawnCurve, type ResultClip } from "./guessResultCurve";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -33,9 +32,11 @@ type Phase = "ready" | "listening" | "answered" | "result";
 const VW = 1440;
 const VH = 560;
 const BASE = 528;
-const XS = [220, 540, 860, 1180];
-const AXIS = ["1968", "1987", "2005", "2024"];
-const PLAY_YEARS = [1968, 1988, 2006, 2024];
+const PLOT_X0 = 100;
+const PLOT_X1 = VW - PLOT_X0;
+const PLOT_HIGH = 108;
+const PLOT_LOW = 430;
+const AXIS_TICKS = 4;
 const HOW =
   "Five rounds alternate a region and a record. Hear the four-note signal, then pick 1–4. R replays, Enter continues. A correct answer scores 100, plus 25 for each step of the streak.";
 const SOUND_FAILED = "The sound did not start. Press Hear signal again.";
@@ -156,14 +157,14 @@ function replayClock(ms: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-function queueSeries(clip: ResultClip, elapsed: number, onError?: () => void): number[] {
+function queueSeries(clip: ResultClip, elapsed: number, durationMs: number, onError?: () => void): number[] {
   const pitches = seriesPitches(clip);
-  const gap = RESULT_REPLAY_MS / Math.max(1, pitches.length);
+  const gap = durationMs / Math.max(1, pitches.length);
   const timers: number[] = [];
   pitches.forEach((frequency, index) => {
     const at = index * gap;
     if (elapsed > at + 24) return;
-    const hold = index === pitches.length - 1 ? RESULT_REPLAY_MS - at : gap;
+    const hold = index === pitches.length - 1 ? durationMs - at : gap;
     timers.push(
       window.setTimeout(() => {
         void playSeriesPitch(frequency, hold, onError);
@@ -306,37 +307,43 @@ function yAt(samples: readonly [number, number][], x: number): number {
   return y0 + ((x - x0) / (x1 - x0 || 1)) * (y1 - y0);
 }
 
-function phraseFreqs(regionId: string, season: GuessRound["season"], weather: GuessRound["weather"]): number[] {
-  const note = regionById(regionId).note;
-  return PLAY_YEARS.map((year) => signalFrequency(note, year, season, weather));
+function axisTicks(years: readonly number[], count = AXIS_TICKS): { index: number; label: string }[] {
+  if (years.length === 0) return [];
+  const slots = Math.min(count, years.length);
+  const used = new Set<number>();
+  const ticks: { index: number; label: string }[] = [];
+  for (let slot = 0; slot < slots; slot += 1) {
+    const index = slots === 1 ? 0 : Math.round((slot * (years.length - 1)) / (slots - 1));
+    if (used.has(index)) continue;
+    used.add(index);
+    ticks.push({ index, label: String(years[index] ?? "") });
+  }
+  return ticks;
 }
 
-function plotY(freq: number, min: number, max: number, high: number, low: number): number {
-  const span = Math.max(1, max - min);
-  const t = Math.min(1, Math.max(0, (freq - min) / span));
-  const eased = 1 - (1 - t) ** 1.9;
-  return low - eased * (low - high);
+function plotX(amount: number): number {
+  return PLOT_X0 + Math.min(1, Math.max(0, amount)) * (PLOT_X1 - PLOT_X0);
 }
 
-function extendLevel(points: readonly [number, number][], left: number, right: number, floor: number): [number, number][] {
-  const clampY = (y: number) => Math.min(y, floor);
-  const leftSlope = (points[1][1] - points[0][1]) / (points[1][0] - points[0][0]);
-  const last = points.length - 1;
-  const rightSlope = (points[last][1] - points[last - 1][1]) / (points[last][0] - points[last - 1][0]);
-  return [
-    [left, clampY(points[0][1] - leftSlope * (points[0][0] - left))],
-    ...points.map(([x, y]) => [x, clampY(y)] as [number, number]),
-    [right, clampY(points[last][1] + rightSlope * (right - points[last][0]))],
-  ];
-}
-
-function heroGeometry(freqs: readonly number[]) {
-  const min = Math.min(...freqs);
-  const max = Math.max(...freqs);
-  const floor = BASE - 12;
-  const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 108, 430)] as [number, number]);
-  const curve = monotoneCurve(extendLevel(mapped, 0, VW, floor));
-  return { mapped, line: curve.d, samples: curve.samples, fill: `${curve.d} L ${VW} ${BASE} L 0 ${BASE} Z` };
+/** Quiz graph for the same samples the result sparkline draws. */
+function heroGeometry(contour: readonly number[], years: readonly number[]) {
+  if (contour.length === 0) return { mapped: [], line: "", samples: [] as [number, number][], fill: "" };
+  const min = Math.min(...contour);
+  const max = Math.max(...contour);
+  const span = max - min || 1;
+  const plotW = PLOT_X1 - PLOT_X0;
+  const points = contour.map((value, index) => {
+    const t = contour.length <= 1 ? 0 : index / (contour.length - 1);
+    const y = PLOT_LOW - ((value - min) / span) * (PLOT_LOW - PLOT_HIGH);
+    return [PLOT_X0 + t * plotW, y] as [number, number];
+  });
+  const curve = monotoneCurve(points);
+  const mapped = axisTicks(years).map((tick) => {
+    const t = years.length <= 1 ? 0 : tick.index / (years.length - 1);
+    const x = PLOT_X0 + t * plotW;
+    return { x, y: yAt(curve.samples, x), label: tick.label };
+  });
+  return { mapped, line: curve.d, samples: curve.samples, fill: `${curve.d} L ${PLOT_X1} ${BASE} L ${PLOT_X0} ${BASE} Z` };
 }
 
 
@@ -597,7 +604,7 @@ export function GuessGame({
       return;
     }
     const clamped = Math.min(1, Math.max(0, amount));
-    const x = clamped * VW;
+    const x = plotX(clamped);
     const y = yAt(samplesRef.current, x);
     stage.dataset.scrub = mode === "end" ? "end" : "on";
     head.dataset.on = mode === "end" ? "end" : mode === "pause" ? "pause" : "play";
@@ -658,7 +665,7 @@ export function GuessGame({
       stopPhrase();
       pause();
       setBlocked(false);
-      const timers = queueSeries(next, 0, () => setBlocked(true));
+      const timers = queueSeries(next, 0, PHRASE_MS, () => setBlocked(true));
       stopRef.current = () => {
         timers.forEach((id) => window.clearTimeout(id));
         hushSeries();
@@ -985,7 +992,7 @@ export function GuessGame({
     const begin = (elapsed: number) => {
       stopPhrase();
       pause();
-      const timers = queueSeries(entry, elapsed, () => setBlocked(true));
+      const timers = queueSeries(entry, elapsed, RESULT_REPLAY_MS, () => setBlocked(true));
       const started = performance.now();
       replayOnRef.current = true;
       replayIndexRef.current = entryIndex;
@@ -1120,7 +1127,9 @@ export function GuessGame({
     score,
     bestStreak: best,
   };
-  const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
+  const seriesRecord = round ? recordForClip(round) : null;
+  const geometry = round && seriesRecord ? heroGeometry(seriesContour(round), seriesRecord.years) : null;
+  const axisLabels = geometry?.mapped.map((point) => point.label) ?? [];
   const drawnCurves = phase === "result" ? drawResultCurves(history) : [];
   drawnRef.current = drawnCurves;
   samplesRef.current = geometry?.samples ?? [];
@@ -1326,7 +1335,7 @@ export function GuessGame({
                   {`CLUE ${clueValue(round).toUpperCase()}`}
                 </span>
               </span>
-              <svg className={styles.curve} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" role="img" aria-label={playingNow ? "Playing the signal" : phase === "answered" ? `${verdict} ${oneLineWhy(why)}` : `Signal across ${AXIS.join(", ")}. ${question}`}>
+              <svg className={styles.curve} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" role="img" aria-label={playingNow ? "Playing the signal" : phase === "answered" ? `${verdict} ${oneLineWhy(why)}` : `Signal across ${axisLabels.join(", ")}. ${question}`}>
                 <defs>
                   <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.22" />
@@ -1345,11 +1354,11 @@ export function GuessGame({
                 </defs>
                 <g clipPath={`url(#${plotClipId})`}>
                   <path d={geometry.fill} fill={`url(#${fillId})`} />
-                  <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
-                  <path className={styles.line} d={geometry.line} />
+                  <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} strokeLinejoin="round" />
+                  <path className={styles.line} d={geometry.line} data-testid="guess-curve" strokeLinejoin="round" />
                   <g clipPath={`url(#${playClipId})`}>
-                    <path className={styles.playedGlow} d={geometry.line} filter={`url(#${glowId})`} />
-                    <path className={styles.played} d={geometry.line} />
+                    <path className={styles.playedGlow} d={geometry.line} filter={`url(#${glowId})`} strokeLinejoin="round" />
+                    <path className={styles.played} d={geometry.line} strokeLinejoin="round" />
                   </g>
                 </g>
               </svg>
@@ -1358,18 +1367,18 @@ export function GuessGame({
                 <span ref={playheadDotRef} className={styles.playheadDot} data-testid="guess-playhead-dot" />
               </div>
               <div className={styles.years} aria-hidden="true">
-                {AXIS.map((year, yearIndex) => (
-                  <span key={year} className={styles.year} style={{ left: `${(XS[yearIndex] / VW) * 100}%` }}>
-                    {year}
+                {geometry.mapped.map((point, yearIndex) => (
+                  <span key={`${point.label}-${yearIndex}`} className={styles.year} style={{ left: `${(point.x / VW) * 100}%` }}>
+                    {point.label}
                   </span>
                 ))}
               </div>
               {geometry.mapped.map((point, pointIndex) => {
                 const last = pointIndex === geometry.mapped.length - 1;
-                const top = `${(point[1] / VH) * 100}%`;
+                const top = `${(point.y / VH) * 100}%`;
                 return (
-                  <div key={AXIS[pointIndex]} className={styles.marker} style={{ left: `${(point[0] / VW) * 100}%` }} aria-hidden="true">
-                    <span className={styles.stem} style={{ top, height: `${((BASE - point[1]) / VH) * 100}%` }} />
+                  <div key={`${point.label}-${pointIndex}`} className={styles.marker} style={{ left: `${(point.x / VW) * 100}%` }} aria-hidden="true">
+                    <span className={styles.stem} style={{ top, height: `${((BASE - point.y) / VH) * 100}%` }} />
                     {last && phase === "answered" ? <span className={styles.ring} style={{ top }} /> : <span className={styles.dot} style={{ top }} />}
                     {last && phase === "answered" ? (
                       <span className={styles.tip} style={{ top, clipPath: clip(6) }}>
