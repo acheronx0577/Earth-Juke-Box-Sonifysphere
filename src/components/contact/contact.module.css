@@ -29,15 +29,15 @@
   z-index: 1;
   pointer-events: none;
   mask-image: linear-gradient(to bottom, transparent 0, transparent clamp(56px, 8vh, 80px), #000 clamp(96px, 13vh, 128px)),
-    linear-gradient(to right, transparent 0, #000 4%, #000 52%, transparent 66%);
+    linear-gradient(to right, transparent 0, #000 4%, #000 72%, transparent 86%);
   mask-composite: intersect;
 }
 
 .stage[data-layout="phone"] .deck {
   position: sticky;
   top: 0;
-  height: 56vh;
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 140px, #000 172px, #000 78%, transparent 100%);
+  height: 62vh;
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 52px, #000 78px, #000 90%, transparent 100%);
 }
 
 .deck canvas {

@@ -187,7 +187,8 @@ export function ContactDeck({ onReady }: ContactDeckProps) {
           maxY = Math.max(maxY, geometry.xy[k + 1]);
         }
         const mesh = meshes[i];
-        if (maxX < 0 || minX > view.width || maxY < 0 || minY > view.height) {
+        const sliced = minX < 6 || maxX > view.width - 6;
+        if (sliced || maxX < 0 || minX > view.width || maxY < 0 || minY > view.height) {
           mesh.visible = false;
           continue;
         }
@@ -204,7 +205,7 @@ export function ContactDeck({ onReady }: ContactDeckProps) {
         const member = ((i % CONTACT_COUNT) + CONTACT_COUNT) % CONTACT_COUNT;
         const material = mesh.material as THREE.MeshBasicMaterial;
         material.map = textures[member];
-        const shade = 1 - 0.62 * smoothstep(0, 0.8, geometry.distance);
+        const shade = 1 - 0.34 * smoothstep(0.12, 0.9, geometry.distance) * Math.max(0, Math.min(1, focus));
         material.color.setScalar(shade);
         mesh.visible = true;
         placed.push({ mesh, depth: geometry.depth, distance: geometry.distance, member, xy: geometry.xy });

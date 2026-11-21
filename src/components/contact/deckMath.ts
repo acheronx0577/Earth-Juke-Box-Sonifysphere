@@ -6,9 +6,12 @@
  */
 
 export const PAGE_COUNT = 30;
-export const DESK_REST_GAP = 7;
-/** Phone pages are smaller in world units, so the same gap of 7 throws the neighbours off screen. */
-export const PHONE_REST_GAP = 3.2;
+/** World-unit break on either side of the focused page. The rest of the stack stays one unit apart. */
+export const DESK_REST_GAP = 7.2;
+/** Phone pages are smaller in world units, so the same gap throws the neighbours off the deck band. */
+export const PHONE_REST_GAP = 7.5;
+/** Focused page is this much larger than a stack page, and it eases in with scroll. */
+export const HERO_BOOST = 0.42;
 export const GRID_X = 14;
 export const GRID_Y = 12;
 export const CHAMFER_FRACTION = 15 / 240;
@@ -115,7 +118,7 @@ function scaleFor(view: DeckView): Scale {
     height: 3.658,
     pivotX: 4.3,
     curve: 1.15,
-    scale: 0.72,
+    scale: 0.5,
     originX: view.originX ?? 0,
     originY: view.originY ?? 0,
   };
@@ -148,7 +151,8 @@ export function pageGeometry(
   const base = -(index - (PAGE_COUNT - 1) * 0.5);
   const wrapped = ((base - scroll + MAX_Z) % (2 * MAX_Z) + 2 * MAX_Z) % (2 * MAX_Z) - MAX_Z;
   const distance = Math.abs(wrapped);
-  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.1, 0.9, distance) * gap;
+  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap;
+  const hero = 1 + HERO_BOOST * (1 - smooth(0.02, 0.88, distance)) * focusAmount;
   const facing = smooth(0, 1, 1 - smooth(0, 0.8, distance)) * focusAmount;
   const focus = multiply(
     multiply(rotateZ(FOCUS[2] * facing), rotateY(-FOCUS[1] * facing)),
@@ -159,17 +163,26 @@ export function pageGeometry(
   let cursor = 0;
   let depthSum = 0;
   const position: Vec3 = [scale.pivotX, 2.1, 5.1];
+  // Pull the focused page toward the eye. The projection is orthographic, so this
+  // changes depth (it paints in front) and not the page's place on screen.
+  const lift = (hero - 1) * 28;
   for (let gy = 0; gy <= GRID_Y; gy += 1) {
-    const localY = scale.height / 2 - (scale.height * gy) / GRID_Y;
-    const along = opened - Math.sin(((localY + scale.height / 2) / scale.height) * 2) * 0.4 * bend;
+    const unitY = scale.height / 2 - (scale.height * gy) / GRID_Y;
+    const localY = unitY * hero;
+    const along = opened - Math.sin(((unitY + scale.height / 2) / scale.height) * 2) * 0.4 * bend;
     for (let gx = 0; gx <= GRID_X; gx += 1) {
       const localX = scale.depth / 2 - (scale.depth * gx) / GRID_X;
-      let vector: Vec3 = [along - scale.depth / 2, localY, -(localX + scale.depth / 2) - 1];
+      const centerZ = -scale.depth / 2 - 1;
+      let vector: Vec3 = [along - scale.depth / 2, localY, centerZ - localX * hero];
       vector = apply(focus, vector);
       vector = [vector[0] + scale.depth / 2, vector[1], vector[2]];
       const world = apply(MESH, vector);
       const projected = project(
-        [world[0] + position[0], world[1] + position[1], world[2] + position[2]],
+        [
+          world[0] + position[0] - FORWARD[0] * lift,
+          world[1] + position[1] - FORWARD[1] * lift,
+          world[2] + position[2] - FORWARD[2] * lift,
+        ],
         view,
         scale,
       );
@@ -179,17 +192,17 @@ export function pageGeometry(
       depthSum += projected[2];
     }
   }
-  return { xy, depth: depthSum / ((GRID_X + 1) * (GRID_Y + 1)), distance, flat: wrapped };
+  const samples = (GRID_X + 1) * (GRID_Y + 1);
+  const focusWeight = HERO_BOOST === 0 ? 0 : (hero - 1) / HERO_BOOST;
+  return { xy, depth: depthSum / samples - focusWeight * 30, distance, flat: wrapped };
 }
 
 export function scrollForMember(member: number): number {
   return (PAGE_COUNT - 1) * 0.5 - member;
 }
 
-/** Shift the phone stack so the active card sits high and its neighbours peek in. */
-export function phoneView(width: number, height: number): DeckView {
-  const bare: DeckView = { width, height, phone: true, originX: 0, originY: 0 };
-  const page = pageGeometry(2, scrollForMember(2), 0, 7, 1, bare);
+function boundsOf(index: number, view: DeckView): { minX: number; maxX: number; minY: number; maxY: number } {
+  const page = pageGeometry(index, scrollForMember(2), 0, PHONE_REST_GAP, 1, view);
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -200,15 +213,27 @@ export function phoneView(width: number, height: number): DeckView {
     minY = Math.min(minY, page.xy[i + 1]);
     maxY = Math.max(maxY, page.xy[i + 1]);
   }
-  const centerX = (minX + maxX) / 2;
-  const centerY = (minY + maxY) / 2;
-  return {
-    width,
-    height,
-    phone: true,
-    originX: width * 0.5 - centerX,
-    originY: height * 0.46 - centerY,
-  };
+  return { minX, maxX, minY, maxY };
+}
+
+/** Shift the phone stack so the active card sits in the deck band and its neighbours peek in. */
+export function phoneView(width: number, height: number): DeckView {
+  const bare: DeckView = { width, height, phone: true, originX: 0, originY: 0 };
+  const page = boundsOf(2, bare);
+  const centerX = (page.minX + page.maxX) / 2;
+  const centerY = (page.minY + page.maxY) / 2;
+  let originX = width * 0.5 - centerX;
+  const originY = height * 0.5 - centerY;
+  const centered: DeckView = { width, height, phone: true, originX, originY };
+  // The inquiry line sits on the left. Slide the stack right until the card above clears it.
+  const previous = boundsOf(1, centered);
+  const clearance = 262 - previous.minX;
+  if (clearance > 0) originX += clearance;
+  const shifted: DeckView = { width, height, phone: true, originX, originY };
+  const above = boundsOf(0, shifted);
+  const overflow = above.maxX - (width - 12);
+  if (overflow > 0) originX -= overflow;
+  return { width, height, phone: true, originX, originY };
 }
 
 export function viewFor(width: number, height: number, phone: boolean): DeckView {
