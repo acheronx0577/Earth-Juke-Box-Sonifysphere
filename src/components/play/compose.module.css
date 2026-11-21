@@ -203,20 +203,30 @@
   width: calc(100% - 2 * clamp(10px, 1.4vw, 22px));
   height: calc(100% - var(--slot-meta));
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
+/* The plot is a viewBox stretched with preserveAspectRatio="none".
+   A user-space stroke and blur scale with that stretch, so the painted
+   ribbon sits above the bar tops and its lower edge falls through them.
+   These widths are screen pixels and stay on the measured centerline. */
 .glow {
   fill: none;
   stroke: rgba(242, 242, 240, 0.9);
-  stroke-width: 8px;
-  opacity: 0.55;
+  stroke-width: 1.5px;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 2px rgba(242, 242, 240, 0.95)) drop-shadow(0 0 6px rgba(242, 242, 240, 0.45));
 }
 
 .line {
   fill: none;
   stroke: #f2f2f0;
-  stroke-width: 2px;
+  stroke-width: 1.5px;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .bars {

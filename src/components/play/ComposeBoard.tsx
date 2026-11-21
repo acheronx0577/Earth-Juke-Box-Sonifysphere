@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { LAYERS, MAP_REGIONS, regionById, type LayerId } from "@/data/exploreMap";
 import { playMix, renderMixWav } from "@/lib/signalPlayback";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/signalTheory";
 import { IconDownload, IconPlay, IconStop } from "@/components/shared/Icons";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
+import { curveThroughSamples, sequencePath } from "@/components/play/composeCurve";
 import styles from "./compose.module.css";
 
 const LAYER_NOTE: Record<LayerId, number> = {
@@ -77,85 +78,6 @@ function clip(cut: number) {
   return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
 }
 
-function monotone(points: readonly [number, number][]): string {
-  const n = points.length;
-  if (n < 2) return "";
-  const dx: number[] = [];
-  const slope: number[] = [];
-  const m = new Array<number>(n).fill(0);
-  for (let i = 0; i < n - 1; i += 1) {
-    dx[i] = points[i + 1][0] - points[i][0] || 1;
-    slope[i] = (points[i + 1][1] - points[i][1]) / dx[i];
-  }
-  m[0] = slope[0];
-  m[n - 1] = slope[n - 2];
-  for (let i = 1; i < n - 1; i += 1) m[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
-  for (let i = 0; i < n - 1; i += 1) {
-    if (Math.abs(slope[i]) < 1e-6) {
-      m[i] = 0;
-      m[i + 1] = 0;
-    } else {
-      const a = m[i] / slope[i];
-      const b = m[i + 1] / slope[i];
-      const h = a * a + b * b;
-      if (h > 9) {
-        const t = 3 / Math.sqrt(h);
-        m[i] = t * a * slope[i];
-        m[i + 1] = t * b * slope[i];
-      }
-    }
-  }
-  let d = `M ${points[0][0]} ${points[0][1]}`;
-  for (let i = 0; i < n - 1; i += 1) {
-    const c1x = points[i][0] + dx[i] / 3;
-    const c1y = points[i][1] + (m[i] * dx[i]) / 3;
-    const c2x = points[i + 1][0] - dx[i] / 3;
-    const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
-    d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
-  }
-  return d;
-}
-
-function sequencePath(heights: readonly number[]): string {
-  const width = 800;
-  const plot = 200;
-  const yFor = (value: number) => plot * (1 - value / 100);
-  const known = heights.map((value) => (value > 0 ? yFor(value) : null));
-  const ys = known.map((y, index) => {
-    if (y !== null) return y;
-    let previous = -1;
-    let next = -1;
-    for (let i = index - 1; i >= 0; i -= 1) {
-      if (known[i] !== null) {
-        previous = i;
-        break;
-      }
-    }
-    for (let i = index + 1; i < known.length; i += 1) {
-      if (known[i] !== null) {
-        next = i;
-        break;
-      }
-    }
-    if (previous >= 0 && next >= 0) {
-      const span = next - previous;
-      const t = (index - previous) / span;
-      return known[previous]! + (known[next]! - known[previous]!) * t;
-    }
-    if (previous >= 0) return known[previous]!;
-    if (next >= 0) return known[next]!;
-    return plot - 8;
-  });
-  const points = ys.map((y, index) => [((index + 0.5) / ys.length) * width, y] as [number, number]);
-  const first = points[0] ?? [0, plot - 1];
-  const last = points[points.length - 1] ?? first;
-  return monotone([
-    [0, first[1]],
-    ...points,
-    [width, last[1]],
-  ]);
-}
-
 function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number, count: number, focusAt: (next: number) => void) {
   let next = index;
   if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % count;
@@ -206,7 +128,9 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const glowId = `${useId().replace(/:/g, "")}glow`;
+  const curveRef = useRef<SVGSVGElement | null>(null);
+  const barRefs = useRef<Array<HTMLElement | null>>([]);
+  const [curveFrame, setCurveFrame] = useState<{ w: number; h: number; d: string } | null>(null);
 
   const stop = () => {
     stopRef.current?.();
@@ -435,7 +359,37 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const targetIndex = armed && selected === null ? firstEmpty : selected !== null && !slots[selected] ? selected : firstEmpty;
   const showReady = Boolean(plan) && audio === "idle" && !editing;
   const heights = slots.map((slot) => barHeight(slotNote(slot)));
-  const curve = sequencePath(heights);
+  const curveKey = `${slots.map((slot) => (slot ? `${slot.source}.${slot.id}` : "-")).join(",")}:${showReady ? "ready" : "edit"}`;
+  useLayoutEffect(() => {
+    const svg = curveRef.current;
+    if (!svg) return;
+    const measure = () => {
+      const rect = svg.getBoundingClientRect();
+      const w = Math.round(rect.width * 100) / 100;
+      const h = Math.round(rect.height * 100) / 100;
+      if (!(w > 1) || !(h > 1)) return;
+      const samples = Array.from({ length: MIX_SLOT_COUNT }, (_, index) => {
+        const button = slotRefs.current[index];
+        if (!button) return null;
+        const box = button.getBoundingClientRect();
+        const bar = barRefs.current[index];
+        const barBox = bar?.getBoundingClientRect();
+        const anchor = barBox && barBox.width > 0 ? barBox : box;
+        const y = barBox && barBox.height > 0 ? Math.round((barBox.top - rect.top) * 100) / 100 : null;
+        const x = Math.round((anchor.left + anchor.width / 2 - rect.left) * 100) / 100;
+        return { x, y };
+      });
+      if (samples.some((sample) => sample === null)) return;
+      const d = curveThroughSamples(samples as { x: number; y: number | null }[], w);
+      setCurveFrame((prev) => (prev && prev.w === w && prev.h === h && prev.d === d ? prev : { w, h, d }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [curveKey]);
+  const curve = curveFrame?.d || sequencePath(heights);
+  const curveView = curveFrame ? `0 0 ${curveFrame.w} ${curveFrame.h}` : "0 0 800 200";
   const prompt =
     audio === "playing"
       ? "Playing the mix."
@@ -485,14 +439,13 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const sequencer = (showPlace: boolean) => (
     <div className={styles.stage}>
       <div className={styles.slots} data-testid="compose-slots">
-        <svg className={styles.curve} viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <filter id={glowId} x="-4%" y="-20%" width="108%" height="140%">
-              <feGaussianBlur stdDeviation="2.4" />
-            </filter>
-          </defs>
-          <path className={styles.glow} d={curve} filter={`url(#${glowId})`} />
-          <path className={styles.line} d={curve} />
+        <svg ref={curveRef} className={styles.curve} viewBox={curveView} preserveAspectRatio="none" aria-hidden="true">
+          {curve ? (
+            <>
+              <path className={styles.glow} d={curve} />
+              <path className={styles.line} d={curve} data-testid="compose-curve" />
+            </>
+          ) : null}
         </svg>
         {slots.map((slot, index) => {
           const full = slot ? slotLabel(slot) : "empty";
@@ -539,7 +492,16 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               <span className={`${styles.col} sonify-slot${playing ? " is-playing" : ""}`}>
                 {slot ? (
                   <>
-                    <span className={styles.bar} data-on="true" data-play={playing ? "true" : "false"} style={{ height: `${heights[index]}%` }} />
+                    <span
+                      ref={(node) => {
+                        barRefs.current[index] = node;
+                      }}
+                      className={styles.bar}
+                      data-testid="compose-bar"
+                      data-on="true"
+                      data-play={playing ? "true" : "false"}
+                      style={{ height: `${heights[index]}%` }}
+                    />
                     <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} />
                   </>
                 ) : null}
