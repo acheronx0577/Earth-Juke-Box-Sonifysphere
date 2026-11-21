@@ -5,6 +5,9 @@
   --c56: rgba(255, 243, 234, 0.56);
   --c72: rgba(255, 243, 234, 0.72);
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --edge: clamp(20px, 1.8vw, 28px);
+  --rail: clamp(72px, 7vw, 112px);
+  --rhythm: 14px;
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -38,7 +41,7 @@
   top: auto;
   height: clamp(320px, 62vh, 680px);
   height: clamp(320px, 62svh, 680px);
-  margin-top: clamp(12px, 2.2svh, 22px);
+  margin-top: var(--section);
   overflow: hidden;
   mask-image: none;
 }
@@ -121,8 +124,8 @@
 
 .word {
   position: absolute;
-  top: clamp(16px, 2.6vh, 24px);
-  left: clamp(12px, 1.7vw, 24px);
+  top: calc(var(--edge) + 44px);
+  left: var(--edge);
   margin: 0;
   font-size: clamp(14px, 1.25vw, 18px);
   font-weight: 500;
@@ -134,16 +137,16 @@
 
 .sound {
   position: absolute;
-  top: clamp(10px, 1.6vh, 14px);
-  left: clamp(16px, 6.7vw, 96px);
+  top: var(--edge);
+  left: var(--rail);
   display: flex;
   align-items: center;
   gap: 8px;
-  height: clamp(28px, 3.4vh, 30px);
+  height: 32px;
   padding: 0 14px 0 12px;
   color: var(--cream);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 12px;
@@ -173,17 +176,18 @@
 
 .inquiry {
   position: absolute;
-  top: clamp(12px, 2.2vh, 20px);
-  right: clamp(12px, 1.7vw, 24px);
+  top: var(--edge);
+  right: var(--rail);
   display: flex;
   align-items: center;
+  height: 32px;
   gap: clamp(8px, 0.8vw, 12px);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 .kicker {
   color: var(--c56);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.12em;
   line-height: 12px;
@@ -207,16 +211,26 @@
   background: var(--c56);
 }
 
-.teamLabel {
+.leftRail {
   position: absolute;
-  top: clamp(88px, 14.4vh, 130px);
-  left: clamp(16px, 7.6vw, 110px);
+  z-index: 3;
+  top: 50%;
+  left: var(--rail);
+  display: flex;
+  flex-direction: column;
+  gap: var(--rhythm);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.teamLabel {
+  position: static;
+  margin: 0;
+  line-height: 16px;
 }
 
 .indexBlock {
-  position: absolute;
-  top: clamp(104px, 16.7vh, 150px);
-  left: clamp(16px, 7.4vw, 106px);
+  position: static;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -225,7 +239,7 @@
 .odo {
   display: flex;
   font-weight: 100;
-  font-size: clamp(64px, 22.2vh, 200px);
+  font-size: 200px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -257,17 +271,16 @@
 }
 
 .meta {
-  position: absolute;
-  top: clamp(180px, 45.4vh, 420px);
-  left: clamp(16px, 7.6vw, 110px);
+  position: static;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.6vh, 14px);
+  gap: var(--rhythm);
 }
 
 .metaRow {
   display: flex;
   align-items: center;
+  min-height: 22px;
 }
 
 .metaRow span:first-child {
@@ -276,7 +289,7 @@
 
 .metaValue {
   font-size: clamp(12px, 0.9vw, 13px);
-  line-height: 18px;
+  line-height: 22px;
 }
 
 .dim {
@@ -286,35 +299,27 @@
 .scrollHint,
 .voices {
   position: absolute;
-  bottom: clamp(12px, 4.2vh, 38px);
+  bottom: var(--edge);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   line-height: 14px;
 }
 
 .scrollHint {
-  left: clamp(12px, 1.7vw, 24px);
+  left: var(--edge);
   color: var(--c56);
-  font-size: 10px;
-  letter-spacing: 0.12em;
 }
 
 .voices {
-  right: clamp(12px, 1.7vw, 24px);
-}
-
-.pageWave {
-  position: absolute;
-  top: 49%;
-  right: clamp(12px, 1.7vw, 24px);
+  right: var(--edge);
 }
 
 .listWrap {
   position: absolute;
   top: 0;
-  right: clamp(12px, 1.7vw, 24px);
+  right: var(--rail);
   z-index: 3;
   width: clamp(220px, 25vw, 360px);
   height: 100%;
@@ -531,13 +536,17 @@
   display: block;
 }
 
+.stage[data-layout="phone"] {
+  --section: clamp(16px, 2.2svh, 24px);
+}
+
 .stage[data-layout="phone"] .nav {
   position: relative;
   top: auto;
   left: auto;
   width: auto;
   height: 40px;
-  margin: 12px 16px 0;
+  margin: var(--section) 16px 0;
   transform: none;
 }
 
@@ -546,7 +555,8 @@
   top: auto;
   left: auto;
   width: max-content;
-  margin: 12px 16px 0;
+  height: 32px;
+  margin: var(--section) 16px 0;
 }
 
 .stage[data-layout="phone"] .inquiry {
@@ -554,8 +564,9 @@
   top: auto;
   right: auto;
   left: auto;
+  height: auto;
   max-width: calc(100% - 32px);
-  margin: 12px 16px 0;
+  margin: var(--section) 16px 0;
 }
 
 .stage[data-layout="phone"] .placeholder {
@@ -568,7 +579,7 @@
   right: auto;
   width: auto;
   height: auto;
-  margin: 8px clamp(16px, 5vw, 24px) 32px;
+  margin: var(--section) clamp(16px, 5vw, 24px) 32px;
   mask-image: none;
   background: var(--ink);
 }
@@ -624,9 +635,9 @@
   right: auto;
   opacity: 0;
   color: rgba(255, 243, 234, 0.56);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  line-height: 14px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  line-height: 16px;
   transition: opacity 0.32s var(--ease);
 }
 
@@ -648,11 +659,21 @@
 }
 
 .stage[data-layout="desk"] .row[data-active="true"] .name {
-  top: 20px;
+  top: 18px;
   color: var(--cream);
   font-size: clamp(22px, 1.7vw, 28px);
   font-weight: 600;
-  line-height: 32px;
+  line-height: 30px;
+}
+
+.stage[data-layout="desk"] .rowHit:hover .name {
+  color: rgba(255, 243, 234, 0.88);
+}
+
+.stage[data-layout="desk"] .row[data-active="true"] .rowHit:hover .name,
+.stage[data-layout="desk"] .mail:hover,
+.stage[data-layout="desk"] .icon:hover {
+  color: var(--cream);
 }
 
 .stage[data-layout="desk"] .emailGhost,
@@ -661,7 +682,7 @@
 }
 
 .stage[data-layout="desk"] .emailLive {
-  top: 58px;
+  top: 54px;
   left: clamp(32px, 2.6vw, 40px);
   right: 0;
   display: flex;

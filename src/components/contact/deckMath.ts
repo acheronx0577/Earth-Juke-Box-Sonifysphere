@@ -247,11 +247,11 @@ function heroHitsChrome(
   height: number,
 ): boolean {
   const pad = 12;
-  const metaLeft = clampNum(width * 0.076, 16, 110);
-  const metaRight = metaLeft + clampNum(width * 0.056, 64, 80) + 156;
-  const metaTop = clampNum(height * 0.454, 180, 420);
-  const metaBottom = metaTop + 18 * 3 + clampNum(height * 0.016, 8, 14) * 2;
-  const listLeft = width - clampNum(width * 0.017, 12, 24) - clampNum(width * 0.25, 220, 360);
+  const rail = clampNum(width * 0.07, 72, 112);
+  const metaRight = rail + clampNum(width * 0.056, 64, 80) + 156;
+  const metaTop = height / 2 - 169;
+  const metaBottom = metaTop + 338;
+  const listLeft = width - rail - clampNum(width * 0.25, 220, 360);
   const crossesMeta = bounds.minY < metaBottom && bounds.maxY > metaTop && bounds.minX < metaRight + pad;
   return crossesMeta || bounds.maxX > listLeft - pad;
 }

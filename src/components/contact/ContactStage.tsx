@@ -125,7 +125,7 @@ export function ContactStage() {
     const rows = [...list.querySelectorAll<HTMLElement>("[data-row]")];
     const gap = phone ? PHONE_REST_GAP : DESK_REST_GAP;
     const pixelsPerMember = phone ? 180 : 400;
-    const rowHeight = phone ? { off: 20, on: 148, gap: 10 } : { off: 36, on: 96, gap: 14 };
+    const rowHeight = phone ? { off: 20, on: 148, gap: 10 } : { off: 36, on: 88, gap: 14 };
     const motion = {
       c: CONTACT_REST_INDEX,
       t: CONTACT_REST_INDEX,
@@ -179,7 +179,7 @@ export function ContactStage() {
           row.style.height = `${placed[index].height}px`;
         }
         const live = row.querySelector<HTMLElement>("[data-live]");
-        if (live) {
+        if (live && phone) {
           live.classList.remove(styles.fadeIn);
           if (on) {
             void live.offsetWidth;
@@ -211,7 +211,9 @@ export function ContactStage() {
         liveRef.current.textContent = `${member.name}, ${member.role}, ${active + 1} of ${CONTACT_COUNT}`;
       }
       if (!phone && list) {
-        const target = stage.clientHeight / 2 - (placed[active].y + placed[active].height / 2);
+        const total = placed[placed.length - 1].y + placed[placed.length - 1].height;
+        list.style.height = `${total}px`;
+        const target = stage.clientHeight / 2 - total / 2;
         if (motion.listY == null || reduced) motion.listY = target;
       }
     };
@@ -264,7 +266,8 @@ export function ContactStage() {
       });
       if (!phone && motion.listY != null && list) {
         const placed = layout(active);
-        const target = stage.clientHeight / 2 - (placed[active].y + placed[active].height / 2);
+        const total = placed[placed.length - 1].y + placed[placed.length - 1].height;
+        const target = stage.clientHeight / 2 - total / 2;
         motion.listY += (target - motion.listY) * (reduced ? 1 : 1 - (1 - 0.12) ** (dt * 60));
         list.style.transform = `translateY(${motion.listY.toFixed(2)}px)`;
       }
@@ -433,8 +436,9 @@ export function ContactStage() {
 
       <p data-intro className={`${styles.word} ${styles.deskOnly}`}>SONIFYSPHERE®</p>
 
-      <p data-intro className={`${styles.kicker} ${styles.teamLabel} ${styles.deskOnly}`}>TEAM</p>
-      <div data-intro className={`${styles.indexBlock} ${styles.deskOnly}`}>
+      <div data-intro className={`${styles.leftRail} ${styles.deskOnly}`}>
+      <p className={`${styles.kicker} ${styles.teamLabel}`}>TEAM</p>
+      <div className={styles.indexBlock}>
         <div className={styles.odo} data-odo aria-hidden="true">
           <span className={styles.slot}><span className={styles.phantom}>0</span><span className={styles.strip}>0</span></span>
           <span className={styles.slot}>
@@ -446,10 +450,11 @@ export function ContactStage() {
         </div>
         <span className={`${styles.kicker} ${styles.count}`}>/0{CONTACT_COUNT}</span>
       </div>
-      <div data-intro data-meta className={`${styles.meta} ${styles.deskOnly}`}>
+      <div data-meta className={styles.meta}>
         <div className={styles.metaRow}><span className={styles.kicker}>ROLE</span><span ref={roleRef} className={styles.metaValue}>{CONTACT_MEMBERS[CONTACT_REST_INDEX].role}</span></div>
         <div className={styles.metaRow}><span className={styles.kicker}>FOCUS</span><span ref={focusRef} className={`${styles.metaValue} ${styles.dim}`}>{CONTACT_PLACEHOLDERS.focus}</span></div>
         <div className={styles.metaRow}><span className={styles.kicker}>GITHUB</span><span ref={githubRef} className={styles.metaValue}>{CONTACT_MEMBERS[CONTACT_REST_INDEX].github}</span></div>
+      </div>
       </div>
       <p data-intro className={`${styles.scrollHint} ${styles.deskOnly}`}>SCROLL</p>
       <p data-intro className={`${styles.voices} ${styles.deskOnly}`}>06 VOICES →</p>
