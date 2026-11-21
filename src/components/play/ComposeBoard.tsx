@@ -144,7 +144,7 @@ function sequencePath(heights: readonly number[]): string {
     }
     if (previous >= 0) return known[previous]!;
     if (next >= 0) return known[next]!;
-    return plot - 1;
+    return plot - 8;
   });
   const points = ys.map((y, index) => [((index + 0.5) / ys.length) * width, y] as [number, number]);
   const first = points[0] ?? [0, plot - 1];
@@ -485,8 +485,8 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
       <div className={styles.slots} data-testid="compose-slots">
         <svg className={styles.curve} viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true">
           <defs>
-            <filter id={glowId} x="-4%" y="-30%" width="108%" height="160%">
-              <feGaussianBlur stdDeviation="5" />
+            <filter id={glowId} x="-4%" y="-20%" width="108%" height="140%">
+              <feGaussianBlur stdDeviation="2.4" />
             </filter>
           </defs>
           <path className={styles.glow} d={curve} filter={`url(#${glowId})`} />

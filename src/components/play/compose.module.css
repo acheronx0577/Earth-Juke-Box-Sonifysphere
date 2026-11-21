@@ -210,15 +210,14 @@
 .glow {
   fill: none;
   stroke: rgba(242, 242, 240, 0.9);
-  stroke-width: 14;
+  stroke-width: 8px;
   opacity: 0.55;
 }
 
 .line {
   fill: none;
   stroke: #f2f2f0;
-  stroke-width: 2;
-  vector-effect: non-scaling-stroke;
+  stroke-width: 2px;
 }
 
 .bars {
@@ -229,9 +228,19 @@
   padding-inline: clamp(10px, 1.4vw, 22px);
 }
 
-.col {
+.col:global(.sonify-slot) {
   position: relative;
   min-height: 0;
+  padding: 0;
+  background: transparent;
+  clip-path: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.col:global(.sonify-slot.is-playing) {
+  background: transparent;
+  color: inherit;
 }
 
 .col::before {
