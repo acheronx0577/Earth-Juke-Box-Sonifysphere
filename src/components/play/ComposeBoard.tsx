@@ -68,9 +68,9 @@ function slotNote(slot: MixSlot | null): number | null {
 }
 
 function barHeight(note: number | null): number {
-  if (note === null) return 14;
+  if (note === null) return 0;
   const t = Math.min(1, Math.max(0, (note - 150) / 170));
-  return 28 + t * 70;
+  return 22 + t * 74;
 }
 
 function clip(cut: number) {
@@ -125,16 +125,7 @@ function sequencePath(heights: readonly number[]): string {
     const y = Math.min(floor, height - (value / 100) * (height - 16));
     return [x, y] as [number, number];
   });
-  const leftSlope = (points[1][1] - points[0][1]) / (points[1][0] - points[0][0]);
-  const last = points.length - 1;
-  const rightSlope = (points[last][1] - points[last - 1][1]) / (points[last][0] - points[last - 1][0]);
-  const clampY = (y: number) => Math.min(y, floor);
-  const extended: [number, number][] = [
-    [0, clampY(points[0][1] - leftSlope * points[0][0])],
-    ...points,
-    [width, clampY(points[last][1] + rightSlope * (width - points[last][0]))],
-  ];
-  return monotone(extended);
+  return monotone(points.map(([x, y]) => [x, Math.min(y, floor)] as [number, number]));
 }
 
 function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number, count: number, focusAt: (next: number) => void) {
@@ -475,13 +466,15 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </svg>
         <div className={styles.bars}>
           {slots.map((slot, index) => (
-            <span key={`bar-${index}`} className={styles.col}>
-              <span
-                className={`${styles.bar} sonify-slot${audio === "playing" && playingIndex === index ? " is-playing" : ""}`}
-                data-on={slot ? "true" : "false"}
-                data-play={audio === "playing" && playingIndex === index ? "true" : "false"}
-                style={{ height: `${heights[index]}%` }}
-              />
+            <span key={`bar-${index}`} className={`${styles.col} sonify-slot${audio === "playing" && playingIndex === index ? " is-playing" : ""}`}>
+              {slot ? (
+                <span
+                  className={styles.bar}
+                  data-on="true"
+                  data-play={audio === "playing" && playingIndex === index ? "true" : "false"}
+                  style={{ height: `${heights[index]}%` }}
+                />
+              ) : null}
             </span>
           ))}
         </div>

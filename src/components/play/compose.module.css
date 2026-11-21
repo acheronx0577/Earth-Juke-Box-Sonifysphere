@@ -164,23 +164,34 @@
 }
 
 .col {
+  position: relative;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   height: 100%;
   min-height: 0;
 }
 
-.bar {
-  width: 100%;
+.col::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
   background: rgba(242, 242, 240, 0.16);
+  transform: translateX(-50%);
 }
 
-.bar[data-on="true"] {
-  background: rgba(242, 242, 240, 0.72);
+.bar {
+  position: relative;
+  z-index: 1;
+  width: min(100%, clamp(28px, 4.2vw, 72px));
+  background: linear-gradient(to bottom, rgba(242, 242, 240, 0.92), rgba(242, 242, 240, 0));
 }
 
 .bar[data-play="true"] {
-  background: #f2f2f0;
+  background: linear-gradient(to bottom, #f2f2f0, rgba(242, 242, 240, 0.08));
 }
 
 .captions {
