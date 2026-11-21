@@ -125,7 +125,7 @@ export function ContactStage() {
     const rows = [...list.querySelectorAll<HTMLElement>("[data-row]")];
     const gap = phone ? PHONE_REST_GAP : DESK_REST_GAP;
     const pixelsPerMember = phone ? 180 : 400;
-    const rowHeight = phone ? { off: 20, on: 148, gap: 10 } : { off: 64, on: 109, gap: 28 };
+    const rowHeight = phone ? { off: 20, on: 148, gap: 10 } : { off: 36, on: 96, gap: 14 };
     const motion = {
       c: CONTACT_REST_INDEX,
       t: CONTACT_REST_INDEX,
@@ -170,7 +170,7 @@ export function ContactStage() {
       rows.forEach((row, index) => {
         const on = index === active;
         row.dataset.active = on ? "true" : "false";
-        row.style.opacity = on ? "1" : "0.56";
+        row.style.opacity = !phone || on ? "1" : "0.56";
         row.querySelector("button")?.setAttribute("aria-pressed", on ? "true" : "false");
         if (!phone) {
           row.style.top = `${placed[index].y}px`;
@@ -451,7 +451,6 @@ export function ContactStage() {
         <div className={styles.metaRow}><span className={styles.kicker}>FOCUS</span><span ref={focusRef} className={`${styles.metaValue} ${styles.dim}`}>{CONTACT_PLACEHOLDERS.focus}</span></div>
         <div className={styles.metaRow}><span className={styles.kicker}>GITHUB</span><span ref={githubRef} className={styles.metaValue}>{CONTACT_MEMBERS[CONTACT_REST_INDEX].github}</span></div>
       </div>
-      <div data-intro className={`${styles.pageWave} ${styles.deskOnly}`}><Wave width={40} height={18} stroke={1.5} member="page" /></div>
       <p data-intro className={`${styles.scrollHint} ${styles.deskOnly}`}>SCROLL</p>
       <p data-intro className={`${styles.voices} ${styles.deskOnly}`}>06 VOICES →</p>
 
@@ -481,8 +480,9 @@ export function ContactStage() {
               {phone ? <ContactFrame cut={12} fill="#171716" stroke="rgba(255,243,234,0.26)" className={styles.phonePanel} /> : null}
               <button type="button" className={styles.rowHit} aria-pressed={index === CONTACT_REST_INDEX} aria-label={`${member.name}, ${member.role}`}>
                 <span className={`${styles.indexNo} ${styles.phoneOnly}`}>{pad(index)}</span>
+                <span className={`${styles.deskIndex} ${styles.deskOnly}`}>{pad(index)}</span>
                 <span data-phone-role className={`${styles.phoneRole} ${styles.phoneOnly}`}>{member.role.toUpperCase()}</span>
-                <span className={`${styles.roleLine} ${styles.deskOnly}`}><Wave width={20} height={8} stroke={1.25} member={index} /><span>{member.role.toUpperCase()}</span></span>
+                <span className={`${styles.roleLine} ${styles.deskOnly}`}>{member.role.toUpperCase()}</span>
                 <span className={styles.name}>{member.name}</span>
                 <span className={styles.emailGhost}>{member.email}</span>
               </button>

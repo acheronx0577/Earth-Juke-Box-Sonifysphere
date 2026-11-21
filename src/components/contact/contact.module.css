@@ -582,6 +582,127 @@
   margin-bottom: 12px;
 }
 
+.stage[data-layout="desk"] .listWrap {
+  mask-image: none;
+}
+
+.stage[data-layout="desk"] .row {
+  overflow: hidden;
+  transition: top 0.42s var(--ease), height 0.42s var(--ease);
+}
+
+.stage[data-layout="desk"] .rowHit {
+  text-align: left;
+}
+
+.deskIndex {
+  display: none;
+}
+
+.stage[data-layout="desk"] .deskIndex {
+  display: block;
+  position: absolute;
+  top: 8px;
+  left: 0;
+  color: rgba(255, 243, 234, 0.5);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  transition: top 0.42s var(--ease), color 0.42s var(--ease);
+}
+
+.stage[data-layout="desk"] .row[data-active="true"] .deskIndex {
+  top: 26px;
+  color: rgba(255, 243, 234, 0.72);
+}
+
+.stage[data-layout="desk"] .roleLine {
+  justify-content: flex-start;
+  left: clamp(32px, 2.6vw, 40px);
+  right: auto;
+  opacity: 0;
+  color: rgba(255, 243, 234, 0.56);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  line-height: 14px;
+  transition: opacity 0.32s var(--ease);
+}
+
+.stage[data-layout="desk"] .row[data-active="true"] .roleLine {
+  opacity: 1;
+  color: rgba(255, 243, 234, 0.56);
+}
+
+.stage[data-layout="desk"] .name {
+  top: 4px;
+  left: clamp(32px, 2.6vw, 40px);
+  right: auto;
+  color: rgba(255, 243, 234, 0.58);
+  font-size: clamp(15px, 1.15vw, 18px);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 24px;
+  text-align: left;
+}
+
+.stage[data-layout="desk"] .row[data-active="true"] .name {
+  top: 20px;
+  color: var(--cream);
+  font-size: clamp(22px, 1.7vw, 28px);
+  font-weight: 600;
+  line-height: 32px;
+}
+
+.stage[data-layout="desk"] .emailGhost,
+.stage[data-layout="desk"] .rule {
+  display: none;
+}
+
+.stage[data-layout="desk"] .emailLive {
+  top: 58px;
+  left: clamp(32px, 2.6vw, 40px);
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s var(--ease);
+}
+
+.stage[data-layout="desk"] .row[data-active="true"] .emailLive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.stage[data-layout="desk"] .emailRow {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.stage[data-layout="desk"] .mail {
+  color: rgba(255, 243, 234, 0.72);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(11px, 0.85vw, 13px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 16px;
+  text-align: left;
+}
+
+.stage[data-layout="desk"] .mail::after {
+  background: rgba(255, 243, 234, 0.28);
+}
+
+.stage[data-layout="desk"] .icon {
+  width: clamp(22px, 1.6vw, 26px);
+  height: clamp(22px, 1.6vw, 26px);
+  color: rgba(255, 243, 234, 0.72);
+}
+
 .stage[data-layout="phone"] .rowHit {
   text-align: left;
 }
