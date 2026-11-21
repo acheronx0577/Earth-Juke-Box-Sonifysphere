@@ -2,8 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChamferMark } from "@/components/listen/ChamferMark";
-import { chamferClip } from "@/components/listen/chamfer";
+import frame from "./guessShare.module.css";
 import styles from "./shareSheet.module.css";
 
 export type ShareSheetProps = {
@@ -16,11 +15,21 @@ export type ShareSheetProps = {
   readonly onSaveImage: () => Promise<void> | void;
 };
 
+function CopyIcon() {
+  return (
+    <svg className={frame.copyGlyph} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M9 8.75h10.25V19H9V8.75Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M4.75 15.25V4.75H15.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 function focusableIn(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea")].filter((element) => {
     if (element.hasAttribute("disabled")) return false;
     if (element.getAttribute("aria-hidden") === "true") return false;
-    return element.tabIndex !== -1;
+    if (element.tabIndex === -1) return false;
+    return element.getClientRects().length > 0;
   });
 }
 
@@ -48,7 +57,6 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
   onCloseRef.current = onClose;
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState("");
-  const [canNative, setCanNative] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -61,14 +69,12 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
       setStatus("");
       return;
     }
-    setCanNative(typeof navigator.share === "function");
     const root = dialogRef.current;
     if (!root) return;
     const previously = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const main = document.getElementById("main-content");
     if (main instanceof HTMLElement) main.inert = true;
-    const copyButton = root.querySelector<HTMLElement>("[data-testid='share-copy']");
-    (copyButton ?? focusableIn(root)[0])?.focus();
+    const initial = window.setTimeout(() => focusableIn(root)[0]?.focus(), 0);
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -94,6 +100,7 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
     };
     document.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(initial);
       document.removeEventListener("keydown", onKey);
       if (main instanceof HTMLElement) main.inert = false;
       previously?.focus();
@@ -116,17 +123,6 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
     }
   };
 
-  const native = async () => {
-    if (typeof navigator.share !== "function") return;
-    try {
-      await navigator.share({ title, text: message, url });
-      setStatus("Shared.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setStatus("Sharing was not available.");
-    }
-  };
-
   const save = async () => {
     try {
       await onSaveImage();
@@ -138,7 +134,7 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
 
   return createPortal(
     <div
-      className={styles.backdrop}
+      className={frame.backdrop}
       data-hide-target-cursor="true"
       data-testid="share-backdrop"
       onMouseDown={(event) => {
@@ -147,49 +143,58 @@ export function ShareSheet({ open, onClose, title, detail, url, shareText, onSav
     >
       <div
         ref={dialogRef}
-        className={styles.panel}
-        style={{ ["--cut" as string]: "14px", clipPath: chamferClip(14) }}
+        className={`${frame.dialog} ${frame.cutShell}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="share-dialog"
+        onMouseDown={(event) => event.stopPropagation()}
       >
-        <ChamferMark />
-        <p className={styles.kicker}>SonifySphere</p>
-        <h2 id={titleId}>{title}</h2>
-        {detail ? <p className={styles.detail}>{detail}</p> : null}
-        <label className={styles.linkFrame} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }}>
-          <ChamferMark />
-          <span className={styles.linkLabel}>Link</span>
-          <input data-testid="share-url" readOnly value={url} onFocus={(event) => event.currentTarget.select()} />
-        </label>
-        <div className={styles.actions}>
-          <button type="button" className={styles.cream} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }} data-testid="share-copy" onClick={() => void copy()}>
-            <ChamferMark />
-            {copied ? "Copied" : "Copy link"}
-          </button>
-          {canNative ? (
-            <button type="button" className={styles.action} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }} data-testid="share-native" onClick={() => void native()}>
-              <ChamferMark />
-              Share
-            </button>
-          ) : null}
-          <button type="button" className={styles.action} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }} data-testid="share-image" onClick={() => void save()}>
-            <ChamferMark />
-            Save image
-          </button>
-          <a className={styles.action} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }} data-testid="share-x" href={xHref} target="_blank" rel="noopener noreferrer">
-            <ChamferMark />
-            Share to X
-          </a>
-          <button type="button" className={styles.action} style={{ ["--cut" as string]: "8px", clipPath: chamferClip(8) }} data-testid="share-close" onClick={onClose}>
-            <ChamferMark />
-            Close
-          </button>
+        <div className={frame.cutFace}>
+          <div className={frame.head}>
+            <h2 id={titleId}>{title}</h2>
+            <span className={frame.focusRing}>
+              <button type="button" className={`${frame.close} ${frame.cutShell}`} aria-label="Close share" data-testid="share-close" onClick={onClose}>
+                <span className={frame.cutFace} aria-hidden="true">
+                  ×
+                </span>
+              </button>
+            </span>
+          </div>
+          {detail ? <p className={styles.detail}>{detail}</p> : null}
+          <div className={`${frame.urlShell} ${frame.cutShell}`}>
+            <div className={`${frame.urlFace} ${frame.cutFace}`}>
+              <p className={frame.urlNarrow} data-testid="share-url">
+                {url}
+              </p>
+              <button
+                type="button"
+                className={`${frame.copyButton} ${frame.cutShell}`}
+                data-testid="share-copy"
+                data-done={copied ? "true" : "false"}
+                aria-label="Copy link"
+                onClick={() => void copy()}
+              >
+                <span className={frame.cutFace}>{copied ? "Copied" : <CopyIcon />}</span>
+              </button>
+            </div>
+          </div>
+          <div className={frame.actions}>
+            <span className={frame.focusRing}>
+              <button type="button" className={`${frame.action} ${frame.cutShell}`} data-testid="share-image" onClick={() => void save()}>
+                <span className={frame.cutFace}>Save image</span>
+              </button>
+            </span>
+            <span className={frame.focusRing}>
+              <a className={`${frame.action} ${frame.cutShell}`} data-testid="share-x" href={xHref} target="_blank" rel="noopener noreferrer">
+                <span className={frame.cutFace}>Share to X</span>
+              </a>
+            </span>
+          </div>
+          <p className={frame.live} role="status">
+            {status}
+          </p>
         </div>
-        <p className={styles.status} role="status" aria-live="polite">
-          {status}
-        </p>
       </div>
     </div>,
     document.body,
