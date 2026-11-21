@@ -202,9 +202,8 @@ export function ContactStage() {
         githubRef.current.classList.toggle(styles.dim, member.githubIsPlaceholder);
       }
       const meta = stage.querySelector<HTMLElement>("[data-meta]");
-      if (meta) {
-        meta.classList.remove(styles.fadeIn);
-        void meta.offsetWidth;
+      if (meta && !meta.dataset.shown) {
+        meta.dataset.shown = "true";
         meta.classList.add(styles.fadeIn);
       }
       if (liveRef.current) {
@@ -243,17 +242,22 @@ export function ContactStage() {
           motion.last = now - 1000;
         }
       } else if (!reduced) {
-        if (!motion.drag && now - motion.last > 150) motion.t = Math.round(motion.t);
-        const amount = motion.drag ? 0.12 : 0.047;
+        if (!motion.drag && now - motion.last > 140) {
+          const nearest = Math.round(motion.t);
+          const settle = 1 - (1 - 0.085) ** (dt * 60);
+          motion.t += (nearest - motion.t) * settle;
+          if (Math.abs(motion.t - nearest) < 0.0015) motion.t = nearest;
+        }
+        const amount = motion.drag ? 0.12 : 0.06;
         motion.c += (motion.t - motion.c) * (1 - (1 - amount) ** (dt * 60));
-        motion.speed *= (motion.drag ? 0.72 : 0.829) ** (dt * 60);
+        motion.speed *= (motion.drag ? 0.72 : 0.86) ** (dt * 60);
       }
       const center = deck.draw(scrollForMember(motion.c), motion.speed, motion.gap, motion.focus);
       const active = ((Math.round(motion.c) % CONTACT_COUNT) + CONTACT_COUNT) % CONTACT_COUNT;
       setActive(active);
       const roll = ((motion.c % CONTACT_COUNT) + CONTACT_COUNT) % CONTACT_COUNT + CONTACT_COUNT;
-      const resting = reduced || (!motion.drag && now - motion.last > 150);
-      const steps = resting ? Math.round(roll) : roll;
+      const nearestRoll = Math.round(roll);
+      const steps = Math.abs(roll - nearestRoll) < 0.004 ? nearestRoll : roll;
       stage.querySelectorAll<HTMLElement>("[data-strip]").forEach((strip) => {
         const digit = Math.round(strip.parentElement?.getBoundingClientRect().height ?? 0);
         if (digit < 2) return;

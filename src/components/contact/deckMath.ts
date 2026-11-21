@@ -7,9 +7,9 @@
 
 export const PAGE_COUNT = 30;
 /** World-unit break on either side of the focused page. The rest of the stack stays one unit apart. */
-export const DESK_REST_GAP = 7.2;
+export const DESK_REST_GAP = 10.4;
 /** Phone pages are smaller in world units, so the same gap throws the neighbours off the deck band. */
-export const PHONE_REST_GAP = 6.6;
+export const PHONE_REST_GAP = 8.4;
 /** Hero width, in CSS pixels, per pixel of deck height at scale 1. Measured from the projection. */
 const PHONE_HERO_UNIT = 0.6022;
 /** Focused page is this much larger than a stack page, and it eases in with scroll. */
@@ -102,9 +102,9 @@ interface Scale {
   readonly originY: number;
 }
 
-/** About 74% of a 390px screen, easing to 55% from 768px up. */
+/** Keeps the phone hero large, but small enough that both neighbours fit in the band. */
 function phoneHeroFraction(width: number): number {
-  return Math.min(0.78, Math.max(0.55, 288 / Math.max(width, 1)));
+  return Math.min(0.52, Math.max(0.4, 168 / Math.max(width, 1)));
 }
 
 function scaleFor(view: DeckView): Scale {
@@ -119,7 +119,9 @@ function scaleFor(view: DeckView): Scale {
       originY: view.originY ?? 0,
     };
   }
-  const target = view.width * phoneHeroFraction(view.width);
+  const byWidth = view.width * phoneHeroFraction(view.width);
+  const byHeight = view.height * 0.46 * 1.253;
+  const target = Math.min(byWidth, byHeight);
   return {
     depth: 4.492,
     height: 3.658,
@@ -158,8 +160,7 @@ export function pageGeometry(
   const base = -(index - (PAGE_COUNT - 1) * 0.5);
   const wrapped = ((base - scroll + MAX_Z) % (2 * MAX_Z) + 2 * MAX_Z) % (2 * MAX_Z) - MAX_Z;
   const distance = Math.abs(wrapped);
-  const side = view.phone && wrapped < 0 ? 0.72 : 1;
-  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap * side;
+  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap;
   const hero = 1 + HERO_BOOST * (1 - smooth(0.02, 0.88, distance)) * focusAmount;
   const facing = smooth(0, 1, 1 - smooth(0, 0.8, distance)) * focusAmount;
   const focus = multiply(
@@ -241,12 +242,27 @@ function clampNum(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function boundsAt(index: number, scroll: number, view: DeckView) {
+  const page = pageGeometry(index, scroll, 0, view.phone ? PHONE_REST_GAP : DESK_REST_GAP, 1, view);
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < page.xy.length; i += 2) {
+    minX = Math.min(minX, page.xy[i]);
+    maxX = Math.max(maxX, page.xy[i]);
+    minY = Math.min(minY, page.xy[i + 1]);
+    maxY = Math.max(maxY, page.xy[i + 1]);
+  }
+  return { minX, maxX, minY, maxY, distance: page.distance };
+}
+
 function heroHitsChrome(
   bounds: { minX: number; maxX: number; minY: number; maxY: number },
   width: number,
   height: number,
 ): boolean {
-  const pad = 12;
+  const pad = 56;
   const rail = clampNum(width * 0.07, 72, 112);
   const metaRight = rail + clampNum(width * 0.056, 64, 80) + 156;
   const metaTop = height / 2 - 169;
@@ -254,6 +270,31 @@ function heroHitsChrome(
   const listLeft = width - rail - clampNum(width * 0.25, 220, 360);
   const crossesMeta = bounds.minY < metaBottom && bounds.maxY > metaTop && bounds.minX < metaRight + pad;
   return crossesMeta || bounds.maxX > listLeft - pad;
+}
+
+/** Desktop cards have to sit inside this rect, clear of the nav and the bottom edge. */
+export function deskSafeRect(width: number, height: number): { top: number; bottom: number; left: number; right: number } {
+  return {
+    top: Math.max(72, Math.min(96, height * 0.1)),
+    bottom: height - Math.max(56, Math.min(80, height * 0.08)),
+    left: 8,
+    right: width - 8,
+  };
+}
+
+function neighboursFit(view: DeckView, width: number, height: number): boolean {
+  const safe = deskSafeRect(width, height);
+  const top = safe.top;
+  const bottom = safe.bottom;
+  for (const shift of [0, 0.25, 0.5]) {
+    const scroll = scrollForMember(2 + shift);
+    for (let index = 0; index < 8; index += 1) {
+      const box = boundsAt(index, scroll, view);
+      if (box.distance > 1.02) continue;
+      if (box.minX < 8 || box.maxX > width - 8 || box.minY < top || box.maxY > bottom) return false;
+    }
+  }
+  return true;
 }
 
 function placeDesk(width: number, height: number, fit: number): DeckView {
@@ -269,18 +310,22 @@ function placeDesk(width: number, height: number, fit: number): DeckView {
   };
 }
 
-/** Put the desktop hero on the stage centre. Shrink it only if that would cover the side columns. */
+function deckFits(view: DeckView, width: number, height: number): boolean {
+  return neighboursFit(view, width, height) && !heroHitsChrome(boundsOf(2, view), width, height);
+}
+
+/** Put the desktop hero on the stage centre. Shrink it only if the stack would leave the screen or cover a column. */
 export function deskView(width: number, height: number): DeckView {
   let fit = 1;
   let view = placeDesk(width, height, fit);
-  if (!heroHitsChrome(boundsOf(2, view), width, height)) return view;
-  let low = 0.78;
+  if (deckFits(view, width, height)) return view;
+  let low = 0.42;
   let high = 1;
-  for (let step = 0; step < 10; step += 1) {
+  for (let step = 0; step < 12; step += 1) {
     fit = (low + high) / 2;
     view = placeDesk(width, height, fit);
-    if (heroHitsChrome(boundsOf(2, view), width, height)) high = fit;
-    else low = fit;
+    if (deckFits(view, width, height)) low = fit;
+    else high = fit;
   }
   return placeDesk(width, height, low);
 }

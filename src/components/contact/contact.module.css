@@ -18,7 +18,7 @@
 }
 
 .stage[data-layout="phone"] {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .stage :focus-visible {
@@ -31,17 +31,15 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  mask-image: linear-gradient(to bottom, transparent 0, transparent clamp(56px, 8vh, 80px), #000 clamp(96px, 13vh, 128px)),
-    linear-gradient(to right, transparent 0, #000 4%, #000 72%, transparent 86%);
-  mask-composite: intersect;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
 }
 
 .stage[data-layout="phone"] .deck {
   position: relative;
   top: auto;
-  height: clamp(320px, 62vh, 680px);
-  height: clamp(320px, 62svh, 680px);
-  margin-top: var(--section);
+  height: clamp(168px, calc(100vh - 560px), 420px);
+  height: clamp(168px, calc(100svh - 560px), 420px);
+  margin-top: clamp(12px, 2.2svh, 22px);
   overflow: hidden;
   mask-image: none;
 }
@@ -54,6 +52,8 @@
 
 .ai {
   position: absolute;
+  top: 0;
+  left: 0;
   z-index: 2;
   padding: 3px 6px;
   background: var(--ink);
@@ -536,17 +536,13 @@
   display: block;
 }
 
-.stage[data-layout="phone"] {
-  --section: clamp(16px, 2.2svh, 24px);
-}
-
 .stage[data-layout="phone"] .nav {
   position: relative;
   top: auto;
   left: auto;
   width: auto;
   height: 40px;
-  margin: var(--section) 16px 0;
+  margin: 12px 16px 0;
   transform: none;
 }
 
@@ -555,8 +551,7 @@
   top: auto;
   left: auto;
   width: max-content;
-  height: 32px;
-  margin: var(--section) 16px 0;
+  margin: 12px 16px 0;
 }
 
 .stage[data-layout="phone"] .inquiry {
@@ -566,7 +561,7 @@
   left: auto;
   height: auto;
   max-width: calc(100% - 32px);
-  margin: var(--section) 16px 0;
+  margin: 12px 16px 0;
 }
 
 .stage[data-layout="phone"] .placeholder {
@@ -579,7 +574,7 @@
   right: auto;
   width: auto;
   height: auto;
-  margin: var(--section) clamp(16px, 5vw, 24px) 32px;
+  margin: 8px clamp(16px, 5vw, 24px) 8px;
   mask-image: none;
   background: var(--ink);
 }
