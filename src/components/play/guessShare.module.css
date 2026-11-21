@@ -9,6 +9,16 @@
   background: rgba(20, 20, 20, 0.78);
 }
 
+.backdrop,
+.backdrop * {
+  cursor: auto !important;
+}
+
+.backdrop :is(a, button, [role="button"]),
+.backdrop :is(a, button, [role="button"]) * {
+  cursor: pointer !important;
+}
+
 .cutShell {
   --cut: 10px;
   box-sizing: border-box;
