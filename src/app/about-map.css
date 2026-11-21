@@ -769,7 +769,6 @@
 }
 
 .team .team-counter {
-  --count-line: 8.75rem;
   position: absolute;
   display: flex;
   align-items: flex-start;
@@ -800,9 +799,10 @@
   flex-shrink: 0;
   width: max-content;
   min-width: max-content;
-  height: var(--count-line);
   overflow: hidden;
-  line-height: var(--count-line);
+  font-size: clamp(7rem, 2.8rem + 5.3vw + 4vh, 16rem);
+  line-height: 1;
+  height: 1em;
 }
 
 .team .team-counter .count .count-container {
@@ -813,19 +813,19 @@
 .team .team-counter .count-number {
   display: block;
   width: max-content;
-  height: var(--count-line);
+  height: 1em;
   margin-left: auto;
-  padding-inline: 0.22em;
+  padding-inline: 0.06em;
   box-sizing: content-box;
   position: relative;
   text-transform: uppercase;
-  font-size: calc(var(--count-line) * 0.82);
-  line-height: var(--count-line);
   font-family: var(--font-geist-mono), monospace;
   font-weight: 700;
+  font-size: 1em;
+  line-height: 1;
+  letter-spacing: -0.06em;
   color: #f2f2f0;
   text-align: center;
-  letter-spacing: -0.06em;
 }
 
 .team .cards {
@@ -1027,15 +1027,6 @@
 
   .team .team-counter .counter-title .team-heading {
     font-size: clamp(2.5rem, 8vw, 4.5rem);
-  }
-
-  .team .team-counter {
-    --count-line: 6.25rem;
-  }
-
-  .team .team-counter .count {
-    padding-right: 1.5rem;
-    height: var(--count-line);
   }
 
 }
