@@ -84,7 +84,7 @@ export function ContactStage() {
   const [ready, setReady] = useState(false);
 
   useLayoutEffect(() => {
-    const query = window.matchMedia("(max-width: 700px)");
+    const query = window.matchMedia("(max-width: 1100px)");
     const apply = () => setPhone(query.matches);
     apply();
     query.addEventListener("change", apply);

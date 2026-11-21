@@ -444,7 +444,7 @@
   gap: 3px;
   max-width: 100%;
   color: var(--cream);
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   text-align: center;
   text-decoration: none;
 }
