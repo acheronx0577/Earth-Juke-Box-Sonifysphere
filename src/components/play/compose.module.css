@@ -156,13 +156,17 @@
   color: var(--cream);
 }
 
-.slot:focus {
+.slot:focus,
+.slot:focus-visible {
   outline: none;
 }
 
-.slot:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+.slot:focus-visible .col {
+  background: rgba(242, 242, 240, 0.08);
+}
+
+.slot[data-drop="true"] .col {
+  background: rgba(242, 242, 240, 0.16);
 }
 
 .meta {
@@ -317,9 +321,9 @@
   color: var(--cream);
 }
 
+.caption:focus,
 .caption:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+  outline: none;
 }
 
 .slotName,
@@ -373,13 +377,13 @@ a.shell {
   opacity: 1;
 }
 
-.shell:focus {
+.shell:focus,
+.shell:focus-visible {
   outline: none;
 }
 
-.shell:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+.shell:focus-visible .face {
+  background: #1c1c1c;
 }
 
 .face {
@@ -412,9 +416,13 @@ a.shell {
 
 .page button.shell[class*="bg-[#f2f2f0]"]:focus-visible,
 .page a.shell[class*="bg-[#f2f2f0]"]:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+  outline: none;
   background: var(--stroke);
+}
+
+.page button.shell[class*="bg-[#f2f2f0]"]:focus-visible .face,
+.page a.shell[class*="bg-[#f2f2f0]"]:focus-visible .face {
+  background: #e4e4e1;
 }
 
 .pill {
@@ -504,8 +512,7 @@ a.shell {
 }
 
 .tempo input:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 4px;
+  outline: none;
 }
 
 .tempo input::-webkit-slider-runnable-track {
@@ -568,12 +575,25 @@ a.shell {
   height: 36px;
 }
 
+.textLink:focus,
+.iconButton:focus,
+.links button:focus,
+.links a:focus,
 .textLink:focus-visible,
 .iconButton:focus-visible,
 .links button:focus-visible,
 .links a:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+  outline: none;
+}
+
+.textLink:focus-visible,
+.links button:focus-visible,
+.links a:focus-visible {
+  color: var(--cream);
+}
+
+.iconButton:focus-visible {
+  background: rgba(242, 242, 240, 0.12);
 }
 
 .textLink:disabled,
@@ -660,9 +680,14 @@ a.shell {
   text-underline-offset: 3px;
 }
 
+.banner button:focus,
 .banner button:focus-visible {
-  outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+  outline: none;
+}
+
+.banner button:focus-visible {
+  color: var(--cream);
+  text-decoration-thickness: 2px;
 }
 
 .note {
@@ -730,6 +755,47 @@ a.shell {
   text-transform: uppercase;
 }
 
+.ghost {
+  --cut: 7px;
+  position: fixed;
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  background: #141414;
+  color: #f2f2f0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 14px));
+}
+
+.ghost :global(.lv-chamfer-svg) {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ghost :global(.lv-chamfer-svg) polygon {
+  fill: none;
+  stroke: #555555;
+  stroke-width: 1.5px;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
 .sr {
   position: absolute;
   width: 1px;
@@ -753,6 +819,24 @@ a.shell {
 .page :is(a, button, input, [role="button"], [role="slider"]),
 .page :is(a, button, input, [role="button"], [role="slider"]) * {
   cursor: pointer !important;
+}
+
+.page button.pill,
+.page button.pill *,
+.page button.slot[data-on="true"],
+.page button.slot[data-on="true"] * {
+  cursor: grab !important;
+}
+
+.page[data-dragging="true"],
+.page[data-dragging="true"] * {
+  cursor: grabbing !important;
+}
+
+.pill,
+.slot {
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .page button:disabled,
