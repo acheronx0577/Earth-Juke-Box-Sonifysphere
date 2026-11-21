@@ -32,7 +32,7 @@ function smoothstep(start: number, end: number, value: number): number {
 
 function cardTexture(image: HTMLImageElement, phone: boolean): HTMLCanvasElement {
   const width = 1024;
-  const height = Math.round(width * (phone ? 2 / 3 : 3.658 / 4.492));
+  const height = Math.round((width * 3.658) / 4.492);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;

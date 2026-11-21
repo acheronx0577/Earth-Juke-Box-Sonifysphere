@@ -111,11 +111,11 @@ function scaleFor(view: DeckView): Scale {
   // after a first pass so the active card sits in the upper half and the
   // neighbours stay inside the viewport.
   return {
-    depth: 3,
-    height: 2,
-    pivotX: 3.8,
+    depth: 4.492,
+    height: 3.658,
+    pivotX: 4.3,
     curve: 1.15,
-    scale: 1,
+    scale: 0.72,
     originX: view.originX ?? 0,
     originY: view.originY ?? 0,
   };
