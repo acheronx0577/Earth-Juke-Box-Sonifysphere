@@ -51,6 +51,7 @@ export function SiteNav() {
     { href: "/listen", label: "Listen", isActive: pathname === "/listen" },
     { href: "/challenge", label: "Challenges", isActive: pathname === "/challenge" || pathname.startsWith("/challenge") },
     { href: "/about", label: "About", isActive: pathname === "/about" },
+    { href: "/contact", label: "Contact", isActive: pathname === "/contact" },
   ];
 
   return (
