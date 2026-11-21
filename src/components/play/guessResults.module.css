@@ -560,6 +560,10 @@
   color: var(--ink);
 }
 
+.linkArrow {
+  flex: none;
+}
+
 .playIcon {
   display: block;
   transform: translateX(1px);
@@ -568,10 +572,13 @@
 .linkFace {
   --cut: 8px;
   display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
+  gap: 0.35em;
   min-height: 44px;
   padding: 0 0.75rem;
+  white-space: nowrap;
   background: #141414;
   color: var(--cream);
   font-family: var(--font-geist-mono), ui-monospace, monospace;
@@ -771,6 +778,26 @@
 @media (max-width: 767px) {
   .board {
     overflow-x: hidden;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .playWide,
+  .hearWide {
+    flex: 1 1 100%;
+  }
+
+  .shareSlot {
+    flex: 0 1 auto;
+  }
+
+  .nextSlot {
+    flex: 1 1 max-content;
+    min-width: max-content;
   }
 
   .rows {

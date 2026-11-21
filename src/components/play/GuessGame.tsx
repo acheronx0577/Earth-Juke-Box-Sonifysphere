@@ -1185,7 +1185,10 @@ export function GuessGame({
       <main id="main-content" tabIndex={-1} className={styles.page} data-result="true" data-hide-target-cursor="true">
         <header className={styles.header}>
           <Link href="/challenge" className={styles.resultBack}>
-            <span>← Challenges</span>
+            <span>
+              <span aria-hidden="true">←</span>
+              Challenges
+            </span>
           </Link>
           <span className={styles.resultEyebrow}>Guess the signal</span>
         </header>
@@ -1232,7 +1235,10 @@ export function GuessGame({
       <header className={styles.header}>
         {showResult ? (
           <Link href="/challenge" className={styles.resultBack}>
-            <span>← Challenges</span>
+            <span>
+              <span aria-hidden="true">←</span>
+              Challenges
+            </span>
           </Link>
         ) : (
           <div className={styles.titleRow}>

@@ -44,6 +44,12 @@
   }
 }
 
+@media (max-width: 767px) {
+  .page[data-result="true"] .resultBack {
+    flex: none;
+  }
+}
+
 .game {
   display: flex;
   flex: 1 1 auto;
@@ -1181,12 +1187,15 @@ a.shell {
   background: #f2f2f0;
 }
 
-.resultBack span {
+.resultBack > span {
   --cut: 8px;
   display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
+  gap: 0.35em;
   min-height: 28px;
   padding: 0 0.2rem;
+  white-space: nowrap;
   background: #141414;
   color: inherit;
   clip-path: polygon(
