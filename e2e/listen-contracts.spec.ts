@@ -182,12 +182,12 @@ test("keyboard operates Listen, Guess, Tune, and Ribbons", async ({ page }) => {
 
   await page.goto("/challenge/guess?seed=4");
   await expect(page.getByTestId("guess-game")).toHaveAttribute("data-ready", "true");
-  await reach(page, page.getByRole("button", { name: "Hear the signal" }));
+  await reach(page, page.getByRole("button", { name: "Hear signal" }));
   await page.keyboard.press("Enter");
   await page.keyboard.press("1");
   await expect(page.getByTestId("guess-reveal")).toBeVisible();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Round 2 of 5").first()).toBeVisible();
+  await expect(page.getByRole("group", { name: "Round 2 of 5" })).toBeVisible();
 
   await page.goto("/challenge/match");
   const frequency = page.getByRole("slider").first();
