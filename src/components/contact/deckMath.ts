@@ -31,6 +31,8 @@ export interface DeckView {
   readonly phone: boolean;
   readonly originX?: number;
   readonly originY?: number;
+  /** Desktop hero scale. 1 is the full card; a lower value keeps it off the side columns. */
+  readonly fit?: number;
 }
 
 export interface PageGeometry {
@@ -112,9 +114,9 @@ function scaleFor(view: DeckView): Scale {
       height: 3.658,
       pivotX: 4.3,
       curve: 2.25,
-      scale: 1,
-      originX: -60 * (view.width / 1440),
-      originY: -5 * (view.height / 900),
+      scale: view.fit ?? 1,
+      originX: view.originX ?? 0,
+      originY: view.originY ?? 0,
     };
   }
   const target = view.width * phoneHeroFraction(view.width);
@@ -235,7 +237,55 @@ export function phoneView(width: number, height: number): DeckView {
   };
 }
 
+function clampNum(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function heroHitsChrome(
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+  width: number,
+  height: number,
+): boolean {
+  const pad = 12;
+  const metaLeft = clampNum(width * 0.076, 16, 110);
+  const metaRight = metaLeft + clampNum(width * 0.056, 64, 80) + 156;
+  const metaTop = clampNum(height * 0.454, 180, 420);
+  const metaBottom = metaTop + 18 * 3 + clampNum(height * 0.016, 8, 14) * 2;
+  const listLeft = width - clampNum(width * 0.017, 12, 24) - clampNum(width * 0.25, 220, 360);
+  const crossesMeta = bounds.minY < metaBottom && bounds.maxY > metaTop && bounds.minX < metaRight + pad;
+  return crossesMeta || bounds.maxX > listLeft - pad;
+}
+
+function placeDesk(width: number, height: number, fit: number): DeckView {
+  const bare: DeckView = { width, height, phone: false, originX: 0, originY: 0, fit };
+  const page = boundsOf(2, bare);
+  return {
+    width,
+    height,
+    phone: false,
+    fit,
+    originX: width * 0.5 - (page.minX + page.maxX) / 2,
+    originY: height * 0.5 - (page.minY + page.maxY) / 2,
+  };
+}
+
+/** Put the desktop hero on the stage centre. Shrink it only if that would cover the side columns. */
+export function deskView(width: number, height: number): DeckView {
+  let fit = 1;
+  let view = placeDesk(width, height, fit);
+  if (!heroHitsChrome(boundsOf(2, view), width, height)) return view;
+  let low = 0.78;
+  let high = 1;
+  for (let step = 0; step < 10; step += 1) {
+    fit = (low + high) / 2;
+    view = placeDesk(width, height, fit);
+    if (heroHitsChrome(boundsOf(2, view), width, height)) high = fit;
+    else low = fit;
+  }
+  return placeDesk(width, height, low);
+}
+
 export function viewFor(width: number, height: number, phone: boolean): DeckView {
   if (phone) return phoneView(width, height);
-  return { width, height, phone: false };
+  return deskView(width, height);
 }
