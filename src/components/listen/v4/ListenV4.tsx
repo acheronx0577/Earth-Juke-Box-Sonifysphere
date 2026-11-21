@@ -49,6 +49,7 @@ import { ChamferMark } from "@/components/listen/ChamferMark";
 import "./listen-v4.css";
 
 const HISTORY_KEY = "sonifysphere-listen-v4";
+const SEARCH_DEBOUNCE_MS = 300;
 const PROFILE_KEY = "sonifysphere-listen-v4-profiles";
 
 const MAP_SCAN_POINTS = MAP_REGIONS.map((region) => {
@@ -695,6 +696,8 @@ export function ListenV4({
   const mapScanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nasaSearchRequests = useRef(createLatestRequest());
   const nasaAssetRequests = useRef(createLatestRequest());
+  const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searching, setSearching] = useState(false);
   const ready = useRef(false);
   const [phoneSearch, setPhoneSearch] = useState(false);
   useProbeAudioBinding();
@@ -841,6 +844,7 @@ export function ListenV4({
     const search = nasaSearchRequests.current;
     const asset = nasaAssetRequests.current;
     return () => {
+      if (searchDebounce.current) clearTimeout(searchDebounce.current);
       search.abort();
       asset.abort();
     };
@@ -1075,10 +1079,10 @@ export function ListenV4({
     }
   };
 
-  const searchNASA = async (term = query) => {
+  const searchNASA = async (term = query, commitQuery = true) => {
     const clean = term.trim();
     setUploadError("");
-    setQuery(clean);
+    if (commitQuery) setQuery(clean);
     const place = placeMatch(clean);
     if (place) {
       setSource(MAP_SOURCE);
@@ -1088,11 +1092,15 @@ export function ListenV4({
     }
     if (clean.length < 2) {
       nasaSearchRequests.current.abort();
-      setStatus("Enter at least two characters to search NASA media.");
+      setSearching(false);
+      setResults([]);
+      setResultsOpen(false);
+      setStatus(commitQuery ? "Enter at least two characters to search NASA media." : "");
       return;
     }
     const ticket = nasaSearchRequests.current.start();
     setResultsOpen(true);
+    setSearching(true);
     setStatus("");
     try {
       const response = await fetch(`/api/listen/nasa?q=${encodeURIComponent(clean)}&type=image,video`, { signal: ticket.signal });
@@ -1101,6 +1109,7 @@ export function ListenV4({
       if (!response.ok) throw new Error(body.error ?? "Search failed.");
       const items = body.items ?? [];
       setResults(items);
+      setSearching(false);
       if (!items.length) {
         setResultsOpen(false);
         setStatus(`No NASA media for “${clean}”.`);
@@ -1109,9 +1118,33 @@ export function ListenV4({
       }
     } catch (error) {
       if (isAbortError(error) || !nasaSearchRequests.current.isCurrent(ticket.id)) return;
+      setSearching(false);
       setResults([]);
       setStatus(error instanceof Error ? error.message : "NASA search failed.");
     }
+  };
+
+  const onQueryChange = (value: string) => {
+    setQuery(value);
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    const clean = value.trim();
+    if (clean.length < 2) {
+      nasaSearchRequests.current.abort();
+      setSearching(false);
+      setResults([]);
+      setResultsOpen(false);
+      setStatus("");
+      return;
+    }
+    setSearching(true);
+    searchDebounce.current = setTimeout(() => {
+      void searchNASA(value, false);
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  const submitSearch = () => {
+    if (searchDebounce.current) clearTimeout(searchDebounce.current);
+    void searchNASA(query, true);
   };
 
   const chooseHit = async (item: NasaHit) => {
@@ -1315,7 +1348,7 @@ export function ListenV4({
           role="search"
           onSubmit={(event) => {
             event.preventDefault();
-            void searchNASA();
+            submitSearch();
           }}
         >
           <ChamferMark />
@@ -1329,15 +1362,15 @@ export function ListenV4({
               type="search"
               value={query}
               placeholder={phoneSearch ? "Search NASA media…" : "Search NASA images, videos or a place..."}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => onQueryChange(event.target.value)}
             />
           </div>
         </form>
         {resultsOpen ? (
-          <div className="lv-results lv-cut" role="region" aria-label="NASA search results">
+          <div className="lv-results lv-cut" role="region" aria-label="NASA search results" aria-busy={searching}>
             <ChamferMark />
             <div className="lv-layer-head">
-              <p className="lv-mono lv-eyebrow">{results.length} RESULTS</p>
+              <p className="lv-mono lv-eyebrow">{searching ? "SEARCHING" : `${results.length} RESULTS`}</p>
               <button type="button" className="lv-results-close lv-cut" aria-label="Close results" onClick={() => setResultsOpen(false)}>
                 <ChamferMark />
                 <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">

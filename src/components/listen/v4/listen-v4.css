@@ -1590,6 +1590,29 @@
     color: var(--lv-ink);
     --lv-stroke: var(--lv-stroke-3);
   }
+
+  /* 58svh ignores the nav, the search block, the data-layer row under the
+     list, and the fixed tab bar, so the panel crosses HISTORY / SAVED. */
+  .lv-search-stack:has(.lv-results) {
+    --lv-column-tail: calc(12px + 1.5rem + 44px);
+    max-height: max(0px, calc(100svh - var(--lv-nav-space) - var(--lv-column-tail) - var(--lv-tab-space) - 16px));
+    max-height: max(0px, calc(100dvh - var(--lv-nav-space) - var(--lv-column-tail) - var(--lv-tab-space) - 16px));
+    min-height: 0;
+  }
+
+  .lv-results {
+    --lv-search-lead: calc(44px + 1rem + 5.75rem);
+    --lv-column-tail: calc(12px + 1.5rem + 44px);
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: max(0px, calc(100svh - var(--lv-nav-space) - var(--lv-search-lead) - var(--lv-column-tail) - var(--lv-tab-space) - 16px));
+    max-height: max(0px, calc(100dvh - var(--lv-nav-space) - var(--lv-search-lead) - var(--lv-column-tail) - var(--lv-tab-space) - 16px));
+  }
+
+  .lv-results-list {
+    overscroll-behavior: contain;
+    padding-bottom: 8px;
+  }
 }
 
 @media (max-width: 699px) {
