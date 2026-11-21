@@ -76,7 +76,7 @@ async function playSeriesPitch(frequency: number, durationMs: number, onError?: 
     if (!seriesSynth) {
       seriesSynth = new Tone.Synth({
         oscillator: { type: "triangle" },
-        envelope: { attack: 0.008, decay: 0.05, sustain: 0.18, release: 0.08 },
+        envelope: { attack: 0.012, decay: 0.03, sustain: 0.82, release: 0.06 },
       }).toDestination();
       seriesSynth.volume.value = -6;
     }
@@ -163,9 +163,10 @@ function queueSeries(clip: ResultClip, elapsed: number, onError?: () => void): n
   pitches.forEach((frequency, index) => {
     const at = index * gap;
     if (elapsed > at + 24) return;
+    const hold = index === pitches.length - 1 ? RESULT_REPLAY_MS - at : gap;
     timers.push(
       window.setTimeout(() => {
-        void playSeriesPitch(frequency, gap * 0.82, onError);
+        void playSeriesPitch(frequency, hold, onError);
       }, Math.max(0, at - elapsed)),
     );
   });
