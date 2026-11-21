@@ -540,9 +540,14 @@
 }
 
 .stage[data-layout="phone"] .inquiry {
-  top: 70px;
-  right: clamp(16px, 5vw, 24px);
-  max-width: 46%;
+  top: 108px;
+  right: auto;
+  left: clamp(16px, 5vw, 24px);
+  max-width: calc(100% - clamp(32px, 10vw, 48px));
+}
+
+.stage[data-layout="phone"] .placeholder {
+  white-space: normal;
 }
 
 .stage[data-layout="phone"] .listWrap {
