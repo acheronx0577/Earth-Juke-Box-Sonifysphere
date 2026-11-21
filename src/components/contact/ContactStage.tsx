@@ -144,8 +144,11 @@ export function ContactStage() {
     };
 
     const resize = () => {
-      const rect = stage.getBoundingClientRect();
-      deck.resize(rect.width, rect.height, phone);
+      const canvas = stage.querySelector("canvas");
+      const box = canvas?.getBoundingClientRect();
+      const width = box && box.width > 2 ? box.width : stage.clientWidth;
+      const height = box && box.height > 2 ? box.height : stage.clientHeight;
+      deck.resize(width, height, phone);
     };
     resize();
 
