@@ -2,13 +2,35 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
+import { ChamferMark } from "@/components/listen/ChamferMark";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
 import styles from "./ribbons.module.css";
 
 const VW = 1480;
-const VH = 620;
 const BASE = 548;
 const XS = [150, 350, 550, 750, 950, 1150, 1350];
+/** One pass of the curve, in seconds. The buffer and the transport share this length. */
+const CYCLE = 2;
+/** Tail of each cycle that glides the last pitch back to the first so the join is continuous. */
+const GLIDE = 0.045;
+
+const SEASONS = ["Spring", "Summer", "Autumn", "Winter"] as const;
+type SeasonName = (typeof SEASONS)[number];
+
+const SEASON_OF: Record<string, SeasonName> = {
+  Jan: "Winter",
+  Feb: "Winter",
+  Mar: "Spring",
+  Apr: "Spring",
+  May: "Spring",
+  Jun: "Summer",
+  Jul: "Summer",
+  Aug: "Summer",
+  Sep: "Autumn",
+  Oct: "Autumn",
+  Nov: "Autumn",
+  Dec: "Winter",
+};
 
 interface RibbonPattern {
   readonly id: string;
@@ -24,7 +46,7 @@ interface RibbonPattern {
 }
 
 const HOW =
-  "Each point plays a pitch: higher curve, higher note. Tap the chart or use the arrow keys to move, then Check the point where the line turns.";
+  "Play the curve and leave it running. Pitch follows the line, higher where the curve is higher, and the phrase loops until you pause. Choose the season where it turns, then Check.";
 
 const PATTERNS: readonly RibbonPattern[] = [
   {
@@ -44,7 +66,7 @@ const PATTERNS: readonly RibbonPattern[] = [
     ],
     months: ["Nov", "Jan", "Mar", "May", "Jul", "Sep", "Nov"],
     turnReason: "Yes! At point 4 (late spring / May), atmospheric CO₂ crests before Northern Hemisphere photosynthesis accelerates.",
-    missHint: "Look for point 4, where the curve reaches its maximum peak before declining into the summer drawdown.",
+    missHint: "Listen for the crest, where the line stops rising and turns down into the summer drawdown.",
     infoFact: "CO₂ peaks each May, before northern forests leaf out. Keeling first measured this “inhale” on Mauna Loa in 1958.",
   },
   {
@@ -64,7 +86,7 @@ const PATTERNS: readonly RibbonPattern[] = [
     ],
     months: ["Mar", "May", "Jul", "Sep", "Nov", "Jan", "Mar"],
     turnReason: "Correct! Point 4 marks the annual September minimum extent, after which freezing resumes.",
-    missHint: "Check point 4, the deepest trough where the summer melt stops and freeze-up begins.",
+    missHint: "Listen for the trough, where the summer melt stops and the line turns back up.",
     infoFact: "The September minimum is the turn, after which the pack freezes again. NASA has tracked it since 1979.",
   },
   {
@@ -84,19 +106,38 @@ const PATTERNS: readonly RibbonPattern[] = [
     ],
     months: ["Feb", "Apr", "Jun", "Aug", "Oct", "Dec", "Feb"],
     turnReason: "Spot on! Point 4 represents the late-summer crest in upper ocean heat content before autumn cooling.",
-    missHint: "Point 4 represents the thermal peak where heat accumulation crests before releasing back to the atmosphere.",
+    missHint: "Listen for the thermal crest, where the line stops rising and turns down.",
     infoFact: "Upper-ocean heat crests in late summer, then releases to the air. Most of Earth's extra heat is stored in the ocean.",
   },
 ];
 
-const SEASONS = ["Spring", "Summer", "Autumn", "Winter"] as const;
-
-function clip(cut: number) {
-  return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
-}
-
 function freqForCoord(y: number): number {
   return Math.round(220 + (220 - y) * 2.8);
+}
+
+function answerSeason(pattern: RibbonPattern): SeasonName {
+  return SEASON_OF[pattern.months[pattern.turnIndex]] ?? (pattern.defaultSeason as SeasonName);
+}
+
+function cellEdge(index: number, side: "left" | "right"): number {
+  const gap = XS[1] - XS[0];
+  if (side === "left") return index <= 0 ? XS[0] - gap / 2 : (XS[index - 1] + XS[index]) / 2;
+  return index >= XS.length - 1 ? XS[index] + gap / 2 : (XS[index] + XS[index + 1]) / 2;
+}
+
+function seasonSpans(months: readonly string[], season: string): Array<[number, number]> {
+  const groups: Array<[number, number]> = [];
+  let start = -1;
+  months.forEach((month, index) => {
+    const on = SEASON_OF[month] === season;
+    if (on && start < 0) start = index;
+    const closes = start >= 0 && (!on || index === months.length - 1);
+    if (!closes) return;
+    const end = on ? index : index - 1;
+    groups.push([cellEdge(start, "left"), cellEdge(end, "right")]);
+    start = -1;
+  });
+  return groups;
 }
 
 function directionWord(index: number, turn: number): string {
@@ -105,7 +146,7 @@ function directionWord(index: number, turn: number): string {
   return "FALLING";
 }
 
-function monotone(points: readonly [number, number][]): string {
+function tangents(points: readonly [number, number][]): number[] {
   const n = points.length;
   const dx: number[] = [];
   const slope: number[] = [];
@@ -134,12 +175,75 @@ function monotone(points: readonly [number, number][]): string {
       }
     }
   }
+  return m;
+}
+
+function cubicAt(points: readonly [number, number][], slope: readonly number[], index: number, t: number): [number, number] {
+  const p0 = points[index];
+  const p1 = points[index + 1];
+  const dx = p1[0] - p0[0];
+  const c1x = p0[0] + dx / 3;
+  const c1y = p0[1] + (slope[index] * dx) / 3;
+  const c2x = p1[0] - dx / 3;
+  const c2y = p1[1] - (slope[index + 1] * dx) / 3;
+  const mt = 1 - t;
+  return [
+    mt * mt * mt * p0[0] + 3 * mt * mt * t * c1x + 3 * mt * t * t * c2x + t * t * t * p1[0],
+    mt * mt * mt * p0[1] + 3 * mt * mt * t * c1y + 3 * mt * t * t * c2y + t * t * t * p1[1],
+  ];
+}
+
+function sampleCurve(points: readonly [number, number][], t: number): [number, number] {
+  const n = points.length;
+  if (t <= 0) return [points[0][0], points[0][1]];
+  if (t >= 1) return [points[n - 1][0], points[n - 1][1]];
+  const slope = tangents(points);
+  const x = t * (n - 1);
+  const index = Math.min(n - 2, Math.floor(x));
+  return cubicAt(points, slope, index, x - index);
+}
+
+function forwardT(u: number): number {
+  const body = 1 - GLIDE;
+  return u >= body ? 1 : u / body;
+}
+
+function freqAt(raw: readonly [number, number][], u: number): number {
+  const wrapped = ((u % 1) + 1) % 1;
+  const body = 1 - GLIDE;
+  const start = freqForCoord(raw[0][1]);
+  const end = freqForCoord(raw[raw.length - 1][1]);
+  if (wrapped >= body) return end + (start - end) * ((wrapped - body) / GLIDE);
+  return freqForCoord(sampleCurve(raw, wrapped / body)[1]);
+}
+
+/** Sine cycle whose phase advances by a whole number of turns, so the loop point matches. */
+function fillSeamless(channel: Float32Array, raw: readonly [number, number][], sampleRate: number) {
+  const length = channel.length;
+  let phase = 0;
+  const step = new Float64Array(length);
+  for (let i = 0; i < length; i += 1) {
+    step[i] = (2 * Math.PI * freqAt(raw, i / length)) / sampleRate;
+    phase += step[i];
+  }
+  const turns = phase / (2 * Math.PI);
+  const scale = Math.max(1, Math.round(turns)) / turns;
+  phase = 0;
+  for (let i = 0; i < length; i += 1) {
+    channel[i] = Math.sin(phase) * 0.55;
+    phase += step[i] * scale;
+  }
+}
+
+function monotone(points: readonly [number, number][]): string {
+  const n = points.length;
+  const slope = tangents(points);
+  const dx: number[] = [];
+  for (let i = 0; i < n - 1; i += 1) dx[i] = points[i + 1][0] - points[i][0];
   let d = `M ${points[0][0]} ${points[0][1]}`;
   for (let i = 0; i < n - 1; i += 1) {
-    const c1x = points[i][0] + dx[i] / 3;
-    const c1y = points[i][1] + (m[i] * dx[i]) / 3;
-    const c2x = points[i + 1][0] - dx[i] / 3;
-    const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
+    const [c1x, c1y] = [points[i][0] + dx[i] / 3, points[i][1] + (slope[i] * dx[i]) / 3];
+    const [c2x, c2y] = [points[i + 1][0] - dx[i] / 3, points[i + 1][1] - (slope[i + 1] * dx[i]) / 3];
     d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
   }
   return d;
@@ -162,6 +266,23 @@ function chartGeometry(raw: readonly [number, number][]) {
   ];
   const line = monotone(extended);
   return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
+}
+
+function uForIndex(index: number): number {
+  return (index / (XS.length - 1)) * (1 - GLIDE);
+}
+
+function nearestIndex(mapped: readonly [number, number][], x: number): number {
+  let closest = 0;
+  let best = Number.POSITIVE_INFINITY;
+  mapped.forEach((point, index) => {
+    const distance = Math.abs(point[0] - x);
+    if (distance < best) {
+      best = distance;
+      closest = index;
+    }
+  });
+  return closest;
 }
 
 function resultUrl(score: number, solved: number) {
@@ -187,56 +308,107 @@ async function copyText(value: string) {
   if (!copied) throw new Error("Clipboard access was blocked.");
 }
 
+function cutStyle(cut: number): React.CSSProperties {
+  return { ["--cut" as string]: `${cut}px` };
+}
+
+interface LoopEngine {
+  player: import("tone").Player;
+  meter: import("tone").Meter;
+  gain: import("tone").Gain;
+  duration: number;
+  patternId: string;
+  anchor: { contextTime: number; offset: number };
+}
+
 export function WaveformRibbonsGame({
   sharedResult = null,
 }: {
   readonly sharedResult?: SharedRibbonsResult | null;
 }) {
   const [patternIdx, setPatternIdx] = useState(0);
-  const [pointIdx, setPointIdx] = useState(1);
-  const [season, setSeason] = useState<string>("Spring");
+  const [headU, setHeadU] = useState(() => uForIndex(1));
+  const [season, setSeason] = useState<SeasonName | null>(null);
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(Boolean(sharedResult));
   const [infoOpen, setInfoOpen] = useState(false);
   const [live, setLive] = useState("");
+  const [verdict, setVerdict] = useState<"idle" | "choice" | "correct" | "wrong" | "empty">("idle");
   const [shareNote, setShareNote] = useState("");
   const chartRef = useRef<SVGSVGElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(null);
   const eqRef = useRef<HTMLSpanElement | null>(null);
-  const previewRef = useRef<(freq: number) => void>(() => {});
   const toneRef = useRef<typeof import("tone") | null>(null);
-  const synthRef = useRef<import("tone").Synth | null>(null);
   const chimeRef = useRef<import("tone").Synth | null>(null);
-  const meterRef = useRef<import("tone").Meter | null>(null);
-  const tokenRef = useRef(0);
-  const timersRef = useRef<number[]>([]);
+  const engineRef = useRef<LoopEngine | null>(null);
+  const buildingRef = useRef<Promise<LoopEngine> | null>(null);
+  const playingRef = useRef(false);
+  const headRef = useRef(uForIndex(1));
+  const patternRef = useRef(PATTERNS[0]);
+  const cycleRef = useRef(0);
+  const prevURef = useRef(0);
+  const gateRef = useRef({ starts: 0, stops: 0 });
+  const playToken = useRef(0);
+  const wantPlay = useRef(false);
   const [audio, setAudio] = useState<"idle" | "playing">("idle");
   const [toneState, setToneState] = useState("suspended");
+  const [transportState, setTransportState] = useState("stopped");
+  const [looping, setLooping] = useState(false);
+  const [cycle, setCycle] = useState(0);
+  const [gate, setGate] = useState({ starts: 0, stops: 0 });
   const [cue, setCue] = useState("");
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
 
   const pattern = PATTERNS[patternIdx] ?? PATTERNS[0];
+  patternRef.current = pattern;
+  headRef.current = headU;
   const geometry = chartGeometry(pattern.points);
-  const point = geometry.mapped[pointIdx] ?? geometry.mapped[0];
+  const posePoint = sampleCurve(geometry.mapped, forwardT(headU));
+  const pointIdx = nearestIndex(geometry.mapped, posePoint[0]);
   const freq = freqForCoord(pattern.points[pointIdx]?.[1] ?? 160);
   const month = pattern.months[pointIdx] ?? "";
   const direction = directionWord(pointIdx, pattern.turnIndex);
   const valueText = `${month}, ${direction.toLowerCase()}, ${freq} hertz`;
+  const spans = season ? seasonSpans(pattern.months, season) : [];
+  const answer = answerSeason(pattern);
 
-  const moveTo = useCallback(
-    (next: number, announce = true) => {
-      const clamped = Math.max(0, Math.min(pattern.points.length - 1, next));
-      setPointIdx(clamped);
-      const y = pattern.points[clamped]?.[1];
-      if (y !== undefined) previewRef.current(freqForCoord(y));
-      if (announce) setLive("");
-    },
-    [pattern.points],
-  );
+  const publishGate = (next: { starts: number; stops: number }) => {
+    gateRef.current = next;
+    setGate(next);
+    if (rootRef.current) {
+      rootRef.current.dataset.starts = String(next.starts);
+      rootRef.current.dataset.stops = String(next.stops);
+    }
+  };
+
+  const readOffset = () => {
+    const engine = engineRef.current;
+    const Tone = toneRef.current;
+    if (!engine) return headRef.current * CYCLE;
+    if (!playingRef.current || !Tone) return engine.anchor.offset;
+    const elapsed = Tone.now() - engine.anchor.contextTime;
+    const duration = engine.duration;
+    return ((engine.anchor.offset + elapsed) % duration + duration) % duration;
+  };
+
+  const moveTo = useCallback((next: number) => {
+    const clamped = Math.max(0, Math.min(XS.length - 1, next));
+    const u = uForIndex(clamped);
+    setHeadU(u);
+    headRef.current = u;
+    const engine = engineRef.current;
+    const Tone = toneRef.current;
+    if (!engine || !Tone || !playingRef.current) return;
+    const offset = u * engine.duration;
+    const now = Tone.now();
+    engine.anchor.offset = offset;
+    engine.anchor.contextTime = now;
+    engine.player.seek(offset, now);
+  }, []);
 
   useEffect(() => {
     if (!infoOpen) return;
@@ -250,29 +422,31 @@ export function WaveformRibbonsGame({
     return () => document.removeEventListener("keydown", onKey);
   }, [infoOpen]);
 
-  const clearTimers = () => {
-    timersRef.current.forEach((id) => window.clearTimeout(id));
-    timersRef.current = [];
+  const releaseEngine = () => {
+    const Tone = toneRef.current;
+    const engine = engineRef.current;
+    playingRef.current = false;
+    if (Tone) {
+      const transport = Tone.getTransport();
+      if (transport.state === "started") transport.pause();
+      transport.loop = false;
+    }
+    engine?.player.stop();
+    engine?.player.dispose();
+    engine?.meter.dispose();
+    engine?.gain.dispose();
+    engineRef.current = null;
+    setLooping(false);
+    setAudio("idle");
   };
 
-  const arm = async () => {
+  const armTone = async () => {
     const Tone = toneRef.current ?? (await import("tone"));
     toneRef.current = Tone;
     await Tone.start();
     const state = Tone.getContext().state;
     setToneState(state);
     if (rootRef.current) rootRef.current.dataset.tone = state;
-    if (!synthRef.current) {
-      const synth = new Tone.Synth({
-        oscillator: { type: "sine" },
-        envelope: { attack: 0.02, decay: 0.1, sustain: 0.4, release: 0.16 },
-      }).toDestination();
-      synth.volume.value = -6;
-      const meter = new Tone.Meter({ normalRange: true, smoothing: 0.4 });
-      synth.connect(meter);
-      synthRef.current = synth;
-      meterRef.current = meter;
-    }
     if (!chimeRef.current) {
       const chimeVoice = new Tone.Synth({
         oscillator: { type: "triangle" },
@@ -284,50 +458,123 @@ export function WaveformRibbonsGame({
     return Tone;
   };
 
-  const stopPreview = () => {
-    tokenRef.current += 1;
-    clearTimers();
-    synthRef.current?.triggerRelease(toneRef.current?.now());
-    setAudio("idle");
-    setCue("Stopped.");
+  const buildEngine = async (current: RibbonPattern): Promise<LoopEngine> => {
+    const Tone = await armTone();
+    const raw = Tone.getContext().rawContext;
+    const sampleRate = raw.sampleRate;
+    const length = Math.round(sampleRate * CYCLE);
+    const buffer = raw.createBuffer(1, length, sampleRate);
+    fillSeamless(buffer.getChannelData(0), current.points, sampleRate);
+    const player = new Tone.Player(buffer);
+    player.loop = true;
+    player.fadeIn = 0;
+    player.fadeOut = 0;
+    const gain = new Tone.Gain(0.9).toDestination();
+    const meter = new Tone.Meter({ normalRange: true, smoothing: 0.18 });
+    player.connect(gain);
+    player.connect(meter);
+    const transport = Tone.getTransport();
+    transport.bpm.value = 120;
+    transport.loop = true;
+    transport.loopStart = 0;
+    transport.loopEnd = buffer.duration;
+    const engine: LoopEngine = {
+      player,
+      meter,
+      gain,
+      duration: buffer.duration,
+      patternId: current.id,
+      anchor: { contextTime: 0, offset: headRef.current * buffer.duration },
+    };
+    engineRef.current = engine;
+    return engine;
   };
 
-  const preview = async (freq: number) => {
-    const token = (tokenRef.current += 1);
+  const ensureEngine = async () => {
+    const current = patternRef.current;
+    const existing = engineRef.current;
+    if (existing && existing.patternId === current.id) return existing;
+    if (existing) releaseEngine();
+    if (!buildingRef.current) {
+      buildingRef.current = buildEngine(current).finally(() => {
+        buildingRef.current = null;
+      });
+    }
+    return buildingRef.current;
+  };
+
+  const pauseLoop = () => {
+    const engine = engineRef.current;
+    const Tone = toneRef.current;
+    if (!engine || !Tone) return;
+    const offset = readOffset();
+    engine.anchor.offset = offset;
+    playingRef.current = false;
+    engine.player.stop(Tone.now());
+    const transport = Tone.getTransport();
+    if (transport.state === "started") transport.pause();
+    setHeadU(offset / engine.duration);
+    setAudio("idle");
+    setTransportState(transport.state);
+    setCue("Paused.");
+    if (rootRef.current) rootRef.current.dataset.audio = "idle";
+  };
+
+  const playLoop = async (token: number) => {
     try {
-      const Tone = await arm();
-      if (tokenRef.current !== token) return;
-      clearTimers();
-      synthRef.current?.triggerAttack(freq, Tone.now());
+      const engine = await ensureEngine();
+      const Tone = toneRef.current;
+      if (!Tone || playToken.current !== token || !wantPlay.current) return;
+      const now = Tone.now();
+      const offset = Math.min(engine.duration - 0.001, Math.max(0, headRef.current * engine.duration));
+      engine.anchor.offset = offset;
+      engine.anchor.contextTime = now;
+      prevURef.current = offset / engine.duration;
+      engine.player.start(now, offset);
+      const transport = Tone.getTransport();
+      transport.loop = true;
+      transport.loopStart = 0;
+      transport.loopEnd = engine.duration;
+      if (transport.state !== "started") transport.start(now, offset);
+      if (playToken.current !== token || !wantPlay.current) {
+        engine.player.stop(Tone.now());
+        if (transport.state === "started") transport.pause();
+        return;
+      }
+      playingRef.current = true;
+      wantPlay.current = false;
       setAudio("playing");
-      setCue(`Playing ${freq} hertz.`);
-      timersRef.current.push(
-        window.setTimeout(() => {
-          if (tokenRef.current !== token) return;
-          synthRef.current?.triggerRelease(Tone.now());
-          timersRef.current.push(
-            window.setTimeout(() => {
-              if (tokenRef.current !== token) return;
-              setAudio("idle");
-              setCue("Stopped.");
-            }, 200),
-          );
-        }, 900),
-      );
+      setLooping(true);
+      setTransportState(transport.state);
+      setCue("Playing the curve.");
+      if (rootRef.current) {
+        rootRef.current.dataset.audio = "playing";
+        rootRef.current.dataset.loop = "true";
+        rootRef.current.dataset.playerLoop = "true";
+      }
     } catch {
-      if (tokenRef.current !== token) return;
+      if (playToken.current !== token) return;
+      wantPlay.current = false;
+      playingRef.current = false;
       setAudio("idle");
-      setCue("The preview did not play.");
+      setCue("The curve did not play.");
     }
   };
 
-  previewRef.current = (nextFreq: number) => {
-    void preview(nextFreq);
+  const togglePlay = () => {
+    if (playingRef.current || wantPlay.current) {
+      wantPlay.current = false;
+      pauseLoop();
+      return;
+    }
+    wantPlay.current = true;
+    const token = (playToken.current += 1);
+    void playLoop(token);
   };
 
   const chime = async () => {
     try {
-      const Tone = await arm();
+      const Tone = await armTone();
       chimeRef.current?.triggerAttackRelease(587.33, 0.14, Tone.now());
       chimeRef.current?.triggerAttackRelease(880, 0.28, Tone.now() + 0.15);
     } catch {
@@ -336,16 +583,39 @@ export function WaveformRibbonsGame({
   };
 
   useEffect(() => {
+    let cancelled = false;
+    let detach = () => {};
+    void import("tone").then((Tone) => {
+      if (cancelled) return;
+      toneRef.current = Tone;
+      const transport = Tone.getTransport();
+      const onStart = () => publishGate({ starts: gateRef.current.starts + 1, stops: gateRef.current.stops });
+      const onStop = () => publishGate({ starts: gateRef.current.starts, stops: gateRef.current.stops + 1 });
+      transport.on("start", onStart);
+      transport.on("stop", onStop);
+      detach = () => {
+        transport.off("start", onStart);
+        transport.off("stop", onStop);
+      };
+    });
     return () => {
-      clearTimers();
-      synthRef.current?.dispose();
+      cancelled = true;
+      detach();
+      releaseEngine();
       chimeRef.current?.dispose();
-      meterRef.current?.dispose();
-      synthRef.current = null;
       chimeRef.current = null;
-      meterRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (engine && engine.patternId !== pattern.id) {
+      releaseEngine();
+      cycleRef.current = 0;
+      setCycle(0);
+      if (rootRef.current) rootRef.current.dataset.cycle = "0";
+    }
+  }, [pattern.id]);
 
   useEffect(() => {
     if (audio !== "playing") {
@@ -355,13 +625,36 @@ export function WaveformRibbonsGame({
     }
     let frame = 0;
     const tick = () => {
-      const value = meterRef.current?.getValue();
+      const engine = engineRef.current;
+      const Tone = toneRef.current;
+      const value = engine?.meter.getValue();
       const level = typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
       eqRef.current?.style.setProperty("--level", level.toFixed(3));
-      if (rootRef.current) {
-        rootRef.current.dataset.meter = level.toFixed(3);
-        const state = toneRef.current?.getContext().state;
-        if (state) rootRef.current.dataset.tone = state;
+      if (engine && Tone && playingRef.current) {
+        const offset = readOffset();
+        const u = offset / engine.duration;
+        const previous = prevURef.current;
+        if (previous > 0.85 && u < 0.2) {
+          cycleRef.current += 1;
+          setCycle(cycleRef.current);
+        }
+        prevURef.current = u;
+        if (Math.abs(u - headRef.current) > 0.0015) setHeadU(u);
+        const transport = Tone.getTransport();
+        const contextState = Tone.getContext().state;
+        if (rootRef.current) {
+          rootRef.current.dataset.meter = level.toFixed(3);
+          rootRef.current.dataset.tone = contextState;
+          rootRef.current.dataset.transport = transport.state;
+          rootRef.current.dataset.loop = String(Boolean(transport.loop) && engine.player.loop);
+          rootRef.current.dataset.playerLoop = String(engine.player.loop);
+          rootRef.current.dataset.cycle = String(cycleRef.current);
+          rootRef.current.dataset.head = u.toFixed(4);
+          rootRef.current.dataset.starts = String(gateRef.current.starts);
+          rootRef.current.dataset.stops = String(gateRef.current.stops);
+        }
+        setToneState((current) => (current === contextState ? current : contextState));
+        setTransportState((current) => (current === transport.state ? current : transport.state));
       }
       frame = window.requestAnimationFrame(tick);
     };
@@ -370,12 +663,13 @@ export function WaveformRibbonsGame({
   }, [audio]);
 
   const onChartKey = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    const current = nearestIndex(geometry.mapped, sampleCurve(geometry.mapped, forwardT(headRef.current))[0]);
     if (event.key === "ArrowRight") {
       event.preventDefault();
-      moveTo(pointIdx + 1);
+      moveTo(current + 1);
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      moveTo(pointIdx - 1);
+      moveTo(current - 1);
     } else if (event.key === "Home") {
       event.preventDefault();
       moveTo(0);
@@ -403,30 +697,53 @@ export function WaveformRibbonsGame({
     svg.focus();
   };
 
+  const chooseSeason = (name: SeasonName) => {
+    setSeason(name);
+    setVerdict("choice");
+    setLive(`${name} selected.`);
+  };
+
   const check = () => {
-    const correct = pointIdx === pattern.turnIndex;
-    setLive(correct ? pattern.turnReason : pattern.missHint);
-    if (!correct) return;
+    if (!season) {
+      setVerdict("empty");
+      setLive("Pick the season where the curve turns.");
+      return;
+    }
+    const correct = season === answer;
+    if (!correct) {
+      setVerdict("wrong");
+      setLive(`${season} is not where it turns. ${pattern.missHint}`);
+      return;
+    }
+    setVerdict("correct");
+    setLive(pattern.turnReason);
     void chime();
+    if (playingRef.current) pauseLoop();
     setScore((value) => value + 100);
     if (patternIdx < PATTERNS.length - 1) {
       const next = patternIdx + 1;
       setPatternIdx(next);
-      setPointIdx(1);
-      setSeason(PATTERNS[next].defaultSeason);
+      setHeadU(uForIndex(1));
+      headRef.current = uForIndex(1);
+      setSeason(null);
       setInfoOpen(false);
+      setVerdict("idle");
     } else {
-      stopPreview();
       setIsComplete(true);
     }
   };
 
   const restart = () => {
+    releaseEngine();
+    cycleRef.current = 0;
+    setCycle(0);
     setPatternIdx(0);
-    setPointIdx(1);
-    setSeason(PATTERNS[0].defaultSeason);
+    setHeadU(uForIndex(1));
+    headRef.current = uForIndex(1);
+    setSeason(null);
     setScore(0);
     setLive("");
+    setVerdict("idle");
     setShareNote("");
     setIsComplete(false);
   };
@@ -466,6 +783,8 @@ export function WaveformRibbonsGame({
     setShareNote("Result image downloaded.");
   };
 
+  const tipShift = posePoint[0] / VW < 0.16 ? "0%" : posePoint[0] / VW > 0.84 ? "-100%" : "-50%";
+
   if (isComplete) {
     const displayScore = sharedResult ? sharedResult.totalScore : score;
     const solved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
@@ -485,10 +804,9 @@ export function WaveformRibbonsGame({
           </div>
         </header>
         <div className={styles.result} data-testid="ribbons-result">
-          <span className={styles.shell} style={{ clipPath: clip(8) }} aria-hidden="true">
-            <span className={styles.face} style={{ clipPath: clip(8), width: 44, height: 44 }}>
-              ✓
-            </span>
+          <span className={`${styles.frame} ${styles.mark} lv-cut`} style={cutStyle(8)} aria-hidden="true">
+            <ChamferMark />
+            <span className={styles.frameFace}>✓</span>
           </span>
           <h1>Harmonics aligned</h1>
           <div className={styles.ribbons}>
@@ -509,16 +827,14 @@ export function WaveformRibbonsGame({
             })}
           </div>
           {sharedResult ? (
-            <Link href="/challenge/ribbons" className={styles.shell} style={{ clipPath: clip(10), background: "#f2f2f0", textDecoration: "none" }}>
-              <span className={styles.face} style={{ clipPath: clip(10), background: "#f2f2f0", color: "#141414", minWidth: "8rem" }}>
-                Play again
-              </span>
+            <Link href="/challenge/ribbons" className={`${styles.frame} ${styles.again} lv-cut`} style={cutStyle(10)}>
+              <ChamferMark />
+              <span className={styles.frameFace}>Play again</span>
             </Link>
           ) : (
-            <button type="button" className={styles.shell} style={{ clipPath: clip(10), background: "#f2f2f0" }} onClick={restart}>
-              <span className={styles.face} style={{ clipPath: clip(10), background: "#f2f2f0", color: "#141414", minWidth: "8rem" }}>
-                Play again
-              </span>
+            <button type="button" className={`${styles.frame} ${styles.again} lv-cut`} style={cutStyle(10)} onClick={restart}>
+              <ChamferMark />
+              <span className={styles.frameFace}>Play again</span>
             </button>
           )}
           <div className={styles.links}>
@@ -545,43 +861,50 @@ export function WaveformRibbonsGame({
       data-hide-target-cursor="true"
       data-audio={audio}
       data-tone={toneState}
+      data-transport={transportState}
+      data-loop={looping ? "true" : "false"}
+      data-player-loop={looping ? "true" : "false"}
+      data-cycle={cycle}
+      data-starts={gate.starts}
+      data-stops={gate.stops}
+      data-head={headU.toFixed(4)}
     >
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <span className={styles.num}>03</span>
           <h1>{pattern.shortTitle}</h1>
           <span className={styles.infoWrap}>
-          <button
-            ref={infoRef}
-            type="button"
-            className={`${styles.shell} ${styles.info} c3-info`}
-            style={{ clipPath: clip(7) }}
-            aria-expanded={infoOpen}
-            aria-controls="ribbon-info"
-            aria-label="How this challenge works"
-            onClick={() => setInfoOpen((open) => !open)}
-          >
-            <span className={styles.face} style={{ clipPath: clip(7) }}>
-              i
-            </span>
-          </button>
-          {infoOpen ? (
-            <div
-              ref={dialogRef}
-              id="ribbon-info"
-              className={styles.popover}
-              style={{ clipPath: clip(12) }}
-              role="dialog"
-              aria-label="How it works"
-              tabIndex={-1}
+            <button
+              ref={infoRef}
+              type="button"
+              className={`${styles.frame} ${styles.info} lv-cut c3-info`}
+              style={cutStyle(7)}
+              aria-expanded={infoOpen}
+              aria-controls="ribbon-info"
+              aria-label="How this challenge works"
+              onClick={() => setInfoOpen((open) => !open)}
             >
-              <div className={styles.popoverFace} style={{ clipPath: clip(12) }}>
-                <span className={styles.num}>How it works</span>
-                <p>{HOW}</p>
-                <p>{pattern.infoFact}</p>
+              <ChamferMark />
+              <span className={styles.frameFace}>i</span>
+            </button>
+            {infoOpen ? (
+              <div
+                ref={dialogRef}
+                id="ribbon-info"
+                className={`${styles.frame} ${styles.popover} lv-cut`}
+                style={cutStyle(12)}
+                role="dialog"
+                aria-label="How it works"
+                tabIndex={-1}
+              >
+                <ChamferMark />
+                <div className={styles.frameFace}>
+                  <span className={styles.num}>How it works</span>
+                  <p>{HOW}</p>
+                  <p>{pattern.infoFact}</p>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
           </span>
         </div>
         <div className={styles.scoreSide}>
@@ -595,126 +918,140 @@ export function WaveformRibbonsGame({
       </header>
 
       <div className={`${styles.stage} c3-plot`}>
-        <svg
-          ref={chartRef}
-          className={styles.curve}
-          viewBox={`0 0 ${VW} ${VH}`}
-          preserveAspectRatio="none"
-          role="slider"
-          tabIndex={0}
-          aria-valuemin={0}
-          aria-valuemax={pattern.points.length - 1}
-          aria-valuenow={pointIdx}
-          aria-valuetext={valueText}
-          aria-label={`${pattern.shortTitle} curve`}
-          onKeyDown={onChartKey}
-          onClick={onChartClick}
-        >
-          <defs>
-            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.28" />
-              <stop offset="70%" stopColor="#f2f2f0" stopOpacity="0.05" />
-              <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
-            </linearGradient>
-            <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
-              <feGaussianBlur stdDeviation="8" />
-            </filter>
-            <clipPath id={plotClipId}>
-              <rect x="0" y="0" width={VW} height={BASE} />
-            </clipPath>
-          </defs>
-          <g clipPath={`url(#${plotClipId})`}>
-            <path d={geometry.fill} fill={`url(#${fillId})`} />
-            <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
-          </g>
-          <path className={styles.line} d={geometry.line} />
-          <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-          {XS.map((x, index) => (
-            <line key={`tick-${index}`} x1={x} y1={BASE} x2={x} y2={BASE + 8} stroke="rgba(242,242,240,0.35)" strokeWidth="1" />
-          ))}
-        </svg>
-        <div className={styles.months} aria-hidden="true">
-          {pattern.months.map((name, index) => (
-            <span key={`label-${index}`} className={index === pointIdx ? styles.monthOn : styles.month} style={{ left: `${(XS[index] / VW) * 100}%` }}>
-              {name.toUpperCase()}
-            </span>
-          ))}
-        </div>
-        <div className={styles.markerCol} style={{ left: `${(point[0] / VW) * 100}%` }} aria-hidden="true">
-          <div className={`${styles.tip} c3-tip`} style={{ clipPath: clip(6), top: `${(point[1] / VH) * 100}%` }}>
-            <span className={styles.tipFace} style={{ clipPath: clip(6) }}>
-              {month.toUpperCase()} · {direction} · {freq} HZ
-            </span>
+        <div className={styles.plot}>
+          <svg
+            ref={chartRef}
+            className={styles.curve}
+            viewBox={`0 0 ${VW} ${BASE}`}
+            preserveAspectRatio="none"
+            role="slider"
+            tabIndex={0}
+            aria-valuemin={0}
+            aria-valuemax={pattern.points.length - 1}
+            aria-valuenow={pointIdx}
+            aria-valuetext={valueText}
+            aria-label={`${pattern.shortTitle} curve`}
+            onKeyDown={onChartKey}
+            onClick={onChartClick}
+          >
+            <defs>
+              <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.28" />
+                <stop offset="70%" stopColor="#f2f2f0" stopOpacity="0.05" />
+                <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
+              </linearGradient>
+              <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
+                <feGaussianBlur stdDeviation="8" />
+              </filter>
+              <clipPath id={plotClipId}>
+                <rect x="0" y="0" width={VW} height={BASE} />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#${plotClipId})`}>
+              <path d={geometry.fill} fill={`url(#${fillId})`} />
+              <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+            </g>
+            <path className={styles.line} d={geometry.line} />
+            <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <div className={styles.markerCol} style={{ left: `${(posePoint[0] / VW) * 100}%` }} aria-hidden="true">
+            <div className={`${styles.frame} ${styles.tip} lv-cut c3-tip`} style={{ ...cutStyle(6), transform: `translate(${tipShift}, calc(-100% - 14px))`, top: `${(posePoint[1] / BASE) * 100}%` }}>
+              <ChamferMark />
+              <span className={styles.tipFace}>
+                {month.toUpperCase()} · {direction} · {freq} HZ
+              </span>
+            </div>
+            <span className={styles.stem} style={{ top: `${(posePoint[1] / BASE) * 100}%`, height: `${((BASE - posePoint[1]) / BASE) * 100}%` }} />
+            <span className={styles.ring} style={{ top: `${(posePoint[1] / BASE) * 100}%` }} />
           </div>
-          <span className={styles.stem} style={{ top: `${(point[1] / VH) * 100}%`, height: `${((BASE - point[1]) / VH) * 100}%` }} />
-          <span className={styles.ring} style={{ top: `${(point[1] / VH) * 100}%` }} />
         </div>
-      </div>
-
-      <div className={styles.controls}>
-        <p className={styles.prompt}>Where does it turn?</p>
-        <div className={styles.seasons} role="group" aria-label="Select season context">
-          {SEASONS.map((name) => {
-            const on = season === name;
+        <div className={styles.timeline}>
+          {spans.map(([x0, x1]) => (
+            <span
+              key={`bar-${x0}`}
+              className={styles.spanBar}
+              data-season-span={season ?? ""}
+              style={{ left: `${(x0 / VW) * 100}%`, width: `${((x1 - x0) / VW) * 100}%` }}
+            />
+          ))}
+          {pattern.months.map((name, index) => {
+            const inSpan = Boolean(season) && SEASON_OF[name] === season;
+            const here = index === pointIdx;
             return (
-              <button
-                key={name}
-                type="button"
-                className={`${styles.shell} c3-season${on ? " bg-[#f2f2f0]" : ""}`}
-                style={{ clipPath: clip(8) }}
-                aria-pressed={on}
-                onClick={() => setSeason(name)}
-              >
-                <span className={styles.face} style={{ clipPath: clip(8) }}>
-                  {name}
+              <span key={`label-${index}`} className={styles.monthSlot} style={{ left: `${(XS[index] / VW) * 100}%` }}>
+                <span className={inSpan || here ? styles.monthOn : styles.month} data-span={inSpan ? "true" : "false"}>
+                  {name.toUpperCase()}
                 </span>
-              </button>
+                <i className={inSpan ? styles.tickOn : styles.tick} />
+              </span>
             );
           })}
         </div>
-        <div className={styles.actions}>
-          <div className={styles.playGroup}>
-            <button
-              type="button"
-              className={`${styles.shell} ${styles.play} c3-play`}
-              style={{ clipPath: clip(8) }}
-              aria-pressed={audio === "playing"}
-              data-testid="ribbons-play"
-              aria-label={audio === "playing" ? "Pause selected point" : "Hear selected point"}
-              onClick={() => {
-                if (audio === "playing") stopPreview();
-                else void preview(freq);
-              }}
-            >
-              <span className={styles.face} style={{ clipPath: clip(8) }} aria-hidden="true">
-                {audio === "playing" ? (
-                  <svg width="12" height="12" viewBox="0 0 12 12">
-                    <path d="M2.2 1.5 H4.4 V10.5 H2.2 Z M7.6 1.5 H9.8 V10.5 H7.6 Z" fill="currentColor" />
-                  </svg>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 12 12">
-                    <path d="M3 1.5 L10 6 L3 10.5 Z" fill="currentColor" />
-                  </svg>
-                )}
-              </span>
-            </button>
-            <span ref={eqRef} className={styles.eq} data-audio={audio} data-testid="ribbons-eq" aria-hidden="true">
-              {[0.62, 1, 0.78, 0.46].map((bar) => (
-                <i key={bar} style={{ ["--bar" as string]: String(bar) }} />
-              ))}
-            </span>
-          </div>
-          <button type="button" className={`${styles.shell} ${styles.check} c3-check`} style={{ clipPath: clip(8) }} onClick={check}>
-            <span className={styles.face} style={{ clipPath: clip(8) }}>
-              Check
+      </div>
+
+      <p className={styles.feedback} role="status" aria-live="polite" data-verdict={verdict} data-testid="ribbons-feedback">
+        {live}
+        {cue ? <span className={styles.sr}> {cue}</span> : null}
+      </p>
+
+      <div className={styles.controls}>
+        <div className={styles.listen}>
+          <button
+            type="button"
+            className={`${styles.frame} ${styles.play} lv-cut c3-play${audio === "playing" ? ` ${styles.frameOn}` : ""}`}
+            style={cutStyle(8)}
+            aria-pressed={audio === "playing"}
+            data-testid="ribbons-play"
+            aria-label={audio === "playing" ? "Pause the curve" : "Play the curve"}
+            onClick={togglePlay}
+          >
+            <ChamferMark />
+            <span className={styles.frameFace} aria-hidden="true">
+              {audio === "playing" ? (
+                <svg width="13" height="13" viewBox="0 0 12 12">
+                  <path d="M2.2 1.5 H4.4 V10.5 H2.2 Z M7.6 1.5 H9.8 V10.5 H7.6 Z" fill="currentColor" />
+                </svg>
+              ) : (
+                <svg width="13" height="13" viewBox="0 0 12 12">
+                  <path d="M3 1.5 L10 6 L3 10.5 Z" fill="currentColor" />
+                </svg>
+              )}
             </span>
           </button>
+          <span ref={eqRef} className={styles.eq} data-audio={audio} data-testid="ribbons-eq" aria-hidden="true">
+            {[0.62, 1, 0.78, 0.46].map((bar) => (
+              <i key={bar} style={{ ["--bar" as string]: String(bar) }} />
+            ))}
+          </span>
         </div>
+
+        <div className={styles.answer}>
+          <p className={styles.prompt}>Where does it turn?</p>
+          <div className={styles.seasons} role="group" aria-label="Season where it turns">
+            {SEASONS.map((name) => {
+              const on = season === name;
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={`${styles.frame} ${styles.season} lv-cut c3-season${on ? ` ${styles.frameOn}` : ""}`}
+                  style={cutStyle(8)}
+                  aria-pressed={on}
+                  onClick={() => chooseSeason(name)}
+                >
+                  <ChamferMark />
+                  <span className={styles.frameFace}>{name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button type="button" className={`${styles.frame} ${styles.check} lv-cut c3-check`} style={cutStyle(8)} onClick={check}>
+          <ChamferMark />
+          <span className={styles.frameFace}>Check</span>
+        </button>
       </div>
-      <p className={styles.sr} role="status" aria-live="polite">
-        {live}
-        {cue ? ` ${cue}` : ""}
-      </p>
     </main>
   );
 }

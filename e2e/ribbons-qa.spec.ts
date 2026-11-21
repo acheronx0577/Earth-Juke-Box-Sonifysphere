@@ -122,7 +122,7 @@ test("ribbons preview runs a Tone context, meters it, and pauses", async ({ page
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/challenge/ribbons");
   const main = liveMain(page);
-  const play = main.getByRole("button", { name: "Hear selected point" });
+  const play = main.getByRole("button", { name: "Play the curve" });
   await page.evaluate(() => {
     (window as unknown as { __qaReset?: () => void }).__qaReset?.();
   });
@@ -130,15 +130,15 @@ test("ribbons preview runs a Tone context, meters it, and pauses", async ({ page
   await expect(main).toHaveAttribute("data-audio", "playing");
   await expect(main).toHaveAttribute("data-tone", "running");
   await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "playing");
-  await expect(main.getByRole("button", { name: "Pause selected point" })).toHaveAttribute("aria-pressed", "true");
+  await expect(main.getByRole("button", { name: "Pause the curve" })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(async () => Number(await main.getAttribute("data-meter"))).toBeGreaterThan(0);
   const heard = await page.evaluate(() => (window as unknown as { __qaSnap?: () => { peak: number; rows: Array<{ state: string }> } }).__qaSnap?.());
   expect(heard?.peak ?? 0).toBeGreaterThan(0);
   expect(heard?.rows.some((row) => row.state === "running")).toBe(true);
 
-  await main.getByRole("button", { name: "Pause selected point" }).click();
+  await main.getByRole("button", { name: "Pause the curve" }).click();
   await expect(main).toHaveAttribute("data-audio", "idle");
-  await expect(main.getByRole("button", { name: "Hear selected point" })).toBeVisible();
+  await expect(main.getByRole("button", { name: "Play the curve" })).toBeVisible();
   await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "idle");
   await expect.poll(async () => Number(await main.getAttribute("data-meter"))).toBe(0);
 
@@ -149,13 +149,65 @@ test("ribbons preview runs a Tone context, meters it, and pauses", async ({ page
   expect(afterBurst?.rows.length ?? 0).toBeLessThanOrEqual(Math.max(1, contextsAfterFirst));
 
   if ((await main.getAttribute("data-audio")) === "playing") {
-    await main.getByRole("button", { name: "Pause selected point" }).click();
+    await main.getByRole("button", { name: "Pause the curve" }).click();
     await expect(main).toHaveAttribute("data-audio", "idle");
   }
   const chart = main.getByRole("slider");
+  const before = await chart.getAttribute("aria-valuenow");
   await chart.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(main).toHaveAttribute("data-audio", "playing");
-  await expect(main).toHaveAttribute("data-audio", "idle", { timeout: 4000 });
+  await expect(chart).not.toHaveAttribute("aria-valuenow", before ?? "");
+  await expect(main).toHaveAttribute("data-audio", "idle");
   await expect(main.getByTestId("ribbons-eq")).toHaveAttribute("data-audio", "idle");
+});
+
+test("ribbons loop stays continuous for three cycles", async ({ page }) => {
+  await page.addInitScript(AUDIO_HOOK);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/challenge/ribbons");
+  const main = liveMain(page);
+  await main.getByRole("button", { name: "Play the curve" }).click();
+  await expect(main).toHaveAttribute("data-tone", "running");
+  await expect(main).toHaveAttribute("data-audio", "playing");
+  await expect(main).toHaveAttribute("data-loop", "true");
+  await expect(main).toHaveAttribute("data-player-loop", "true");
+  await expect(main).toHaveAttribute("data-transport", "started");
+  await expect.poll(async () => Number(await main.getAttribute("data-starts"))).toBeGreaterThan(0);
+  const starts = Number(await main.getAttribute("data-starts"));
+  const stops = Number(await main.getAttribute("data-stops"));
+  const headAtStart = Number(await main.getAttribute("data-head"));
+
+  const gaps = await page.evaluate(async () => {
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const win = window as unknown as { __qaReset?: () => void; __qaSnap?: () => { peak: number } };
+    const silent: number[] = [];
+    const started = performance.now();
+    while (performance.now() - started < 6800) {
+      win.__qaReset?.();
+      await sleep(50);
+      const peak = win.__qaSnap?.().peak ?? 0;
+      const root = document.querySelector("#main-content");
+      const elapsed = performance.now() - started;
+      if (elapsed > 250 && root instanceof HTMLElement && root.dataset.audio === "playing" && peak < 8) silent.push(Math.round(elapsed));
+    }
+    return silent;
+  });
+
+  await expect.poll(async () => Number(await main.getAttribute("data-cycle")), { timeout: 12000 }).toBeGreaterThanOrEqual(3);
+  expect(Number(await main.getAttribute("data-starts"))).toBe(starts);
+  expect(Number(await main.getAttribute("data-stops"))).toBe(stops);
+  expect(gaps, "silent windows while the loop should be sounding").toEqual([]);
+  expect(Number(await main.getAttribute("data-head"))).not.toBe(headAtStart);
+
+  await main.getByRole("button", { name: "Pause the curve" }).click();
+  await expect(main).toHaveAttribute("data-audio", "idle");
+  await expect(main).toHaveAttribute("data-transport", "paused");
+  const pausedAt = Number(await main.getAttribute("data-head"));
+  await page.waitForTimeout(400);
+  expect(Number(await main.getAttribute("data-head"))).toBeCloseTo(pausedAt, 3);
+
+  await main.getByRole("button", { name: "Play the curve" }).click();
+  await expect(main).toHaveAttribute("data-audio", "playing");
+  await expect(main).toHaveAttribute("data-transport", "started");
+  await expect.poll(async () => Number(await main.getAttribute("data-head"))).not.toBeCloseTo(pausedAt, 2);
 });

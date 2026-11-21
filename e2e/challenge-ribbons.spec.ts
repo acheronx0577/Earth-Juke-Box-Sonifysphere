@@ -24,7 +24,16 @@ test("waveform ribbons challenge plays audio, tracks points, and resolves rounds
   const summer = liveMain(page).getByRole("button", { name: "Summer" });
   await summer.click();
   await expect(summer).toHaveAttribute("aria-pressed", "true");
-  await expect(summer).toHaveClass(/bg-\[#f2f2f0\]/);
+  await expect(summer).toHaveCSS("background-color", "rgb(242, 242, 240)");
+  await expect(liveMain(page).locator("[data-season-span]").first()).toBeVisible();
+
+  await liveMain(page).getByRole("button", { name: "Check" }).click();
+  await expect(liveMain(page).getByRole("status")).toContainText("not where it turns");
+
+  const spring = liveMain(page).getByRole("button", { name: "Spring" });
+  await spring.click();
+  await expect(spring).toHaveAttribute("aria-pressed", "true");
+  await expect(summer).toHaveAttribute("aria-pressed", "false");
 
   const info = liveMain(page).getByRole("button", { name: "How this challenge works" });
   await info.click();
@@ -36,18 +45,21 @@ test("waveform ribbons challenge plays audio, tracks points, and resolves rounds
   await moveToTurn(page);
   await expect(liveMain(page).getByRole("slider")).toHaveAttribute("aria-valuetext", /May, turn/i);
 
-  await liveMain(page).getByRole("button", { name: /Hear selected point/ }).click();
+  await liveMain(page).getByRole("button", { name: /Play the curve/ }).click();
   await liveMain(page).getByRole("button", { name: "Check" }).click();
   await expect(liveMain(page).getByRole("status")).toContainText("Yes!");
 
   await expect(liveMain(page).getByRole("heading", { name: "Sea Ice" })).toBeVisible();
   await expect(liveMain(page).getByRole("group", { name: "Pattern 2 of 3" })).toBeVisible();
+  await expect(liveMain(page).getByRole("button", { name: "Autumn" })).toHaveAttribute("aria-pressed", "false");
   await moveToTurn(page);
+  await liveMain(page).getByRole("button", { name: "Autumn" }).click();
   await liveMain(page).getByRole("button", { name: "Check" }).click();
   await expect(liveMain(page).getByRole("status")).toContainText("Correct!");
 
   await expect(liveMain(page).getByRole("heading", { name: "Ocean Heat" })).toBeVisible();
   await moveToTurn(page);
+  await liveMain(page).getByRole("button", { name: "Summer" }).click();
   await liveMain(page).getByRole("button", { name: "Check" }).click();
   await expect(page.getByTestId("ribbons-result")).toBeVisible();
   await expect(liveMain(page).getByRole("heading", { name: "Harmonics aligned" })).toBeVisible();
