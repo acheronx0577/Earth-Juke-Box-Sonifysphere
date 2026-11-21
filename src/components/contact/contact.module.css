@@ -254,12 +254,15 @@
 
 .phantom {
   visibility: hidden;
+  padding-inline: 0.08em;
 }
 
 .strip {
   position: absolute;
   left: 0;
   top: 0;
+  padding-inline: 0.08em;
+  box-sizing: content-box;
 }
 
 .slot span {
