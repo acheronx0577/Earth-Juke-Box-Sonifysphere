@@ -1778,7 +1778,7 @@
   .actionsShell {
     --cut: 10px;
     display: flex;
-    width: max-content;
+    width: 100%;
     max-width: 100%;
     padding: 1.5px;
     background: #555555;
@@ -1796,12 +1796,11 @@
 
   .actionsFace {
     --cut: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-    justify-content: center;
-    width: max-content;
-    max-width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: clamp(8px, 1.6svh, 12px);
+    width: 100%;
+    padding: clamp(10px, 1.8svh, 14px);
     background: #1c1c1c;
     clip-path: polygon(
       var(--cut) 0,
@@ -1815,46 +1814,52 @@
     );
   }
 
-  .cluster {
+  .cluster,
+  .pair {
     display: contents;
   }
 
   .ring.sourcesNarrow {
-    display: inline-flex;
-    order: 1;
+    display: flex;
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .playWide {
-    order: 2;
-    grid-column: auto;
-    justify-self: auto;
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
     width: auto;
   }
 
-  .pair {
+  .shareSlot {
     display: flex;
-    flex: none;
-    flex-wrap: nowrap;
-    order: 3;
+    grid-column: 3;
+    grid-row: 1;
+    width: auto;
+    min-width: 0;
   }
 
-  .shareSlot,
-  .nextSlot {
-    width: max-content;
-    min-width: max-content;
-    justify-self: auto;
+  .linkSlot.nextSlot.narrowTab {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
   }
 
-  .hearWide {
-    order: 4;
-    grid-column: auto;
-    justify-self: auto;
-    width: max-content;
+  .linkSlot.hearWide {
+    display: none;
   }
 
   .actions .ring,
   .actions .linkSlot {
-    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .actions .linkSlot > .ring {
+    width: 100%;
   }
 
   .actions .ring {
@@ -1862,19 +1867,20 @@
   }
 
   .actions .shell {
-    background: transparent;
-    padding: 0;
-  }
-
-  .actions .primary {
-    padding: 1.5px;
+    width: 100%;
     background: #555555;
+    padding: 1.5px;
   }
 
   .actions .face,
   .actions .linkFace {
-    background: #1c1c1c;
-    padding-inline: clamp(0.55rem, 2.4vw, 0.9rem);
+    width: 100%;
+    min-height: 44px;
+    height: 100%;
+    background: #141414;
+    padding-inline: clamp(0.25rem, 1.2vw, 0.7rem);
+    font-size: clamp(11px, 3.2vw, 13px);
+    letter-spacing: 0.04em;
     white-space: nowrap;
   }
 

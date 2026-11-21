@@ -449,7 +449,7 @@ export function GuessResults({
           </span>
         </div>
         <div className={styles.cluster}>
-          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.wideTab}`} href={listenHref}>
+          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.wideTab}`} href={listenHref} aria-hidden={phone || undefined} tabIndex={phone ? -1 : undefined}>
             <span className={styles.ring}>
               <span className={styles.linkFace}>
                 Hear the real data
@@ -465,7 +465,7 @@ export function GuessResults({
               </span>
             </span>
           </Link>
-          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.narrowTab}`} href={listenHref}>
+          <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.narrowTab}`} href={listenHref} aria-hidden={phone || undefined} tabIndex={phone ? -1 : undefined}>
             <span className={styles.ring}>
               <span className={styles.linkFace}>
                 Hear the real data
