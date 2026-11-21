@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Analytics } from "@vercel/analytics/next";
 import { SonifyPlayerProvider } from "@/context/SonifyPlayerContext";
 import { AudioLiveFlag } from "@/components/shared/AudioLiveFlag";
 import { MiniPlayerPill } from "@/components/shared/MiniPlayerPill";
@@ -128,6 +129,7 @@ export default function RootLayout({
           {children}
           <MiniPlayerPill />
         </SonifyPlayerProvider>
+        <Analytics />
       </body>
     </html>
   );
