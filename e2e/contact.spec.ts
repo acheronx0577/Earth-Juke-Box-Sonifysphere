@@ -26,8 +26,8 @@ test("contact lists six members and arrow keys move the active one", async ({ pa
   await expect(stage).toHaveAttribute("data-active", "5");
   await expect(stage.getByText("AI-GENERATED IMAGE")).toBeAttached();
   await expect(stage.getByText("PLACEHOLDER · project email")).toBeVisible();
-  await expect(stage.getByRole("link", { name: "CONTACT" })).toHaveAttribute("href", "/contact");
   await expect(page.locator(".sonify-nav a[href='/contact']")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Contact", exact: true })).toHaveAttribute("href", "/contact");
 });
 
 test("contact stays on the resting member when motion is reduced", async ({ page }) => {

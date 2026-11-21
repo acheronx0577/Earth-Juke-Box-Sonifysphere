@@ -1,20 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CONTACT_COUNT, CONTACT_MEMBERS, CONTACT_PLACEHOLDERS, CONTACT_REST_INDEX, type ContactMember } from "@/data/contactData";
 import { ContactDeck, type DeckApi } from "@/components/contact/ContactDeck";
 import { ContactFrame } from "@/components/contact/ContactFrame";
 import { DESK_REST_GAP, PHONE_REST_GAP, scrollForMember } from "@/components/contact/deckMath";
 import styles from "./contact.module.css";
-
-const NAV = [
-  { href: "/", label: "Home" },
-  { href: "/listen", label: "Listen" },
-  { href: "/challenge", label: "Challenges" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-] as const;
 
 const GITHUB = "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z";
 
@@ -101,18 +92,28 @@ export function ContactStage() {
   }, []);
 
   useEffect(() => {
-    const nav = document.querySelector(".sonify-nav");
-    const player = document.querySelector("aside[aria-label='Persistent mini-player']");
-    nav?.setAttribute("inert", "");
-    player?.setAttribute("inert", "");
+    const nav = document.querySelector<HTMLElement>(".sonify-nav");
+    const player = document.querySelector<HTMLElement>("aside[aria-label='Persistent mini-player']");
+    const navVisibility = nav?.style.visibility ?? "";
+    const playerVisibility = player?.style.visibility ?? "";
+    if (phone && nav) {
+      nav.setAttribute("inert", "");
+      nav.style.visibility = "hidden";
+    }
+    if (player) {
+      player.setAttribute("inert", "");
+      player.style.visibility = "hidden";
+    }
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       nav?.removeAttribute("inert");
+      if (nav) nav.style.visibility = navVisibility;
       player?.removeAttribute("inert");
+      if (player) player.style.visibility = playerVisibility;
       document.body.style.overflow = previous;
     };
-  }, []);
+  }, [phone]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -395,13 +396,6 @@ export function ContactStage() {
         <div ref={aiRef} className={styles.ai}>AI-GENERATED IMAGE</div>
       </div>
 
-      <ContactFrame intro cut={10} fill="#fff3ea" stroke="none" className={`${styles.nav} ${styles.chrome} ${styles.deskOnly}`}>
-        <nav className={styles.navLinks} aria-label="Contact sections">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} aria-current={item.href === "/contact" ? "page" : undefined}>{item.label.toUpperCase()}</Link>
-          ))}
-        </nav>
-      </ContactFrame>
       <ContactFrame intro cut={10} fill="#fff3ea" stroke="none" className={`${styles.nav} ${styles.chrome} ${styles.phoneOnly} ${styles.phoneNav}`}>
         <div className={styles.navLinks}>
           <span>SONIFYSPHERE</span>
