@@ -437,7 +437,9 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const heights = slots.map((slot) => barHeight(slotNote(slot)));
   const curve = sequencePath(heights);
   const prompt =
-    replaceIndex !== null && armed && slots[replaceIndex]
+    audio === "playing"
+      ? "Playing the mix."
+      : replaceIndex !== null && armed && slots[replaceIndex]
       ? `Click slot ${replaceIndex + 1} again to replace ${slotLabel(slots[replaceIndex])} with ${armedLabel}.`
       : armed
         ? "Now pick a slot."
@@ -549,7 +551,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           );
         })}
-        {showPlace ? (
+        {showPlace && audio !== "playing" ? (
           <span
             className={`${styles.shell} ${styles.place}`}
             style={{
