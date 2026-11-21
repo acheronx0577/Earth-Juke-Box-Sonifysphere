@@ -667,14 +667,21 @@
    starts at a 1024 viewport and stays off at 853. */
 @container c3 (min-width: 880px) {
   .feedback {
-    order: 1;
-    text-align: center;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
   }
 
   .controls {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     grid-template-areas: none;
-    align-items: center;
+    align-items: start;
   }
 
   .listen,
@@ -688,6 +695,7 @@
     grid-column: 1;
     grid-row: 1;
     justify-self: start;
+    align-self: center;
   }
 
   .answer {
@@ -695,27 +703,42 @@
   }
 
   .prompt {
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-    align-self: center;
-    margin-left: calc(48px + clamp(8px, 0.75vw, 12px) + clamp(22px, 1.6vw, 28px) + clamp(8px, 0.75vw, 12px));
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: center;
+    margin: clamp(6px, 0.8svh, 10px) 0 0;
+    text-align: center;
   }
 
   .seasons {
     grid-column: 2;
     grid-row: 1;
     justify-self: center;
+    align-self: center;
+    grid-template-columns: repeat(4, max-content);
     width: max-content;
+    min-width: max-content;
     max-width: none;
-    min-width: 0;
     flex: none;
+    flex-shrink: 0;
+  }
+
+  .season {
+    flex: none;
+    flex-shrink: 0;
+    width: max-content;
+    min-width: 98px;
+  }
+
+  .season .frameFace {
+    padding-inline: 16px;
   }
 
   .check {
     grid-column: 3;
     grid-row: 1;
     justify-self: end;
+    align-self: center;
   }
 }
 
