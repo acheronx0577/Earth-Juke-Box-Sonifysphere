@@ -130,13 +130,17 @@
 }
 
 .slot {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   padding: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
+  box-shadow: none;
   color: var(--muted);
   cursor: pointer;
   font-family: var(--font-geist-mono), ui-monospace, monospace;
@@ -235,7 +239,7 @@
   bottom: 0;
   left: 50%;
   width: 1px;
-  background: rgba(242, 242, 240, 0.16);
+  background: rgba(242, 242, 240, 0.04);
   transform: translateX(-50%);
 }
 
