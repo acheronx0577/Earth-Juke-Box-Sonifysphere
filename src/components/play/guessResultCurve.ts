@@ -60,10 +60,15 @@ function extendLevel(points: readonly [number, number][], left: number, right: n
   ];
 }
 
-function monotone(points: readonly [number, number][]): string {
+function cubicAt(p0: number, c1: number, c2: number, p1: number, t: number): number {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * c1 + 3 * u * t * t * c2 + t * t * t * p1;
+}
+
+function monotone(points: readonly [number, number][]): { d: string; samples: [number, number][] } {
   const n = points.length;
-  if (n === 0) return "";
-  if (n === 1) return `M ${points[0][0]} ${points[0][1]}`;
+  if (n === 0) return { d: "", samples: [] };
+  if (n === 1) return { d: `M ${points[0][0]} ${points[0][1]}`, samples: [[points[0][0], points[0][1]]] };
   const dx: number[] = [];
   const slope: number[] = [];
   const m = new Array<number>(n).fill(0);
@@ -92,14 +97,39 @@ function monotone(points: readonly [number, number][]): string {
     }
   }
   let d = `M ${points[0][0]} ${points[0][1]}`;
+  const samples: [number, number][] = [[points[0][0], points[0][1]]];
   for (let i = 0; i < n - 1; i += 1) {
     const c1x = points[i][0] + dx[i] / 3;
     const c1y = points[i][1] + (m[i] * dx[i]) / 3;
     const c2x = points[i + 1][0] - dx[i] / 3;
     const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
     d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
+    for (let step = 1; step <= 8; step += 1) {
+      const t = step / 8;
+      samples.push([
+        cubicAt(points[i][0], c1x, c2x, points[i + 1][0], t),
+        cubicAt(points[i][1], c1y, c2y, points[i + 1][1], t),
+      ]);
+    }
   }
-  return d;
+  return { d, samples };
+}
+
+export function curveY(samples: readonly [number, number][], x: number): number {
+  if (samples.length === 0) return VIEW_H / 2;
+  if (x <= samples[0][0]) return samples[0][1];
+  const last = samples[samples.length - 1];
+  if (x >= last[0]) return last[1];
+  let lo = 0;
+  let hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid][0] <= x) lo = mid;
+    else hi = mid;
+  }
+  const [x0, y0] = samples[lo];
+  const [x1, y1] = samples[hi];
+  return y0 + ((x - x0) / (x1 - x0 || 1)) * (y1 - y0);
 }
 
 const VIEW_W = 240;
@@ -108,10 +138,17 @@ const PLOT_HIGH = 14;
 const PLOT_LOW = 50;
 const PLOT_FLOOR = 58;
 
-function curvePath(freqs: readonly number[], min: number, max: number): string {
+export interface DrawnCurve {
+  readonly d: string;
+  readonly fill: string;
+  readonly samples: readonly [number, number][];
+}
+
+function curvePath(freqs: readonly number[], min: number, max: number): DrawnCurve {
   const step = (VIEW_W - 32) / Math.max(1, freqs.length - 1);
   const points = freqs.map((freq, index) => [16 + index * step, plotY(freq, min, max, PLOT_HIGH, PLOT_LOW)] as [number, number]);
-  return monotone(extendLevel(points, 0, VIEW_W, PLOT_FLOOR));
+  const built = monotone(extendLevel(points, 0, VIEW_W, PLOT_FLOOR));
+  return { d: built.d, fill: `${built.d} L ${VIEW_W} ${VIEW_H} L 0 ${VIEW_H} Z`, samples: built.samples };
 }
 
 /**
@@ -120,7 +157,7 @@ function curvePath(freqs: readonly number[], min: number, max: number): string {
  * weather, and layer: those are constant offsets, and the year slope is shared,
  * so every card became the same curve.
  */
-export function resultCurvePaths(clips: readonly ResultClip[]): string[] {
+export function drawResultCurves(clips: readonly ResultClip[]): DrawnCurve[] {
   const series = clips.map(heardPhraseFreqs);
   const values = series.flat();
   if (values.length === 0) return [];
@@ -132,6 +169,10 @@ export function resultCurvePaths(clips: readonly ResultClip[]): string[] {
   max = mid + span / 2;
   const pad = (max - min) * 0.14;
   return series.map((freqs) => curvePath(freqs, min - pad, max + pad));
+}
+
+export function resultCurvePaths(clips: readonly ResultClip[]): string[] {
+  return drawResultCurves(clips).map((curve) => curve.d);
 }
 
 export const RESULT_CURVE_VIEW = { width: VIEW_W, height: VIEW_H };

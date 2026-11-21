@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { regionById, type LayerId } from "@/data/exploreMap";
 import { explainGuess, recordDisplayName } from "@/lib/guessWhy";
 import { isResumableGuessRun, readGuessRun, writeGuessRun, type GuessHistoryEntry, type StoredGuessRun } from "@/lib/guessSession";
+import { hushExplore, triggerExploreNote } from "@/lib/exploreAudio";
 import { PHRASE_MS, playRegionPhrase } from "@/lib/signalPlayback";
 import { setSignalLive } from "@/lib/signalLive";
 import {
@@ -20,7 +21,8 @@ import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
-import { resultCurvePaths } from "./guessResultCurve";
+import { GuessSharePopup, type GuessShareRequest } from "./GuessSharePopup";
+import { RESULT_CURVE_VIEW, RESULT_PHRASE_YEARS, curveY, drawResultCurves, type DrawnCurve } from "./guessResultCurve";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -238,29 +240,6 @@ function PauseIcon() {
   );
 }
 
-function resultUrl(result: SharedGuessResult): string {
-  const url = new URL("/challenge/guess", window.location.origin);
-  url.searchParams.set("result", encodeGuessResult(result));
-  return url.toString();
-}
-
-async function copyText(value: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const input = document.createElement("textarea");
-  input.value = value;
-  input.setAttribute("readonly", "");
-  input.style.position = "fixed";
-  input.style.opacity = "0";
-  document.body.appendChild(input);
-  input.select();
-  const copied = document.execCommand("copy");
-  input.remove();
-  if (!copied) throw new Error("Clipboard access was blocked.");
-}
-
 async function saveResultImage(title: string, scoreLine: string) {
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
@@ -320,6 +299,9 @@ export function GuessGame({
   const [savedRun, setSavedRun] = useState<StoredGuessRun | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [shareNote, setShareNote] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [replayIndex, setReplayIndex] = useState<number | null>(null);
+  const [replayOn, setReplayOn] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
   const liveTimer = useRef<number | null>(null);
   const phaseRef = useRef(phase);
@@ -333,6 +315,13 @@ export function GuessGame({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const pendingSound = useRef<(() => void) | null>(null);
   const playingRef = useRef(false);
+  const replayOnRef = useRef(false);
+  const replayIndexRef = useRef<number | null>(null);
+  const replayAmountRef = useRef(0);
+  const replayFrameRef = useRef(0);
+  const heardRects = useRef<Array<SVGRectElement | null>>([]);
+  const heardDots = useRef<Array<HTMLSpanElement | null>>([]);
+  const drawnRef = useRef<DrawnCurve[]>([]);
   const progressRef = useRef<HTMLSpanElement | null>(null);
   const progressTrackRef = useRef<HTMLDivElement | null>(null);
   const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -513,6 +502,10 @@ export function GuessGame({
     liveTimer.current = null;
     setLive(false);
     setSignalLive(false);
+    if (!freeze && replayOnRef.current) {
+      replayOnRef.current = false;
+      setReplayOn(false);
+    }
     if (freeze) placePlayhead(progressAmount.current, "pause");
     else resetProgress();
   }, [placePlayhead, resetProgress]);
@@ -798,6 +791,13 @@ export function GuessGame({
   };
 
   const again = () => {
+    replayOnRef.current = false;
+    replayIndexRef.current = null;
+    replayAmountRef.current = 0;
+    cancelAnimationFrame(replayFrameRef.current);
+    setReplayOn(false);
+    setReplayIndex(null);
+    setShareOpen(false);
     stopPhrase();
     setSession((value) => value + 1);
     setIndex(0);
@@ -813,34 +813,118 @@ export function GuessGame({
     pendingFocus.current = "hear";
   };
 
-  const replayHistory = (entry: GuessHistoryEntry) => {
-    const play = () => {
-      pause();
+  const paintHeard = useCallback((index: number, amount: number, mode: "play" | "pause" | "end" | "off") => {
+    const width = RESULT_CURVE_VIEW.width;
+    const height = RESULT_CURVE_VIEW.height;
+    const clamped = Math.min(1, Math.max(0, amount));
+    heardRects.current.forEach((rect, slot) => {
+      if (!rect) return;
+      const show = slot === index && mode !== "off";
+      rect.setAttribute("width", show ? (clamped * width).toFixed(2) : "0");
+    });
+    heardDots.current.forEach((dot, slot) => {
+      if (!dot) return;
+      if (slot !== index || mode === "off") {
+        dot.dataset.on = "off";
+        return;
+      }
+      const x = clamped * width;
+      const y = curveY(drawnRef.current[slot]?.samples ?? [], x);
+      dot.dataset.on = mode;
+      dot.style.left = `${(x / width) * 100}%`;
+      dot.style.top = `${(y / height) * 100}%`;
+    });
+  }, []);
+
+  const replayHistory = (entry: GuessHistoryEntry, entryIndex: number) => {
+    const noteGap = (PHRASE_MS - 420) / Math.max(1, RESULT_PHRASE_YEARS.length - 1);
+    const begin = (elapsed: number) => {
       stopPhrase();
+      pause();
       const region = regionById(entry.regionId);
-      stopRef.current = playRegionPhrase({
-        layer: entry.layer,
-        season: entry.season,
-        weather: entry.weather,
-        wind: 36,
-        year: 1988,
-        note: region.note,
+      const timers: number[] = [];
+      RESULT_PHRASE_YEARS.forEach((year, noteIndex) => {
+        const at = noteIndex * noteGap;
+        if (elapsed > at + 30) return;
+        timers.push(
+          window.setTimeout(() => {
+            void triggerExploreNote({
+              layer: entry.layer,
+              season: entry.season,
+              weather: entry.weather,
+              wind: 36,
+              year,
+              note: region.note,
+            });
+          }, Math.max(0, at - elapsed)),
+        );
       });
+      const started = performance.now();
+      replayOnRef.current = true;
+      replayIndexRef.current = entryIndex;
+      setReplayIndex(entryIndex);
+      setReplayOn(true);
+      playingRef.current = true;
       setLive(true);
       setSignalLive(true);
+      setPlayToken((value) => value + 1);
+      const tick = (now: number) => {
+        if (!replayOnRef.current) return;
+        const amount = Math.min(1, (elapsed + (now - started)) / PHRASE_MS);
+        replayAmountRef.current = amount;
+        paintHeard(entryIndex, amount, "play");
+        if (amount < 1) replayFrameRef.current = requestAnimationFrame(tick);
+      };
+      replayFrameRef.current = requestAnimationFrame(tick);
+      stopRef.current = () => {
+        timers.forEach((id) => window.clearTimeout(id));
+        cancelAnimationFrame(replayFrameRef.current);
+        hushExplore();
+      };
       liveTimer.current = window.setTimeout(() => {
+        replayOnRef.current = false;
+        playingRef.current = false;
+        replayAmountRef.current = 1;
+        setReplayOn(false);
         setLive(false);
         setSignalLive(false);
-      }, PHRASE_MS);
+        paintHeard(entryIndex, 1, "end");
+        setAnnouncement(`Round ${entryIndex + 1} ended`);
+      }, Math.max(0, PHRASE_MS - elapsed));
+      setAnnouncement(`Playing round ${entryIndex + 1}`);
     };
     arm(() => {
       if (!isSoundOn()) {
-        holdForSound(play);
+        holdForSound(() => begin(0));
         return;
       }
       setSoundOff(false);
-      play();
+      const same = replayIndexRef.current === entryIndex;
+      if (same && replayOnRef.current) {
+        replayElapsedHold(entryIndex);
+        return;
+      }
+      const restart = !same || replayAmountRef.current >= 0.98;
+      const elapsed = restart ? 0 : replayAmountRef.current * PHRASE_MS;
+      if (restart) {
+        replayAmountRef.current = 0;
+        paintHeard(entryIndex, 0, "off");
+      }
+      begin(elapsed);
     });
+  };
+
+  const replayElapsedHold = (entryIndex: number) => {
+    const amount = replayAmountRef.current;
+    replayOnRef.current = false;
+    cancelAnimationFrame(replayFrameRef.current);
+    stopPhrase(true);
+    setReplayOn(false);
+    setReplayIndex(entryIndex);
+    replayIndexRef.current = entryIndex;
+    replayAmountRef.current = amount;
+    paintHeard(entryIndex, amount, "pause");
+    setAnnouncement(`Paused round ${entryIndex + 1}`);
   };
 
   useEffect(() => {
@@ -848,17 +932,16 @@ export function GuessGame({
     setAnnouncement(`${correctCount} of ${deck.length} named. Score ${score}. Best streak ${best}.`);
   }, [best, correctCount, deck.length, phase, score]);
 
-  const copyLink = async (result: SharedGuessResult) => {
-    try {
-      await copyText(resultUrl(result));
-      setShareNote("Result link copied.");
-      setAnnouncement("Result link copied.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "The result link could not be copied.";
-      setShareNote(message);
-      setAnnouncement(message);
-    }
-  };
+  useLayoutEffect(() => {
+    if (phase !== "result") return;
+    const index = replayIndexRef.current;
+    if (index === null) return;
+    const amount = replayAmountRef.current;
+    const mode = replayOnRef.current ? "play" : amount >= 1 ? "end" : amount > 0 ? "pause" : "off";
+    paintHeard(index, amount, mode);
+  }, [paintHeard, phase, replayIndex, replayOn]);
+
+  const closeShare = useCallback(() => setShareOpen(false), []);
 
   const saveImage = async (title: string, scoreLine: string) => {
     await saveResultImage(title, scoreLine);
@@ -883,10 +966,19 @@ export function GuessGame({
     bestStreak: best,
   };
   const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
-  const resultCurves = phase === "result" ? resultCurvePaths(history) : [];
+  const drawnCurves = phase === "result" ? drawResultCurves(history) : [];
+  drawnRef.current = drawnCurves;
   samplesRef.current = geometry?.samples ?? [];
   const verdict = `${correct ? "Yes" : "No"} — ${answerText}.`;
   const tip = `${correct ? "✓" : "✕"} ${answerText}${correct && gain ? ` +${gain}` : ""}`;
+  const shareRequest: GuessShareRequest = {
+    title: `${shareResult.correct} of ${shareResult.total} named`,
+    text: `${shareResult.score} PTS · BEST STREAK ${shareResult.bestStreak}`,
+    path: `/challenge/guess?result=${encodeGuessResult(shareResult)}`,
+  };
+  const shareDialog = (
+    <GuessSharePopup open={shareOpen} request={shareRequest} onClose={closeShare} onSaveImage={() => saveImage(shareRequest.title, shareRequest.text)} />
+  );
 
   const squares = (
     <span className={styles.squares} role="group" aria-label={roundLabel}>
@@ -936,37 +1028,41 @@ export function GuessGame({
 
   if (sharedResult) {
     const title = `${sharedResult.correct} of ${sharedResult.total} named`;
-    const scoreLine = `${sharedResult.score} PTS · BEST STREAK ${sharedResult.bestStreak}`;
     return (
       <main id="main-content" tabIndex={-1} className={styles.page} data-result="true" data-hide-target-cursor="true">
         <header className={styles.header}>
           <Link href="/challenge" className={styles.resultBack}>
             ← Challenges
           </Link>
-          {scoreSide}
+          <span className={styles.resultEyebrow}>Guess the signal</span>
         </header>
-        <section className={styles.result} data-testid="guess-shared-result" aria-labelledby="shared-guess-title">
-          <h1 id="shared-guess-title">{title}</h1>
-          <p className={styles.stats}>
-            <span>{sharedResult.score} PTS</span>
-            <span>BEST STREAK {sharedResult.bestStreak}</span>
-          </p>
+        <section className={styles.result} data-shared="true" data-testid="guess-shared-result" aria-labelledby="shared-guess-title">
+          <div className={styles.hero}>
+            <h1 id="shared-guess-title">{title}</h1>
+            <p className={styles.heroScore}>
+              <span className={styles.heroPoints}>{sharedResult.score}</span>
+              <span className={styles.heroMeta}>
+                <span>PTS</span>
+                <span>Best streak {sharedResult.bestStreak}</span>
+              </span>
+            </p>
+          </div>
           <p className={styles.note}>A shared result. The five signals stay on the player’s own run.</p>
-          <Link href="/challenge/guess" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(10), textDecoration: "none" }}>
-            <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
+          <div className={styles.footer}>
+            <Link href="/challenge/guess" className={`${styles.playAgain} ${styles.frame}`}>
+              <ChamferMark />
               Play again
-            </span>
-          </Link>
-          <div className={styles.links}>
-            <button type="button" onClick={() => void copyLink(sharedResult)}>
-              Copy link
-            </button>
-            <button type="button" onClick={() => void saveImage(title, scoreLine)}>
-              Save image
-            </button>
+            </Link>
+            <div className={styles.links}>
+              <button type="button" className={`${styles.shareButton} ${styles.frame}`} onClick={() => setShareOpen(true)}>
+                <ChamferMark />
+                Share
+              </button>
+            </div>
           </div>
           {shareNote ? <p className={styles.note}>{shareNote}</p> : null}
         </section>
+        {shareDialog}
         <p className={styles.sr} aria-live="polite">
           {announcement}
         </p>
@@ -994,7 +1090,7 @@ export function GuessGame({
             {info}
           </div>
         )}
-        {scoreSide}
+        {showResult ? <span className={styles.resultEyebrow}>Guess the signal</span> : scoreSide}
       </header>
 
       <div className={styles.game} data-testid="guess-game" data-ready={visitSeed === null || !booted ? "false" : "true"} data-seed={visitSeed ?? undefined}>
@@ -1022,48 +1118,88 @@ export function GuessGame({
             <div className={styles.bar} />
           </div>
         ) : showResult ? (
+          <>
           <section className={styles.result} data-testid="guess-result">
-            <h1>{correctCount} of {deck.length} named</h1>
-            <p className={styles.stats}>
-              <span>{score} PTS</span>
-              <span>BEST STREAK {best}</span>
-            </p>
+            <div className={styles.hero}>
+              <h1>{correctCount} of {deck.length} named</h1>
+              <p className={styles.heroScore}>
+                <span className={styles.heroPoints}>{score}</span>
+                <span className={styles.heroMeta}>
+                  <span>PTS</span>
+                  <span>Best streak {best}</span>
+                </span>
+              </p>
+            </div>
             <ol className={styles.rounds}>
-              {history.map((entry, entryIndex) => (
-                <li key={`${entry.answerId}-${entryIndex}`} className={styles.mini}>
-                  <svg viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true">
-                    <path d={resultCurves[entryIndex] ?? ""} fill="none" stroke="#f2f2f0" strokeWidth="1.6" vectorEffect="non-scaling-stroke" data-testid="guess-result-curve" />
-                  </svg>
-                  <div className={styles.miniHead}>
-                    <span>
-                      <span className={styles.miniName}>
-                        {entry.correct ? "✓" : "✕"} {String(entryIndex + 1).padStart(2, "0")} {entry.answerLabel}
-                      </span>
-                      <span className={styles.miniSub}>{entry.correct ? (entry.kind === "region" ? "Region" : "Record") : `You said ${entry.pickedLabel}`}</span>
-                    </span>
-                    <button type="button" className={`${styles.shell} ${styles.miniReplay}`} style={{ clipPath: clip(7) }} aria-label={`Replay round ${entryIndex + 1}`} onClick={() => replayHistory(entry)}>
-                      <span className={styles.face} style={{ clipPath: clip(7) }}>
-                        <ReplayIcon />
-                      </span>
-                    </button>
-                  </div>
-                </li>
-              ))}
+              {history.map((entry, entryIndex) => {
+                const curve = drawnCurves[entryIndex];
+                const playing = replayOn && replayIndex === entryIndex;
+                const clipId = `${fillId}heard${entryIndex}`;
+                return (
+                  <li key={`${entry.answerId}-${entryIndex}`} className={`${styles.card} ${styles.frame}`} data-correct={entry.correct ? "true" : "false"} data-playing={playing ? "true" : "false"} data-testid="guess-result-card">
+                    <ChamferMark />
+                    <div className={styles.plot}>
+                      <svg viewBox={`0 0 ${RESULT_CURVE_VIEW.width} ${RESULT_CURVE_VIEW.height}`} preserveAspectRatio="none" aria-hidden="true">
+                        <defs>
+                          <clipPath id={clipId}>
+                            <rect
+                              ref={(node) => {
+                                heardRects.current[entryIndex] = node;
+                              }}
+                              x="0"
+                              y="0"
+                              width="0"
+                              height={RESULT_CURVE_VIEW.height}
+                            />
+                          </clipPath>
+                        </defs>
+                        <path d={curve?.fill ?? ""} className={styles.curveFill} />
+                        <path d={curve?.d ?? ""} className={styles.curveRest} data-testid="guess-result-curve" />
+                        <path d={curve?.d ?? ""} className={styles.curveHeard} clipPath={`url(#${clipId})`} />
+                      </svg>
+                      <span
+                        ref={(node) => {
+                          heardDots.current[entryIndex] = node;
+                        }}
+                        className={styles.heardDot}
+                        data-on="off"
+                      />
+                    </div>
+                    <div className={styles.cardFoot}>
+                      <p className={styles.cardTitle}>
+                        <span className={styles.cardMark} aria-hidden="true">{entry.correct ? "✓" : "✕"}</span>
+                        <span>{String(entryIndex + 1).padStart(2, "0")}</span>
+                      </p>
+                      <p className={styles.cardName}>{entry.answerLabel}</p>
+                      <p className={styles.cardSaid}>{entry.correct ? (entry.kind === "region" ? "Region" : "Record") : `You said ${entry.pickedLabel}`}</p>
+                      <button
+                        type="button"
+                        className={`${styles.cardReplay} ${styles.frame}`}
+                        aria-pressed={playing}
+                        aria-label={playing ? `Pause round ${entryIndex + 1}` : `Play round ${entryIndex + 1}`}
+                        onClick={() => replayHistory(entry, entryIndex)}
+                      >
+                        <ChamferMark />
+                        {playing ? <PauseIcon /> : <PlayIcon />}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
-            <button ref={resultRef} type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(10) }} onClick={again}>
-              <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
+            <div className={styles.footer}>
+              <button ref={resultRef} type="button" className={`${styles.playAgain} ${styles.frame}`} onClick={again}>
+                <ChamferMark />
                 Play again
-              </span>
-            </button>
-            <div className={styles.links}>
-              <Link href={lastHeard ? `/listen?region=${lastHeard.regionId}&data=${dataParam(lastHeard.layer)}` : "/listen"}>Hear the real data</Link>
-              <Link href="/challenge/compose">Next · Compose</Link>
-              <button type="button" onClick={() => void copyLink(shareResult)}>
-                Copy link
               </button>
-              <button type="button" onClick={() => void saveImage(`${correctCount} of ${deck.length} named`, `${score} PTS · BEST STREAK ${best}`)}>
-                Save image
-              </button>
+              <div className={styles.links}>
+                <Link href={lastHeard ? `/listen?region=${lastHeard.regionId}&data=${dataParam(lastHeard.layer)}` : "/listen"}>Hear the real data</Link>
+                <Link href="/challenge/compose">Next · Compose</Link>
+                <button type="button" className={`${styles.shareButton} ${styles.frame}`} onClick={() => setShareOpen(true)}>
+                  <ChamferMark />
+                  Share
+                </button>
+              </div>
             </div>
             {shareNote ? <p className={styles.note}>{shareNote}</p> : null}
             {soundOff ? (
@@ -1075,6 +1211,8 @@ export function GuessGame({
               </div>
             ) : null}
           </section>
+          {shareDialog}
+          </>
         ) : round && geometry ? (
           <>
             <div ref={stageRef} className={styles.stage}>

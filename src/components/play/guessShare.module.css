@@ -1,0 +1,175 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 4vw, 32px);
+  background: rgba(20, 20, 20, 0.78);
+}
+
+.frame {
+  --cut: 10px;
+  position: relative;
+  border: 0;
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
+
+.frame > :global(.lv-chamfer-svg) {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.frame > :global(.lv-chamfer-svg) polygon {
+  fill: none;
+  stroke: #555555;
+  stroke-width: 1.5px;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
+.dialog {
+  --cut: clamp(12px, 1vw, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2svh, 18px);
+  width: min(100%, 36rem);
+  max-height: min(100%, calc(100svh - 2 * clamp(12px, 4vw, 32px)));
+  overflow: auto;
+  padding: clamp(16px, 2.2vw, 28px);
+  background: #161616;
+  color: #f2f2f0;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(10px, 2vw, 18px);
+}
+
+.head h2 {
+  margin: 0;
+  color: #f2f2f0;
+  font-size: clamp(1.45rem, 1rem + 1.4vw, 2.15rem);
+  font-weight: 560;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.close {
+  --cut: 8px;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: #141414;
+  color: #f2f2f0;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  color: #f2f2f0;
+  font-size: clamp(0.95rem, 0.5rem + 0.6vw, 1.15rem);
+  letter-spacing: -0.02em;
+}
+
+.summary span:last-child {
+  color: #b4b2ae;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(0.75rem, 0.4rem + 0.35vw, 0.9rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.url {
+  margin: 0;
+  color: #d4d2ce;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(0.72rem, 0.4rem + 0.3vw, 0.85rem);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.2svh, 12px);
+}
+
+.action {
+  --cut: 8px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 clamp(14px, 1.6vw, 18px);
+  background: #141414;
+  color: #f2f2f0;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(0.78rem, 0.45rem + 0.35vw, 0.95rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.action[data-done="true"] {
+  background: #f2f2f0;
+  color: #141414;
+}
+
+.action[data-done="true"] > :global(.lv-chamfer-svg) polygon {
+  stroke: #555555;
+}
+
+.close:focus,
+.action:focus {
+  outline: none;
+}
+
+.close:focus-visible,
+.action:focus-visible {
+  outline: 2px solid #f2f2f0;
+  outline-offset: 3px;
+}
+
+.live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
