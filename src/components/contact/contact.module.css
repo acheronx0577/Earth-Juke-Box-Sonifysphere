@@ -238,9 +238,11 @@
 
 .odo {
   display: flex;
-  font-weight: 100;
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
   font-size: 200px;
   line-height: 1;
+  letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
 }
 
