@@ -455,7 +455,7 @@ export function GuessGame({
   }, [playRound, round]);
 
   const choose = useCallback(
-    (id: string) => {
+    (id: string, viaKeyboard = false) => {
       if (phaseRef.current !== "listening" || !round || blocked) return;
       phaseRef.current = "answered";
       const correct = id === round.answerId;
@@ -487,7 +487,7 @@ export function GuessGame({
       }
       const why = explainGuess(round, id);
       setAnnouncement(`${correct ? "Yes." : "No."} ${answerText}. ${why}`);
-      pendingFocus.current = "next";
+      if (viaKeyboard) pendingFocus.current = "next";
     },
     [blocked, round, streak]
   );
@@ -524,7 +524,7 @@ export function GuessGame({
         const choice = active.choices[Number(event.key) - 1];
         if (!choice) return;
         event.preventDefault();
-        choose(choice.id);
+        choose(choice.id, true);
       }
       if ((current === "listening" || current === "answered") && (event.key === "r" || event.key === "R")) {
         event.preventDefault();
@@ -682,7 +682,7 @@ export function GuessGame({
     const title = `${sharedResult.correct} of ${sharedResult.total} named`;
     const scoreLine = `${sharedResult.score} PTS · BEST STREAK ${sharedResult.bestStreak}`;
     return (
-      <main id="main-content" tabIndex={-1} className={styles.page} data-result="true">
+      <main id="main-content" tabIndex={-1} className={styles.page} data-result="true" data-hide-target-cursor="true">
         <header className={styles.header}>
           <Link href="/challenge" className={styles.resultBack}>
             ← Challenges
@@ -722,7 +722,7 @@ export function GuessGame({
   const lastHeard = history[history.length - 1];
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showResult ? "true" : undefined}>
+    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showResult ? "true" : undefined} data-hide-target-cursor="true">
       <p className={styles.sr} aria-live="polite">
         {announcement}
       </p>

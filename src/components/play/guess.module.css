@@ -350,9 +350,13 @@ a.shell {
   color: var(--ink);
 }
 
-.shell:focus-visible {
+.shell:focus {
   outline: none;
-  background: #fff3ea;
+}
+
+.shell:focus-visible {
+  outline: 2px solid #fff3ea;
+  outline-offset: 3px;
 }
 
 .page button.shell[class*="bg-[#f2f2f0]"]:focus-visible,
