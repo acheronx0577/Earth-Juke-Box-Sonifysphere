@@ -178,11 +178,10 @@
 
 .place {
   position: absolute;
-  z-index: 3;
-  left: 6%;
-  right: 6%;
-  bottom: 8%;
-  height: clamp(84px, 42%, 160px);
+  z-index: 4;
+  bottom: calc(var(--slot-meta) + 12%);
+  height: clamp(72px, 32%, 148px);
+  pointer-events: none;
 }
 
 .place .face {

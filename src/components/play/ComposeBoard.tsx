@@ -494,7 +494,6 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </svg>
         {slots.map((slot, index) => {
           const full = slot ? slotLabel(slot) : "empty";
-          const target = showPlace && !slot && targetIndex === index;
           const name = slot ? shortLabel(slot) : "Rest";
           const playing = audio === "playing" && playingIndex === index;
           return (
@@ -542,14 +541,6 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                     <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} />
                   </>
                 ) : null}
-                {target ? (
-                  <span className={`${styles.shell} ${styles.place}`} style={{ clipPath: clip(12) }}>
-                    <span className={styles.face} style={{ clipPath: clip(12) }}>
-                      <span className={styles.placeWord}>Place here</span>
-                      <span className={styles.plus}>+</span>
-                    </span>
-                  </span>
-                ) : null}
               </span>
               <span className={styles.meta}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
@@ -558,6 +549,22 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           );
         })}
+        {showPlace ? (
+          <span
+            className={`${styles.shell} ${styles.place}`}
+            style={{
+              clipPath: clip(12),
+              left: `calc(clamp(10px, 1.4vw, 22px) + (100% - 2 * clamp(10px, 1.4vw, 22px)) * ${targetIndex} / 8 + (100% - 2 * clamp(10px, 1.4vw, 22px)) / 8 * 0.06)`,
+              width: `calc((100% - 2 * clamp(10px, 1.4vw, 22px)) / 8 * 0.88)`,
+            }}
+            aria-hidden="true"
+          >
+            <span className={styles.face} style={{ clipPath: clip(12) }}>
+              <span className={styles.placeWord}>Place here</span>
+              <span className={styles.plus}>+</span>
+            </span>
+          </span>
+        ) : null}
       </div>
     </div>
   );
