@@ -545,10 +545,13 @@
   outline: none;
 }
 
+.ring:focus-visible,
 .ring:has(:focus-visible) {
+  outline: none;
   background: #f2f2f0;
 }
 
+.ring:focus-visible .shell,
 .ring:has(:focus-visible) .shell {
   background: #f2f2f0;
 }
