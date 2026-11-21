@@ -35,6 +35,14 @@
   box-sizing: border-box;
 }
 
+.board {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
 .header {
   display: flex;
   align-items: center;

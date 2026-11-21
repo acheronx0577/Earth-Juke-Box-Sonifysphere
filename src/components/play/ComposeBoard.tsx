@@ -557,7 +557,8 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   ) : null;
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-hide-target-cursor="true" data-testid="compose-board" data-audio={audio}>
+    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-hide-target-cursor="true">
+      <div className={styles.board} data-testid="compose-board" data-audio={audio}>
       <p className={styles.sr} aria-live="polite">
         {prompt}
         {shareNote ? ` ${shareNote}` : ""}
@@ -758,6 +759,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
           {soundNote}
         </>
       )}
+      </div>
     </main>
   );
 }
