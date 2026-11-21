@@ -122,19 +122,17 @@
   text-transform: uppercase;
 }
 
-.url {
-  margin: 0;
-  color: #d4d2ce;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: clamp(0.72rem, 0.4rem + 0.3vw, 0.85rem);
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
 .actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: clamp(8px, 1.2svh, 12px);
+}
+
+.actions > .focusRing {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .action {
@@ -149,7 +147,8 @@
   font-weight: 600;
   letter-spacing: 0.12em;
   line-height: 1.2;
-  text-align: left;
+  min-width: 0;
+  text-align: center;
   text-decoration: none;
   text-transform: uppercase;
   cursor: pointer;
@@ -159,11 +158,15 @@
   --cut: 8px;
   display: flex;
   align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 48px;
-  padding: 0 clamp(14px, 1.6vw, 18px);
+  padding: 0 clamp(8px, 2vw, 14px);
+  overflow: hidden;
   background: #141414;
   color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action[data-done="true"] .cutFace {
@@ -284,10 +287,8 @@
   border: 0;
 }
 
-/* Phone field stays out of the desktop flow. Viewport queries only — the dialog
-   itself is the same width from 768px up, and desktop must keep the plain URL. */
 .urlShell {
-  display: none;
+  display: block;
   --cut: 8px;
   background: #555555;
 }
@@ -370,39 +371,4 @@
 
 .dialog .copyButton:focus-visible {
   background: #f2f2f0;
-}
-
-@media (max-width: 1023px) {
-  .wideOnly {
-    display: none;
-  }
-
-  .urlShell {
-    display: block;
-  }
-
-  .actions {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: stretch;
-  }
-
-  .actions > .focusRing {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .actions .action {
-    min-width: 0;
-    text-align: center;
-  }
-
-  .actions .action .cutFace {
-    justify-content: center;
-    padding-right: clamp(8px, 2vw, 14px);
-    padding-left: clamp(8px, 2vw, 14px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 }
