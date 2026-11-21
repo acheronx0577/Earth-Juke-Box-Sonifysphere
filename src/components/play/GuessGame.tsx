@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import gsap from "gsap";
 import { regionById, type LayerId } from "@/data/exploreMap";
 import { explainGuess, recordDisplayName } from "@/lib/guessWhy";
 import { isResumableGuessRun, readGuessRun, writeGuessRun, type GuessHistoryEntry, type StoredGuessRun } from "@/lib/guessSession";
@@ -14,19 +13,23 @@ import {
   buildGuessRounds,
   mulberry32,
   scoreGain,
+  signalFrequency,
   type GuessRound,
 } from "@/lib/signalTheory";
-import { IconPlay, SignalMeter } from "@/components/shared/Icons";
-import { CutButton } from "@/components/play/CutControls";
-import { PlayFrame } from "@/components/play/PlayFrame";
-import { RoundRail } from "@/components/play/RoundRail";
-import { SignalMap } from "@/components/play/SignalMap";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
-import { SoundOffNote } from "@/components/shared/SoundOffNote";
-import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
+import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
+
+const VW = 1440;
+const VH = 520;
+const BASE = 430;
+const XS = [220, 540, 860, 1180];
+const AXIS = ["1968", "1987", "2005", "2024"];
+const PLAY_YEARS = [1968, 1988, 2006, 2024];
+const HOW =
+  "Five rounds alternate a region and a record. Hear the four-note signal, then pick 1–4. R replays, Enter continues. A correct answer scores 100, plus 25 for each step of the streak.";
 
 function choiceLabel(round: GuessRound, id: string): string {
   return round.choices.find((choice) => choice.id === id)?.label ?? id;
@@ -48,99 +51,173 @@ function freshSeed(): number {
   return bytes[0] || 1;
 }
 
-function clueLabel(round: GuessRound): string {
-  return round.kind === "region" ? "Clue · record, season, weather" : "Clue · region";
-}
-
 function clueValue(round: GuessRound): string {
   if (round.kind === "layer") return round.prompt;
   return `${recordDisplayName(round.layer)} · ${round.season} · ${round.weather}`;
 }
 
-function FeedbackBlock({
-  correct,
-  verdict,
-  why,
-  gain,
-  streak,
-  last,
-  onAdvance,
-  nextRef,
-  regionId,
-  onVisible,
-}: {
-  readonly correct: boolean;
-  readonly verdict: string;
-  readonly why: string;
-  readonly gain: number;
-  readonly streak: number;
-  readonly last: boolean;
-  readonly onAdvance: () => void;
-  readonly nextRef: (node: HTMLButtonElement | null) => void;
-  readonly regionId: string;
-  readonly onVisible: (button: HTMLButtonElement | null) => void;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const onVisibleRef = useRef(onVisible);
-  onVisibleRef.current = onVisible;
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const show = () => {
-      const button = node.querySelector("button");
-      node.scrollIntoView({ block: "end", inline: "nearest" });
-      if (button) {
-        const rect = button.getBoundingClientRect();
-        if (rect.bottom > window.innerHeight - 8 || rect.top < 0) {
-          button.scrollIntoView({ block: "center", inline: "nearest" });
-        }
-      }
-      onVisibleRef.current(button);
-    };
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      show();
-      return;
-    }
-    const tween = gsap.from(node, {
-      height: 0,
-      duration: 0.35,
-      ease: "power3.out",
-      clearProps: "height",
-      onComplete: show,
-    });
-    return () => {
-      tween.kill();
-    };
-  }, []);
+function oneLineWhy(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (flat.length <= 118) return flat;
+  const cut = flat.slice(0, 117);
+  const space = cut.lastIndexOf(" ");
+  return `${(space > 70 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
 
+function clip(cut: number) {
+  return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
+}
+
+function monotone(points: readonly [number, number][]): string {
+  const n = points.length;
+  if (n === 0) return "";
+  if (n === 1) return `M ${points[0][0]} ${points[0][1]}`;
+  const dx: number[] = [];
+  const slope: number[] = [];
+  const m = new Array<number>(n).fill(0);
+  for (let i = 0; i < n - 1; i += 1) {
+    dx[i] = points[i + 1][0] - points[i][0] || 1;
+    slope[i] = (points[i + 1][1] - points[i][1]) / dx[i];
+  }
+  m[0] = slope[0];
+  m[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i += 1) {
+    m[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  }
+  for (let i = 0; i < n - 1; i += 1) {
+    if (Math.abs(slope[i]) < 1e-6) {
+      m[i] = 0;
+      m[i + 1] = 0;
+    } else {
+      const a = m[i] / slope[i];
+      const b = m[i + 1] / slope[i];
+      const h = a * a + b * b;
+      if (h > 9) {
+        const t = 3 / Math.sqrt(h);
+        m[i] = t * a * slope[i];
+        m[i + 1] = t * b * slope[i];
+      }
+    }
+  }
+  let d = `M ${points[0][0]} ${points[0][1]}`;
+  for (let i = 0; i < n - 1; i += 1) {
+    const c1x = points[i][0] + dx[i] / 3;
+    const c1y = points[i][1] + (m[i] * dx[i]) / 3;
+    const c2x = points[i + 1][0] - dx[i] / 3;
+    const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
+    d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
+  }
+  return d;
+}
+
+function phraseFreqs(regionId: string, season: GuessRound["season"], weather: GuessRound["weather"]): number[] {
+  const note = regionById(regionId).note;
+  return PLAY_YEARS.map((year) => signalFrequency(note, year, season, weather));
+}
+
+function heroGeometry(freqs: readonly number[]) {
+  const min = Math.min(...freqs);
+  const max = Math.max(...freqs);
+  const span = Math.max(36, max - min);
+  const top = 150;
+  const bottom = 348;
+  const floor = BASE - 12;
+  const clampY = (y: number) => Math.max(96, Math.min(y, floor));
+  const mapped = freqs.map((freq, index) => {
+    const y = clampY(top + ((max - freq) / span) * (bottom - top));
+    return [XS[index], y] as [number, number];
+  });
+  const leftSlope = (mapped[1][1] - mapped[0][1]) / (mapped[1][0] - mapped[0][0]);
+  const rightSlope = (mapped[3][1] - mapped[2][1]) / (mapped[3][0] - mapped[2][0]);
+  const extended: [number, number][] = [
+    [0, clampY(mapped[0][1] - leftSlope * mapped[0][0])],
+    ...mapped,
+    [VW, clampY(mapped[3][1] + rightSlope * (VW - mapped[3][0]))],
+  ];
+  const line = monotone(extended);
+  return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
+}
+
+function miniPath(freqs: readonly number[]): string {
+  const min = Math.min(...freqs);
+  const max = Math.max(...freqs);
+  const span = Math.max(24, max - min);
+  const points = freqs.map((freq, index) => {
+    const y = 12 + ((max - freq) / span) * 36;
+    return [8 + index * 74, y] as [number, number];
+  });
+  return monotone(points);
+}
+
+function carrierWave(): string {
+  let d = "";
+  for (let x = 0; x <= VW; x += 8) {
+    const y = 300 + Math.sin(x / 92) * 22 + Math.sin(x / 31) * 7;
+    d += d ? ` L ${x.toFixed(1)} ${y.toFixed(1)}` : `M ${x.toFixed(1)} ${y.toFixed(1)}`;
+  }
+  return d;
+}
+
+const WAVE = carrierWave();
+
+function ReplayIcon() {
   return (
-    <div className={`sonify-feedback ${correct ? "is-right" : "is-wrong"}`} data-testid="guess-reveal" role="status" ref={ref}>
-      <div className="sonify-feedback-msg">
-        <p className="sonify-verdict">
-          <span className="sonify-vmark" aria-hidden="true">
-            {correct ? "✓" : "✕"}
-          </span>
-          {verdict}
-        </p>
-        <p className="sonify-why">
-          <b>Why:</b> {why}
-        </p>
-        <div className="sonify-next">
-          <CutButton solid onClick={onAdvance} ref={nextRef} aria-keyshortcuts="Enter">
-            <IconPlay />
-            {last ? "See result" : "Play next signal"}
-            <span className="sonify-kbd">↵</span>
-          </CutButton>
-          <span className="about-kicker">
-            +{gain} · Streak {streak}
-          </span>
-        </div>
-      </div>
-      <div className="sonify-feedback-map">
-        <SignalMap regionId={regionId} fill />
-      </div>
-    </div>
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.2 4.2 3.4 6.4 6.2 8.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M4.2 6.4h4.2a4 4 0 1 1-1.2 3.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
   );
+}
+
+function resultUrl(result: SharedGuessResult): string {
+  const url = new URL("/challenge/guess", window.location.origin);
+  url.searchParams.set("result", encodeGuessResult(result));
+  return url.toString();
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const input = document.createElement("textarea");
+  input.value = value;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  input.remove();
+  if (!copied) throw new Error("Clipboard access was blocked.");
+}
+
+async function saveResultImage(title: string, scoreLine: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 630;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.fillStyle = "#141414";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "#b4b2ae";
+  context.font = "600 22px ui-monospace, monospace";
+  context.fillText("SONIFYSPHERE · GUESS THE SIGNAL", 72, 120);
+  context.fillStyle = "#f2f2f0";
+  context.font = "560 72px sans-serif";
+  context.fillText(title, 72, 280);
+  context.font = "500 28px ui-monospace, monospace";
+  context.fillText(scoreLine, 72, 360);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) return;
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = "sonifysphere-guess-result.png";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
 export function GuessGame({
@@ -171,6 +248,8 @@ export function GuessGame({
   const [announcement, setAnnouncement] = useState("");
   const [booted, setBooted] = useState(false);
   const [savedRun, setSavedRun] = useState<StoredGuessRun | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [shareNote, setShareNote] = useState("");
   const stopRef = useRef<(() => void) | null>(null);
   const liveTimer = useRef<number | null>(null);
   const phaseRef = useRef(phase);
@@ -179,8 +258,13 @@ export function GuessGame({
   const nextRef = useRef<HTMLButtonElement | null>(null);
   const hearRef = useRef<HTMLButtonElement | null>(null);
   const questionRef = useRef<HTMLHeadingElement | null>(null);
-  const resultRef = useRef<HTMLDivElement | null>(null);
+  const resultRef = useRef<HTMLButtonElement | null>(null);
+  const infoRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const pendingSound = useRef<(() => void) | null>(null);
+  const fillId = `${useId().replace(/:/g, "")}fill`;
+  const glowId = `${useId().replace(/:/g, "")}glow`;
+  const plotClipId = `${useId().replace(/:/g, "")}plot`;
   phaseRef.current = phase;
 
   useEffect(() => {
@@ -280,6 +364,18 @@ export function GuessGame({
     if (target === "result") resultRef.current?.focus();
     if (target === "hear") hearRef.current?.focus();
   });
+
+  useEffect(() => {
+    if (!infoOpen) return;
+    dialogRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setInfoOpen(false);
+      infoRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [infoOpen]);
 
   const stopPhrase = useCallback(() => {
     stopRef.current?.();
@@ -391,6 +487,7 @@ export function GuessGame({
       }
       const why = explainGuess(round, id);
       setAnnouncement(`${correct ? "Yes." : "No."} ${answerText}. ${why}`);
+      pendingFocus.current = "next";
     },
     [blocked, round, streak]
   );
@@ -434,7 +531,7 @@ export function GuessGame({
         playRound(active);
       }
       if (current === "answered" && event.key === "Enter") {
-        if (target instanceof HTMLElement && target.closest(".sonify-next")) return;
+        if (target instanceof HTMLElement && target.closest(".sonify-next, button, a, [role='dialog']")) return;
         event.preventDefault();
         advance();
       }
@@ -460,6 +557,7 @@ export function GuessGame({
     setHistory([]);
     setBlocked(false);
     setGain(0);
+    setShareNote("");
     pendingFocus.current = "hear";
   };
 
@@ -496,297 +594,379 @@ export function GuessGame({
     setAnnouncement(`${correctCount} of ${deck.length} named. Score ${score}. Best streak ${best}.`);
   }, [best, correctCount, deck.length, phase, score]);
 
+  const copyLink = async (result: SharedGuessResult) => {
+    try {
+      await copyText(resultUrl(result));
+      setShareNote("Result link copied.");
+      setAnnouncement("Result link copied.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The result link could not be copied.";
+      setShareNote(message);
+      setAnnouncement(message);
+    }
+  };
+
+  const saveImage = async (title: string, scoreLine: string) => {
+    await saveResultImage(title, scoreLine);
+    setShareNote("Result image downloaded.");
+    setAnnouncement("Result image downloaded.");
+  };
+
   const question = round?.kind === "region" ? "Which region is this?" : "Which record is this?";
   const answerText = round ? displayChoice(round, round.answerId, choiceLabel(round, round.answerId)) : "";
   const correct = Boolean(round && pickedId && pickedId === round.answerId);
   const why = round && pickedId && phase === "answered" ? explainGuess(round, pickedId) : "";
   const playingNow = phase === "listening" && live;
   const heard = phase === "listening" || phase === "answered";
-  const caption = (() => {
-    if (visitSeed === null) return "Drawing a signal…";
-    if (phase === "result") return `Done · ${deck.length} of ${deck.length} rounds`;
-    if (phase === "answered") return `Round ${index + 1} of ${deck.length} · ${correct ? "Named" : "Missed"}`;
-    const kind = round?.kind === "layer" ? "Record round" : "Region round";
-    return `Round ${index + 1} of ${deck.length} · ${kind}`;
-  })();
-
-  const scoreToolbar = (
-    <div className="sonify-score">
-      <div>
-        <span className="about-kicker">Score</span>
-        <b>{score}</b>
-      </div>
-      <div>
-        <span className="about-kicker">Streak</span>
-        <b>{streak}</b>
-      </div>
-    </div>
-  );
-
+  const waiting = phase === "ready" || blocked;
+  const total = deck.length || rounds;
+  const roundLabel = phase === "result" ? `${total} of ${total} complete` : `Round ${Math.min(index + 1, total)} of ${total}`;
+  const filled = phase === "result" ? total : history.length;
   const shareResult: SharedGuessResult = {
     correct: correctCount,
     total: deck.length,
     score,
     bestStreak: best,
   };
+  const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
+  const verdict = `${correct ? "Yes" : "No"} — ${answerText}.`;
+  const tip = `${correct ? "✓" : "✕"} ${answerText}${correct && gain ? ` +${gain}` : ""}`;
+
+  const squares = (
+    <span className={styles.squares} role="group" aria-label={roundLabel}>
+      {Array.from({ length: total }, (_, square) => (
+        <span key={square} className={styles.square} data-on={square < filled ? "true" : "false"} />
+      ))}
+    </span>
+  );
+
+  const scoreSide = (
+    <div className={styles.scoreSide}>
+      <span className="sonify-score">
+        <b>{sharedResult ? sharedResult.score : score}</b>
+        <span> PTS</span>
+      </span>
+      {phase === "result" || sharedResult ? null : <span className={styles.streak}>STREAK {streak}</span>}
+      {squares}
+    </div>
+  );
+
+  const info = (
+    <span className={styles.infoWrap}>
+      <button
+        ref={infoRef}
+        type="button"
+        className={`${styles.shell} ${styles.info}`}
+        style={{ clipPath: clip(7) }}
+        aria-expanded={infoOpen}
+        aria-controls="guess-info"
+        aria-label="How this challenge works"
+        onClick={() => setInfoOpen((open) => !open)}
+      >
+        <span className={styles.face} style={{ clipPath: clip(7) }}>
+          i
+        </span>
+      </button>
+      {infoOpen ? (
+        <div ref={dialogRef} id="guess-info" className={styles.popover} style={{ clipPath: clip(12) }} role="dialog" aria-label="How it works" tabIndex={-1}>
+          <div className={styles.popoverFace} style={{ clipPath: clip(12) }}>
+            <span className={styles.num}>How it works</span>
+            <p>{HOW}</p>
+          </div>
+        </div>
+      ) : null}
+    </span>
+  );
 
   if (sharedResult) {
-    const accuracy = Math.round((sharedResult.correct / sharedResult.total) * 100);
+    const title = `${sharedResult.correct} of ${sharedResult.total} named`;
+    const scoreLine = `${sharedResult.score} PTS · BEST STREAK ${sharedResult.bestStreak}`;
     return (
-      <PlayFrame title="Shared Guess the Signal result">
-        <section className="sonify-console" aria-labelledby="shared-guess-title" data-testid="guess-shared-result">
-          <div className="sonify-console-in flex flex-col gap-6 p-6 sm:p-10">
-            <div>
-              <p className="about-kicker">A player shared this result</p>
-              <h2 id="shared-guess-title" className="m-0 font-sans text-3xl font-medium text-[#f2f2f0]">Guess the Signal</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4 border-y border-[rgba(242,242,240,0.14)] py-5 sm:grid-cols-4">
-              <div><span className="about-kicker">Signals named</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.correct}/{sharedResult.total}</p></div>
-              <div><span className="about-kicker">Accuracy</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{accuracy}%</p></div>
-              <div><span className="about-kicker">Score</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.score}</p></div>
-              <div><span className="about-kicker">Best streak</span><p className="m-0 font-mono text-2xl text-[#f2f2f0]">{sharedResult.bestStreak}</p></div>
-            </div>
-            <p className="sonify-help m-0">Each signal connects sound patterns to a region or data record. Play a round to hear the pattern, then compare the clue with the answer.</p>
-            <ChallengeShareActions
-              path="/challenge/guess"
-              params={{ result: encodeGuessResult(sharedResult) }}
-              title="Guess the Signal"
-              score={`${sharedResult.correct} / ${sharedResult.total}`}
-              detail={`Accuracy ${accuracy}% · Score ${sharedResult.score} · Best streak ${sharedResult.bestStreak}`}
-              fileName="sonifysphere-guess-result.png"
-            />
-            <Link href="/challenge/guess" className="sonify-text-next">Play Guess the Signal →</Link>
+      <main id="main-content" tabIndex={-1} className={styles.page} data-result="true">
+        <header className={styles.header}>
+          <Link href="/challenge" className={styles.resultBack}>
+            ← Challenges
+          </Link>
+          {scoreSide}
+        </header>
+        <section className={styles.result} data-testid="guess-shared-result" aria-labelledby="shared-guess-title">
+          <h1 id="shared-guess-title">{title}</h1>
+          <p className={styles.stats}>
+            <span>{sharedResult.score} PTS</span>
+            <span>BEST STREAK {sharedResult.bestStreak}</span>
+          </p>
+          <p className={styles.note}>A shared result. The five signals stay on the player’s own run.</p>
+          <Link href="/challenge/guess" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(10), textDecoration: "none" }}>
+            <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
+              Play again
+            </span>
+          </Link>
+          <div className={styles.links}>
+            <button type="button" onClick={() => void copyLink(sharedResult)}>
+              Copy link
+            </button>
+            <button type="button" onClick={() => void saveImage(title, scoreLine)}>
+              Save image
+            </button>
           </div>
+          {shareNote ? <p className={styles.note}>{shareNote}</p> : null}
         </section>
-      </PlayFrame>
+        <p className={styles.sr} aria-live="polite">
+          {announcement}
+        </p>
+      </main>
     );
   }
 
+  const showResult = phase === "result";
+  const lastHeard = history[history.length - 1];
+
   return (
-    <PlayFrame title="Guess the Signal" toolbar={scoreToolbar} className="sonify-guess">
-      <p className="sr-only" aria-live="polite">
+    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showResult ? "true" : undefined}>
+      <p className={styles.sr} aria-live="polite">
         {announcement}
       </p>
-      <div data-testid="guess-game" data-ready={visitSeed === null || !booted ? "false" : "true"} data-seed={visitSeed ?? undefined}>
-        <RoundRail count={deck.length || rounds} index={index} done={phase === "result"} history={history} />
-        <div className="sonify-railcap">
-          <span className="about-kicker">{caption}</span>
-          {phase === "result" ? null : <span className="about-kicker sonify-keys">Keys: 1–4 answer · R replay · Enter next</span>}
-        </div>
+      <header className={styles.header}>
+        {showResult ? (
+          <Link href="/challenge" className={styles.resultBack}>
+            ← Challenges
+          </Link>
+        ) : (
+          <div className={styles.titleRow}>
+            <span className={styles.num}>01</span>
+            <h1>Guess the Signal</h1>
+            {info}
+          </div>
+        )}
+        {scoreSide}
+      </header>
 
+      <div className={styles.game} data-testid="guess-game" data-ready={visitSeed === null || !booted ? "false" : "true"} data-seed={visitSeed ?? undefined}>
         {savedRun ? (
-          <div className="sonify-console" role="status">
-            <div className="sonify-console-in">
-              <p className="about-kicker">Saved round</p>
-              <h2>A saved round is still open.</h2>
-              <p className="sonify-help">Starting this one replaces round {savedRun.index + 1}.</p>
-              <div className="sonify-controls">
-                <CutButton solid onClick={() => openFresh(seed ?? freshSeed())}>
+          <div className={styles.center} role="status">
+            <p className={styles.num}>Saved round</p>
+            <h2>A saved round is still open.</h2>
+            <p>Starting this one replaces round {savedRun.index + 1}.</p>
+            <div className={styles.actions}>
+              <button type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} onClick={() => openFresh(seed ?? freshSeed())}>
+                <span className={styles.face} style={{ clipPath: clip(8) }}>
                   Start this one
-                </CutButton>
-                <CutButton onClick={() => router.replace(`/challenge/guess?seed=${savedRun.seed}`, { scroll: false })}>
+                </span>
+              </button>
+              <button type="button" className={styles.shell} style={{ clipPath: clip(8) }} onClick={() => router.replace(`/challenge/guess?seed=${savedRun.seed}`, { scroll: false })}>
+                <span className={styles.face} style={{ clipPath: clip(8) }}>
                   Resume saved round
-                </CutButton>
-              </div>
+                </span>
+              </button>
             </div>
           </div>
         ) : visitSeed === null || !booted ? (
-          <div className="sonify-console" data-testid="guess-skeleton" aria-busy="true">
-            <div className="sonify-console-in sonify-guess-grid">
-              <div className="sonify-ask">
-                <div className="sonify-skel" style={{ width: "40%", height: 14 }} />
-                <div className="sonify-skel" style={{ width: "80%", height: 40 }} />
-                <div className="sonify-skel" style={{ height: 64 }} />
+          <div className={styles.skel} data-testid="guess-skeleton" aria-busy="true">
+            <div className={styles.bar} />
+            <div className={styles.bar} />
+          </div>
+        ) : showResult ? (
+          <section className={styles.result} data-testid="guess-result">
+            <h1>{correctCount} of {deck.length} named</h1>
+            <p className={styles.stats}>
+              <span>{score} PTS</span>
+              <span>BEST STREAK {best}</span>
+            </p>
+            <ol className={styles.rounds}>
+              {history.map((entry, entryIndex) => (
+                <li key={`${entry.answerId}-${entryIndex}`} className={styles.mini}>
+                  <svg viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true">
+                    <path d={miniPath(phraseFreqs(entry.regionId, entry.season, entry.weather))} fill="none" stroke="#f2f2f0" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+                  </svg>
+                  <div className={styles.miniHead}>
+                    <span>
+                      <span className={styles.miniName}>
+                        {entry.correct ? "✓" : "✕"} {String(entryIndex + 1).padStart(2, "0")} {entry.answerLabel}
+                      </span>
+                      <span className={styles.miniSub}>{entry.correct ? (entry.kind === "region" ? "Region" : "Record") : `You said ${entry.pickedLabel}`}</span>
+                    </span>
+                    <button type="button" className={`${styles.shell} ${styles.miniReplay}`} style={{ clipPath: clip(7) }} aria-label={`Replay round ${entryIndex + 1}`} onClick={() => replayHistory(entry)}>
+                      <span className={styles.face} style={{ clipPath: clip(7) }}>
+                        <ReplayIcon />
+                      </span>
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <button ref={resultRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(10) }} onClick={again}>
+              <span className={styles.face} style={{ clipPath: clip(10), minWidth: "8.5rem" }}>
+                Play again
+              </span>
+            </button>
+            <div className={styles.links}>
+              <Link href={lastHeard ? `/listen?region=${lastHeard.regionId}&data=${dataParam(lastHeard.layer)}` : "/listen"}>Hear the real data</Link>
+              <Link href="/challenge/compose">Next · Compose</Link>
+              <button type="button" onClick={() => void copyLink(shareResult)}>
+                Copy link
+              </button>
+              <button type="button" onClick={() => void saveImage(`${correctCount} of ${deck.length} named`, `${score} PTS · BEST STREAK ${best}`)}>
+                Save image
+              </button>
+            </div>
+            {shareNote ? <p className={styles.note}>{shareNote}</p> : null}
+            {soundOff ? (
+              <div className={styles.banner} role="status">
+                <p>Sound is off.</p>
+                <button type="button" onClick={turnSoundOn}>
+                  Turn sound on
+                </button>
               </div>
-              <div className="sonify-choices">
-                {["one", "two", "three", "four"].map((slot) => (
-                  <div key={slot} className="sonify-skel" />
+            ) : null}
+          </section>
+        ) : round && geometry ? (
+          <>
+            <div className={styles.stage}>
+              <span className={`${styles.shell} ${styles.clue}`} style={{ clipPath: clip(7) }}>
+                <span className={styles.face} style={{ clipPath: clip(7) }}>
+                  {`CLUE ${clueValue(round).toUpperCase()}`}
+                </span>
+              </span>
+              <svg className={styles.curve} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" role="img" aria-label={playingNow ? "Playing the signal" : phase === "answered" ? `${verdict} ${oneLineWhy(why)}` : `Signal across ${AXIS.join(", ")}. ${question}`}>
+                <defs>
+                  <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.22" />
+                    <stop offset="72%" stopColor="#f2f2f0" stopOpacity="0.04" />
+                    <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
+                  </linearGradient>
+                  <filter id={glowId} x="-8%" y="-50%" width="116%" height="200%">
+                    <feGaussianBlur stdDeviation="8" />
+                  </filter>
+                  <clipPath id={plotClipId}>
+                    <rect x="0" y="0" width={VW} height={BASE} />
+                  </clipPath>
+                </defs>
+                <path className={styles.wave} d={WAVE} />
+                <g clipPath={`url(#${plotClipId})`}>
+                  <path d={geometry.fill} fill={`url(#${fillId})`} />
+                  <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+                </g>
+                <path className={styles.line} d={geometry.line} />
+              </svg>
+              <div className={styles.years} aria-hidden="true">
+                {AXIS.map((year, yearIndex) => (
+                  <span key={year} className={styles.year} style={{ left: `${(XS[yearIndex] / VW) * 100}%` }}>
+                    {year}
+                  </span>
                 ))}
               </div>
-            </div>
-          </div>
-        ) : phase === "result" ? (
-          <section className="sonify-console" data-testid="guess-result">
-            <div className="sonify-console-in sonify-result">
-              <div className="sonify-result-main">
-                <p className="about-kicker">Your result</p>
-                <div className="sonify-result-score" tabIndex={-1} ref={resultRef}>
-                  {correctCount}
-                  <small> / {deck.length}</small>
-                </div>
-                <p className="sonify-named">named.</p>
-                <div className="sonify-result-stats">
-                  <div>
-                    <span className="about-kicker">Score </span>
-                    <b>{score}</b>
-                  </div>
-                  <div>
-                    <span className="about-kicker">Best streak </span>
-                    <b>{best}</b>
-                  </div>
-                </div>
-                <div className="sonify-result-actions">
-                  <CutButton solid onClick={again}>
-                    Play again
-                  </CutButton>
-                  {round ? (
-                    <Link href={`/listen?region=${round.regionId}&data=${dataParam(round.layer)}`} className="sonify-cut-link">
-                      <span>Hear the real data →</span>
-                    </Link>
-                  ) : null}
-                </div>
-                <Link href="/challenge/compose" className="sonify-text-next">
-                  Next: try Compose →
-                </Link>
-                <p className="sonify-help m-0">{correctCount === deck.length ? "You identified every signal. Replay the rounds to connect each sound with its region or record." : "Review each missed round and replay its sound to connect the pattern with the correct region or record."}</p>
-                <ChallengeShareActions
-                  path="/challenge/guess"
-                  params={{ result: encodeGuessResult(shareResult) }}
-                  title="Guess the Signal"
-                  score={`${correctCount} / ${deck.length}`}
-                  detail={`Score ${score} · Best streak ${best}`}
-                  fileName="sonifysphere-guess-result.png"
-                />
-              </div>
-              <div className="sonify-result-list">
-                <p className="about-kicker">Round by round</p>
-                {soundOff ? <SoundOffNote onTurnOn={turnSoundOn} /> : null}
-                <ol>
-                  {history.map((entry, entryIndex) => (
-                    <li key={`${entry.answerId}-${entryIndex}`}>
-                      <span className={`sonify-rk ${entry.correct ? "is-ok" : "is-no"}`} aria-hidden="true">
-                        {entry.correct ? "✓" : "✕"}
+              {geometry.mapped.map((point, pointIndex) => {
+                const last = pointIndex === geometry.mapped.length - 1;
+                const top = `${(point[1] / VH) * 100}%`;
+                return (
+                  <div key={AXIS[pointIndex]} className={styles.marker} style={{ left: `${(point[0] / VW) * 100}%` }} aria-hidden="true">
+                    <span className={styles.stem} style={{ top, height: `${((BASE - point[1]) / VH) * 100}%` }} />
+                    {last && phase === "answered" ? <span className={styles.ring} style={{ top }} /> : <span className={styles.dot} style={{ top }} />}
+                    {last && phase === "answered" ? (
+                      <span className={styles.tip} style={{ top, clipPath: clip(6) }}>
+                        <span className={styles.face} style={{ clipPath: clip(6) }}>
+                          {tip}
+                        </span>
                       </span>
-                      <span>
-                        <small>
-                          Round {entryIndex + 1} · {entry.kind === "region" ? "Region" : "Record"}
-                        </small>
-                        {entry.correct ? entry.answerLabel : `${entry.answerLabel} · you said ${entry.pickedLabel}`}
-                      </span>
-                      <CutButton aria-label={`Replay round ${entryIndex + 1}`} onClick={() => replayHistory(entry)}>
-                        <IconPlay />
-                      </CutButton>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
-          </section>
-        ) : round ? (
-          <div className="sonify-console">
-            <div className="sonify-console-in">
-              <div className="sonify-guess-grid">
-                <div className="sonify-ask">
-                  <p className="about-kicker">
-                    Round {index + 1} of {deck.length}
-                  </p>
-                  <h2 ref={questionRef} tabIndex={-1}>
-                    {question}
-                  </h2>
-                  <div className="sonify-clue">
-                    <span className="about-kicker">{clueLabel(round)}</span>
-                    <span className="sonify-clue-val">{clueValue(round)}</span>
+                    ) : null}
                   </div>
-                  <CutButton
-                    ref={hearRef}
-                    solid={phase === "ready" || playingNow || blocked}
-                    data-testid="guess-hear"
-                    aria-disabled={playingNow || undefined}
-                    aria-keyshortcuts={heard && !blocked ? "R" : undefined}
-                    onClick={() => {
-                      if (playingNow) return;
-                      if (phase === "ready" || blocked) hear();
-                      else replay();
-                    }}
-                  >
-                    <IconPlay />
-                    {blocked ? "Hear the signal" : playingNow ? "Playing…" : heard ? "Replay" : "Hear the signal"}
-                    {heard && !playingNow && !blocked ? <span className="sonify-kbd">R</span> : null}
-                  </CutButton>
-                  <div className="sonify-live-row">
-                    <SignalMeter live={live && !blocked} />
-                    <span className="about-kicker">
-                      {blocked
-                        ? "Sound blocked"
-                        : playingNow
-                          ? "Four notes · 1968 → 2024"
-                          : phase === "answered"
-                            ? "Answered · see why below"
-                            : heard
-                              ? "Heard · pick an answer"
-                              : "Press Hear to start"}
+                );
+              })}
+            </div>
+
+            {phase === "answered" ? (
+              <div className={styles.verdictBlock} data-testid="guess-reveal" role="status">
+                <p className={styles.verdict}>{verdict}</p>
+                <p className={styles.why}>{oneLineWhy(why)}</p>
+              </div>
+            ) : null}
+
+            <div className={styles.dock}>
+              {phase === "answered" ? null : (
+                <h2 ref={questionRef} className={styles.prompt} tabIndex={-1}>
+                  {question}
+                </h2>
+              )}
+              <div className={styles.row}>
+                {heard && !blocked ? (
+                  <button type="button" className={`${styles.shell} ${styles.replay}`} style={{ clipPath: clip(8) }} aria-label="Replay" aria-keyshortcuts="R" onClick={replay}>
+                    <span className={styles.face} style={{ clipPath: clip(8) }}>
+                      <ReplayIcon />
                     </span>
-                  </div>
-                </div>
-                <div className="sonify-choices" role="group" aria-label="Answers">
-                  <p className="about-kicker">
-                    {phase === "ready" || blocked ? "Answers unlock after you hear the signal" : "Pick one"}
-                  </p>
+                  </button>
+                ) : null}
+                <div className={styles.answers} role="group" aria-label="Answers">
                   {round.choices.map((choice, choiceIndex) => {
-                    let result: string | undefined;
-                    if (phase === "answered" && choice.id === round.answerId) result = "correct";
-                    else if (phase === "answered" && choice.id === pickedId) result = "wrong";
-                    const locked = phase === "answered";
-                    const waiting = phase === "ready" || blocked;
-                    let end = "";
-                    if (result === "correct" && choice.id === pickedId) end = "✓ Your pick · correct";
-                    else if (result === "correct") end = "✓ Answer";
-                    else if (result === "wrong") end = "✕ Your pick";
+                    const name = displayChoice(round, choice.id, choice.label);
+                    const picked = pickedId === choice.id;
+                    const isAnswer = phase === "answered" && choice.id === round.answerId;
+                    const cream = Boolean(isAnswer && picked);
+                    let mark = "";
+                    if (phase === "answered" && choice.id === round.answerId) mark = "✓";
+                    else if (phase === "answered" && picked) mark = "✕";
                     return (
-                      <CutButton
+                      <button
                         key={choice.id}
-                        variant="choice"
+                        type="button"
+                        className={`${styles.shell} ${styles.choice}${cream ? " bg-[#f2f2f0]" : ""}`}
+                        style={{ clipPath: clip(8) }}
                         data-testid="guess-choice"
-                        data-result={result}
-                        data-locked={locked ? "true" : undefined}
-                        aria-disabled={waiting || undefined}
-                        aria-pressed={pickedId === choice.id}
+                        data-result={phase === "answered" ? (choice.id === round.answerId ? "correct" : picked ? "wrong" : undefined) : undefined}
+                        data-locked={waiting ? "true" : undefined}
+                        disabled={waiting}
+                        aria-disabled={phase !== "listening"}
+                        aria-pressed={picked}
                         aria-keyshortcuts={String(choiceIndex + 1)}
+                        aria-label={waiting ? `${choiceIndex + 1}, ${name}, locked` : undefined}
                         onClick={() => {
-                          if (waiting) return;
+                          if (waiting || phase !== "listening") return;
                           choose(choice.id);
                         }}
                       >
-                        <span className="sonify-keycap">{choiceIndex + 1}</span>
-                        <span className="sonify-choice-label">{displayChoice(round, choice.id, choice.label)}</span>
-                        <span className="sonify-choice-end">{end}</span>
-                      </CutButton>
+                        <span className={styles.face} style={{ clipPath: clip(8) }}>
+                          <span className={styles.key}>{choiceIndex + 1}</span>
+                          <span className={styles.choiceLabel}>{name}</span>
+                          {mark ? <span className={styles.mark}>{mark}</span> : null}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
-              </div>
-              {soundOff ? <SoundOffNote onTurnOn={turnSoundOn} /> : null}
-              {blocked ? (
-                <div className="sonify-audio-error" role="alert" ref={(node) => node?.scrollIntoView({ block: "nearest" })}>
-                  <span className="sonify-vmark" aria-hidden="true">
-                    !
-                  </span>
-                  <div>
-                    <p>The sound did not start.</p>
-                    <p>Your browser may be blocking audio for this tab. Press Hear the signal again, or turn sound on in the tab settings.</p>
+                {phase === "answered" ? (
+                  <div className={`sonify-next ${styles.cta}`}>
+                    <button ref={nextRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} aria-keyshortcuts="Enter" onClick={advance}>
+                      <span className={styles.face} style={{ clipPath: clip(8) }}>
+                        Next signal
+                      </span>
+                    </button>
                   </div>
+                ) : phase === "ready" || blocked ? (
+                  <div className={styles.cta}>
+                    <button ref={hearRef} type="button" className={`${styles.shell} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} data-testid="guess-hear" onClick={hear}>
+                      <span className={styles.face} style={{ clipPath: clip(8) }}>
+                        Hear signal
+                      </span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              {soundOff ? (
+                <div className={styles.banner} role="status">
+                  <p>Sound is off.</p>
+                  <button type="button" onClick={turnSoundOn}>
+                    Turn sound on
+                  </button>
                 </div>
               ) : null}
-              {phase === "answered" && pickedId ? (
-                <FeedbackBlock
-                  correct={correct}
-                  verdict={`${correct ? "Yes." : "No."} ${answerText}.`}
-                  why={why}
-                  gain={gain}
-                  streak={streak}
-                  last={index + 1 >= deck.length}
-                  onAdvance={advance}
-                  nextRef={(node) => {
-                    nextRef.current = node;
-                  }}
-                  onVisible={(button) => button?.focus({ preventScroll: true })}
-                  regionId={round.regionId}
-                />
+              {blocked ? (
+                <div className={styles.alert} role="alert">
+                  <p>The sound did not start. Press Hear signal again.</p>
+                </div>
               ) : null}
             </div>
-          </div>
+          </>
         ) : null}
       </div>
-    </PlayFrame>
+    </main>
   );
 }
