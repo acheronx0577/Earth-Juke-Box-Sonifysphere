@@ -1,45 +1,38 @@
 "use client";
 
-import { useState, useCallback, useRef, useId } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { CutButton } from "@/components/play/CutControls";
-import { ChallengeShareActions } from "@/components/play/ChallengeShareActions";
 import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
 import styles from "./ribbons.module.css";
 
-const PLOT = { x: -48, y: 0, w: 696, h: 320 };
-
-function clip(cut: number) {
-  return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
-}
+const VW = 1480;
+const VH = 620;
+const BASE = 548;
+const XS = [150, 350, 550, 750, 950, 1150, 1350];
 
 interface RibbonPattern {
   readonly id: string;
-  readonly title: string;
-  readonly subtitle: string;
+  readonly shortTitle: string;
+  readonly resultLabel: string;
   readonly defaultSeason: string;
-  readonly seasonClues: Record<string, string>;
   readonly turnIndex: number;
   readonly points: readonly [number, number][];
   readonly months: readonly string[];
   readonly turnReason: string;
   readonly missHint: string;
-  readonly scientificFact: string;
+  readonly infoFact: string;
 }
+
+const HOW =
+  "Each point plays a pitch: higher curve, higher note. Tap the chart or use the arrow keys to move, then Check the point where the line turns.";
 
 const PATTERNS: readonly RibbonPattern[] = [
   {
     id: "co2-keeling",
-    title: "Atmospheric CO₂ Cycle",
-    subtitle: "Northern Hemisphere forest bloom and decay (~6 ppm annual swing)",
+    shortTitle: "CO₂ Cycle",
+    resultLabel: "CO₂ · MAY",
     defaultSeason: "Spring",
-    seasonClues: {
-      Spring: "In late spring (May), atmospheric CO₂ reaches its annual peak before expansive northern forests awaken.",
-      Summer: "During summer, intense photosynthesis draws billions of tons of carbon into plant biomass, pulling concentrations down.",
-      Autumn: "In early autumn (September/October), CO₂ reaches its seasonal minimum before leaves drop.",
-      Winter: "Throughout winter, plant respiration and microbial decay release carbon back into the air, driving levels up.",
-    },
-    turnIndex: 3, // Point 4 (0-indexed 3)
+    turnIndex: 3,
     points: [
       [0, 185],
       [100, 160],
@@ -52,20 +45,14 @@ const PATTERNS: readonly RibbonPattern[] = [
     months: ["Nov", "Jan", "Mar", "May", "Jul", "Sep", "Nov"],
     turnReason: "Yes! At point 4 (late spring / May), atmospheric CO₂ crests before Northern Hemisphere photosynthesis accelerates.",
     missHint: "Look for point 4, where the curve reaches its maximum peak before declining into the summer drawdown.",
-    scientificFact: "Charles Keeling first observed this planetary 'inhale' in 1958 atop Mauna Loa. The curve turns when forest uptake overtakes respiration.",
+    infoFact: "CO₂ peaks each May, before northern forests leaf out. Keeling first measured this “inhale” on Mauna Loa in 1958.",
   },
   {
     id: "sea-ice-minimum",
-    title: "Arctic Sea Ice Extent Cycle",
-    subtitle: "Annual freeze-thaw rhythm of polar pack ice",
+    shortTitle: "Sea Ice",
+    resultLabel: "SEA ICE · SEP",
     defaultSeason: "Autumn",
-    seasonClues: {
-      Spring: "As the sun rises above the horizon, the ice pack begins warming from its winter maximum.",
-      Summer: "Continuous sunlight accelerates surface melt and peripheral floe breakup.",
-      Autumn: "In late September, solar radiation drops below critical thresholds, halting melt at the annual minimum.",
-      Winter: "Sub-zero polar night triggers rapid freeze-up across the Arctic basin.",
-    },
-    turnIndex: 3, // Point 4 (trough turning point)
+    turnIndex: 3,
     points: [
       [0, 80],
       [100, 115],
@@ -78,20 +65,14 @@ const PATTERNS: readonly RibbonPattern[] = [
     months: ["Mar", "May", "Jul", "Sep", "Nov", "Jan", "Mar"],
     turnReason: "Correct! Point 4 marks the annual September minimum extent, after which freezing resumes.",
     missHint: "Check point 4, the deepest trough where the summer melt stops and freeze-up begins.",
-    scientificFact: "NASA passive microwave satellites have tracked this September turning point continuously since 1979.",
+    infoFact: "The September minimum is the turn, after which the pack freezes again. NASA has tracked it since 1979.",
   },
   {
     id: "ocean-heat-content",
-    title: "Global Upper Ocean Heat Cycle",
-    subtitle: "Hemispheric solar heating and oceanic thermal lag",
+    shortTitle: "Ocean Heat",
+    resultLabel: "OCEAN HEAT · AUG",
     defaultSeason: "Summer",
-    seasonClues: {
-      Spring: "Increasing solar insolation warms upper mixed layers slowly due to water's high heat capacity.",
-      Summer: "Peak thermal absorption occurs across temperate and subtropical gyres.",
-      Autumn: "Stored heat slowly dissipates into the cooler atmosphere via latent heat flux.",
-      Winter: "Strong winds and cooling drive deep convective overturning.",
-    },
-    turnIndex: 3, // Point 4 (peak heat turn)
+    turnIndex: 3,
     points: [
       [0, 180],
       [100, 150],
@@ -104,14 +85,24 @@ const PATTERNS: readonly RibbonPattern[] = [
     months: ["Feb", "Apr", "Jun", "Aug", "Oct", "Dec", "Feb"],
     turnReason: "Spot on! Point 4 represents the late-summer crest in upper ocean heat content before autumn cooling.",
     missHint: "Point 4 represents the thermal peak where heat accumulation crests before releasing back to the atmosphere.",
-    scientificFact: "Over 90% of Earth's trapped excess energy resides in oceans, tracked by the Argo profiling array and ECCO-2 models.",
+    infoFact: "Upper-ocean heat crests in late summer, then releases to the air. Most of Earth's extra heat is stored in the ocean.",
   },
 ];
 
 const SEASONS = ["Spring", "Summer", "Autumn", "Winter"] as const;
 
+function clip(cut: number) {
+  return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
+}
+
 function freqForCoord(y: number): number {
   return Math.round(220 + (220 - y) * 2.8);
+}
+
+function directionWord(index: number, turn: number): string {
+  if (index < turn) return "RISING";
+  if (index === turn) return "TURN";
+  return "FALLING";
 }
 
 function playToneSnippet(freq: number, duration = 0.35) {
@@ -156,7 +147,89 @@ function playSuccessChime() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.55);
-  } catch {}
+  } catch {
+    // ignore
+  }
+}
+
+function monotone(points: readonly [number, number][]): string {
+  const n = points.length;
+  const dx: number[] = [];
+  const slope: number[] = [];
+  const m = new Array<number>(n).fill(0);
+  for (let i = 0; i < n - 1; i += 1) {
+    dx[i] = points[i + 1][0] - points[i][0];
+    slope[i] = (points[i + 1][1] - points[i][1]) / dx[i];
+  }
+  m[0] = slope[0];
+  m[n - 1] = slope[n - 2];
+  for (let i = 1; i < n - 1; i += 1) {
+    m[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
+  }
+  for (let i = 0; i < n - 1; i += 1) {
+    if (Math.abs(slope[i]) < 1e-6) {
+      m[i] = 0;
+      m[i + 1] = 0;
+    } else {
+      const a = m[i] / slope[i];
+      const b = m[i + 1] / slope[i];
+      const h = a * a + b * b;
+      if (h > 9) {
+        const t = 3 / Math.sqrt(h);
+        m[i] = t * a * slope[i];
+        m[i + 1] = t * b * slope[i];
+      }
+    }
+  }
+  let d = `M ${points[0][0]} ${points[0][1]}`;
+  for (let i = 0; i < n - 1; i += 1) {
+    const c1x = points[i][0] + dx[i] / 3;
+    const c1y = points[i][1] + (m[i] * dx[i]) / 3;
+    const c2x = points[i + 1][0] - dx[i] / 3;
+    const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
+    d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
+  }
+  return d;
+}
+
+function chartGeometry(raw: readonly [number, number][]) {
+  const ys = raw.map((point) => point[1]);
+  const min = Math.min(...ys);
+  const max = Math.max(...ys);
+  const span = max - min || 1;
+  const mapped = raw.map((point, index) => [XS[index], 150 + ((point[1] - min) / span) * 360] as [number, number]);
+  const leftSlope = (mapped[1][1] - mapped[0][1]) / (mapped[1][0] - mapped[0][0]);
+  const rightSlope = (mapped[6][1] - mapped[5][1]) / (mapped[6][0] - mapped[5][0]);
+  const extended: [number, number][] = [
+    [0, mapped[0][1] - leftSlope * mapped[0][0]],
+    ...mapped,
+    [VW, mapped[6][1] + rightSlope * (VW - mapped[6][0])],
+  ];
+  const line = monotone(extended);
+  return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
+}
+
+function resultUrl(score: number, solved: number) {
+  const url = new URL("/challenge/ribbons", window.location.origin);
+  url.searchParams.set("result", encodeRibbonsResult({ patternsSolved: solved, totalScore: score }));
+  return url.toString();
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const input = document.createElement("textarea");
+  input.value = value;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  input.remove();
+  if (!copied) throw new Error("Clipboard access was blocked.");
 }
 
 export function WaveformRibbonsGame({
@@ -167,149 +240,209 @@ export function WaveformRibbonsGame({
   const [patternIdx, setPatternIdx] = useState(0);
   const [pointIdx, setPointIdx] = useState(1);
   const [season, setSeason] = useState<string>("Spring");
-  const [checked, setChecked] = useState(false);
-  const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [isComplete, setIsComplete] = useState(Boolean(sharedResult));
-  const sliderId = useId();
-  const glowId = `${useId().replace(/:/g, "")}glow`;
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [live, setLive] = useState("");
+  const [shareNote, setShareNote] = useState("");
+  const chartRef = useRef<SVGSVGElement | null>(null);
+  const infoRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const fillId = `${useId().replace(/:/g, "")}fill`;
-  const plotRef = useRef<SVGSVGElement | null>(null);
+  const glowId = `${useId().replace(/:/g, "")}glow`;
 
   const pattern = PATTERNS[patternIdx] ?? PATTERNS[0];
-  const currentCoord = pattern.points[pointIdx] ?? pattern.points[0];
-  const currentFreq = freqForCoord(currentCoord[1]);
+  const geometry = chartGeometry(pattern.points);
+  const point = geometry.mapped[pointIdx] ?? geometry.mapped[0];
+  const freq = freqForCoord(pattern.points[pointIdx]?.[1] ?? 160);
+  const month = pattern.months[pointIdx] ?? "";
+  const direction = directionWord(pointIdx, pattern.turnIndex);
+  const valueText = `${month}, ${direction.toLowerCase()}, ${freq} hertz`;
 
-  const directionText =
-    pointIdx < pattern.turnIndex
-      ? "Rising toward peak"
-      : pointIdx === pattern.turnIndex
-        ? "Turning Point"
-        : "Falling from peak";
-
-  const handleSelectPoint = useCallback(
-    (newIdx: number) => {
-      const clamped = Math.max(0, Math.min(pattern.points.length - 1, newIdx));
+  const moveTo = useCallback(
+    (next: number, announce = true) => {
+      const clamped = Math.max(0, Math.min(pattern.points.length - 1, next));
       setPointIdx(clamped);
-      setChecked(false);
-      const targetCoord = pattern.points[clamped];
-      if (targetCoord) {
-        playToneSnippet(freqForCoord(targetCoord[1]));
-      }
+      const y = pattern.points[clamped]?.[1];
+      if (y !== undefined) playToneSnippet(freqForCoord(y));
+      if (announce) setLive("");
     },
-    [pattern.points]
+    [pattern.points],
   );
 
-  const handlePlotClick = (event: React.MouseEvent<SVGSVGElement>) => {
-    const svg = plotRef.current;
-    if (!svg) return;
-    const rect = svg.getBoundingClientRect();
-    const scale = Math.min(rect.width / PLOT.w, rect.height / PLOT.h);
-    if (!(scale > 0)) return;
-    const offsetX = (rect.width - PLOT.w * scale) / 2;
-    const relativeX = (event.clientX - rect.left - offsetX) / scale + PLOT.x;
+  useEffect(() => {
+    if (!infoOpen) return;
+    dialogRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setInfoOpen(false);
+      infoRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [infoOpen]);
 
-    let closestIdx = 0;
-    let minDistance = Number.POSITIVE_INFINITY;
-    pattern.points.forEach(([x], idx) => {
-      const distance = Math.abs(x - relativeX);
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIdx = idx;
-      }
-    });
-    handleSelectPoint(closestIdx);
-  };
-
-  const handleCheckAnswer = () => {
-    const correct = pointIdx === pattern.turnIndex;
-    setIsCorrect(correct);
-    setChecked(true);
-    if (correct) {
-      playSuccessChime();
-      setScore((s) => s + 100);
+  const onChartKey = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      moveTo(pointIdx + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveTo(pointIdx - 1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      moveTo(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      moveTo(pattern.points.length - 1);
     }
   };
 
-  const handleNextPattern = () => {
+  const onChartClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    const svg = chartRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * VW;
+    let closest = 0;
+    let best = Number.POSITIVE_INFINITY;
+    XS.forEach((tick, index) => {
+      const distance = Math.abs(tick - x);
+      if (distance < best) {
+        best = distance;
+        closest = index;
+      }
+    });
+    moveTo(closest);
+    svg.focus();
+  };
+
+  const check = () => {
+    const correct = pointIdx === pattern.turnIndex;
+    setLive(correct ? pattern.turnReason : pattern.missHint);
+    if (!correct) return;
+    playSuccessChime();
+    setScore((value) => value + 100);
     if (patternIdx < PATTERNS.length - 1) {
-      const nextIdx = patternIdx + 1;
-      setPatternIdx(nextIdx);
+      const next = patternIdx + 1;
+      setPatternIdx(next);
       setPointIdx(1);
-      setSeason(PATTERNS[nextIdx].defaultSeason);
-      setChecked(false);
-      setIsCorrect(false);
+      setSeason(PATTERNS[next].defaultSeason);
+      setInfoOpen(false);
     } else {
       setIsComplete(true);
     }
   };
 
-  const handleRestart = () => {
+  const restart = () => {
     setPatternIdx(0);
     setPointIdx(1);
     setSeason(PATTERNS[0].defaultSeason);
-    setChecked(false);
-    setIsCorrect(false);
     setScore(0);
+    setLive("");
+    setShareNote("");
     setIsComplete(false);
   };
 
-  const polylinePoints = pattern.points.map(([x, y]) => `${x},${y}`).join(" ");
-  const ribbonArea = `M${pattern.points.map(([x, y]) => `${x},${y}`).join(" L")} L600,220 L0,220 Z`;
+  const copyLink = async (total: number, solved: number) => {
+    try {
+      await copyText(resultUrl(total, solved));
+      setShareNote("Result link copied.");
+    } catch (error) {
+      setShareNote(error instanceof Error ? error.message : "The result link could not be copied.");
+    }
+  };
 
-  const month = pattern.months[pointIdx] ?? "";
-  const shell = (cut: number) => ({ clipPath: clip(cut) });
+  const saveImage = async (total: number) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1200;
+    canvas.height = 630;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    context.fillStyle = "#141414";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#f2f2f0";
+    context.font = "600 64px sans-serif";
+    context.fillText("Harmonics aligned", 72, 280);
+    context.font = "500 28px ui-monospace, monospace";
+    context.fillText(`${total} PTS`, 72, 360);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!blob) return;
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = "sonifysphere-waveform-ribbons-result.png";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    setShareNote("Result image downloaded.");
+  };
 
   if (isComplete) {
     const displayScore = sharedResult ? sharedResult.totalScore : score;
-    const displaySolved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
-
+    const solved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
     return (
       <main id="main-content" tabIndex={-1} className={styles.page}>
-        <div className={styles.result} data-testid="ribbons-result">
-          <Link href="/challenge" className={styles.back}>
+        <header className={styles.header}>
+          <Link href="/challenge" className={styles.resultBack}>
             ← Challenges
           </Link>
-          <div className={`${styles.mark} c3-readout`} style={shell(10)} aria-hidden="true">
-            <span className={styles.markFace} style={shell(10)}>
-              ✓
+          <div className={styles.scoreSide}>
+            <span>{displayScore} PTS</span>
+            <span className={styles.dots} aria-hidden="true">
+              {PATTERNS.map((item) => (
+                <i key={item.id} className={styles.dot} data-on="true" />
+              ))}
             </span>
           </div>
-          <h1>{sharedResult ? "Waveform Ribbons Shared Score" : "Seasonal Harmonics Aligned"}</h1>
-          <p className={styles.points}>
-            Total Score: <strong>{displayScore} PTS</strong>
-          </p>
-          <p>
-            You tracked Earth&apos;s atmospheric respiration and ocean cycles by ear. Each seasonal curve
-            reflects planetary-scale biome energy exchanges.
-          </p>
-          <ChallengeShareActions
-            path="/challenge/ribbons"
-            params={{
-              result: encodeRibbonsResult({
-                patternsSolved: displaySolved,
-                totalScore: displayScore,
-              }),
-            }}
-            title="Waveform Ribbons"
-            score={`${displayScore} PTS`}
-            detail={`${displaySolved} of ${PATTERNS.length} seasonal cycles resolved`}
-            fileName="sonifysphere-waveform-ribbons-result.png"
-          />
-          <div className={styles.resultActions}>
-            {!sharedResult ? (
-              <CutButton solid onClick={handleRestart}>
-                Play Again
-              </CutButton>
-            ) : (
-              <Link href="/challenge/ribbons">
-                <CutButton solid>Play Waveform Ribbons</CutButton>
-              </Link>
-            )}
-            <Link href="/challenge">
-              <CutButton>Back to Challenges</CutButton>
-            </Link>
+        </header>
+        <div className={styles.result} data-testid="ribbons-result">
+          <span className={styles.shell} style={{ clipPath: clip(8) }} aria-hidden="true">
+            <span className={styles.face} style={{ clipPath: clip(8), width: 44, height: 44 }}>
+              ✓
+            </span>
+          </span>
+          <h1>Harmonics aligned</h1>
+          <div className={styles.ribbons}>
+            {PATTERNS.map((item) => {
+              const mini = chartGeometry(item.points);
+              return (
+                <div key={item.id} className={styles.mini}>
+                  <svg viewBox={`0 120 ${VW} 460`} preserveAspectRatio="none" aria-hidden="true">
+                    <path d={mini.line} fill="none" stroke="#f2f2f0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+                    <circle cx={mini.mapped[item.turnIndex][0]} cy={mini.mapped[item.turnIndex][1]} r="5" fill="#f2f2f0" />
+                  </svg>
+                  <div className={styles.miniRow}>
+                    <span>{item.resultLabel}</span>
+                    <span>+100</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {sharedResult ? (
+            <Link href="/challenge/ribbons" className={styles.shell} style={{ clipPath: clip(10), background: "#f2f2f0", textDecoration: "none" }}>
+              <span className={styles.face} style={{ clipPath: clip(10), background: "#f2f2f0", color: "#141414", minWidth: "8rem" }}>
+                Play again
+              </span>
+            </Link>
+          ) : (
+            <button type="button" className={styles.shell} style={{ clipPath: clip(10), background: "#f2f2f0" }} onClick={restart}>
+              <span className={styles.face} style={{ clipPath: clip(10), background: "#f2f2f0", color: "#141414", minWidth: "8rem" }}>
+                Play again
+              </span>
+            </button>
+          )}
+          <div className={styles.links}>
+            <button type="button" onClick={() => void copyLink(displayScore, solved)}>
+              Copy link
+            </button>
+            <button type="button" onClick={() => void saveImage(displayScore)}>
+              Save image
+            </button>
+            <Link href="/challenge">All challenges</Link>
+          </div>
+          <p className={styles.sr} role="status">{shareNote}</p>
         </div>
       </main>
     );
@@ -317,185 +450,149 @@ export function WaveformRibbonsGame({
 
   return (
     <main id="main-content" tabIndex={-1} className={styles.page}>
-      <header className={styles.top}>
-        <div className={styles.identity}>
-          <Link href="/challenge" className={styles.back}>
-            ← Challenges
-          </Link>
-          <p className={styles.kicker}>03 / Seasonal pattern / Planetary respiration</p>
-          <h1>Challenge 03 · Waveform Ribbons</h1>
+      <header className={styles.header}>
+        <div className={styles.titleRow}>
+          <span className={styles.num}>03</span>
+          <h1>{pattern.shortTitle}</h1>
+          <span className={styles.infoWrap}>
+          <button
+            ref={infoRef}
+            type="button"
+            className={`${styles.shell} ${styles.info} c3-info`}
+            style={{ clipPath: clip(7) }}
+            aria-expanded={infoOpen}
+            aria-controls="ribbon-info"
+            aria-label="How this challenge works"
+            onClick={() => setInfoOpen((open) => !open)}
+          >
+            <span className={styles.face} style={{ clipPath: clip(7) }}>
+              i
+            </span>
+          </button>
+          {infoOpen ? (
+            <div
+              ref={dialogRef}
+              id="ribbon-info"
+              className={styles.popover}
+              style={{ clipPath: clip(12) }}
+              role="dialog"
+              aria-label="How it works"
+              tabIndex={-1}
+            >
+              <div className={styles.popoverFace} style={{ clipPath: clip(12) }}>
+                <span className={styles.num}>How it works</span>
+                <p>{HOW}</p>
+                <p>{pattern.infoFact}</p>
+              </div>
+            </div>
+          ) : null}
+          </span>
         </div>
-        <div className={styles.tools}>
-          <span className={styles.tag} style={shell(8)}>
-            <span className={styles.tagFace} style={shell(8)}>
-              Score <strong>{score}</strong>
-            </span>
-          </span>
-          <span className={styles.tag} style={shell(8)}>
-            <span className={styles.tagFace} style={shell(8)}>
-              Pattern {patternIdx + 1} of {PATTERNS.length}
-            </span>
-          </span>
-          <span className={styles.tag} style={shell(8)}>
-            <span className={styles.tagFace} style={shell(8)}>
-              <strong>Input</strong> Season + Point
-            </span>
-          </span>
-          <span className={styles.tag} style={shell(8)}>
-            <span className={styles.tagFace} style={shell(8)}>
-              <strong>Audio</strong> Cycle Sweep
-            </span>
+        <div className={styles.scoreSide}>
+          <span>{score} PTS</span>
+          <span className={styles.dots} role="group" aria-label={`Pattern ${patternIdx + 1} of ${PATTERNS.length}`}>
+            {PATTERNS.map((item, index) => (
+              <i key={item.id} className={styles.dot} data-on={index === patternIdx ? "true" : "false"} />
+            ))}
           </span>
         </div>
       </header>
 
-      <div className={styles.lede}>
-        <h2>{pattern.title}</h2>
-        <p>
-          {pattern.subtitle}. Tap the curve or move the slider to find where the annual acoustic profile turns.
-        </p>
-      </div>
-
       <div className={`${styles.stage} c3-plot`}>
         <svg
-          ref={plotRef}
-          viewBox={`${PLOT.x} ${PLOT.y} ${PLOT.w} ${PLOT.h}`}
-          preserveAspectRatio="xMidYMid meet"
-          onClick={handlePlotClick}
-          role="img"
-          aria-label={`Interactive seasonal curve for ${pattern.title}. Marker at ${month}, point ${pointIdx + 1} of 7.`}
+          ref={chartRef}
+          className={styles.curve}
+          viewBox={`0 0 ${VW} ${VH}`}
+          preserveAspectRatio="none"
+          role="slider"
+          tabIndex={0}
+          aria-valuemin={0}
+          aria-valuemax={pattern.points.length - 1}
+          aria-valuenow={pointIdx}
+          aria-valuetext={valueText}
+          aria-label={`${pattern.shortTitle} curve`}
+          onKeyDown={onChartKey}
+          onClick={onChartClick}
         >
           <defs>
             <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.42" />
-              <stop offset="72%" stopColor="#f2f2f0" stopOpacity="0.05" />
+              <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.28" />
+              <stop offset="70%" stopColor="#f2f2f0" stopOpacity="0.05" />
               <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
             </linearGradient>
-            <filter id={glowId} x="-20%" y="-60%" width="140%" height="220%">
-              <feGaussianBlur stdDeviation="7" />
+            <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
+              <feGaussianBlur stdDeviation="8" />
             </filter>
           </defs>
-          <line className={styles.baseline} x1="0" y1="220" x2="600" y2="220" />
-          {pattern.points.map(([x], idx) => (
-            <line
-              key={idx}
-              className={idx === pointIdx ? styles.guideOn : styles.guide}
-              x1={x}
-              y1="36"
-              x2={x}
-              y2="220"
-            />
-          ))}
-          <path className={styles.fill} d={ribbonArea} fill={`url(#${fillId})`} />
-          <polyline className={styles.glow} points={polylinePoints} filter={`url(#${glowId})`} />
-          <polyline className={styles.ribbon} points={polylinePoints} />
-          <g className={styles.marker}>
-            <line x1={currentCoord[0]} y1={currentCoord[1]} x2={currentCoord[0]} y2="220" />
-            <circle cx={currentCoord[0]} cy={currentCoord[1]} r="18" />
-            <circle cx={currentCoord[0]} cy={currentCoord[1]} r="6" />
-          </g>
-          {pattern.points.map(([x], idx) => (
-            <text
-              key={`m-${idx}`}
-              className={idx === pointIdx ? styles.monthOn : styles.month}
-              x={x}
-              y="268"
-              textAnchor="middle"
-            >
-              {pattern.months[idx]}
-            </text>
+          <path d={geometry.fill} fill={`url(#${fillId})`} />
+          <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+          <path className={styles.line} d={geometry.line} />
+          <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          {XS.map((x, index) => (
+            <line key={`tick-${index}`} x1={x} y1={BASE} x2={x} y2={BASE + 8} stroke="rgba(242,242,240,0.35)" strokeWidth="1" />
           ))}
         </svg>
+        <div className={styles.months} aria-hidden="true">
+          {pattern.months.map((name, index) => (
+            <span key={`label-${index}`} className={index === pointIdx ? styles.monthOn : styles.month} style={{ left: `${(XS[index] / VW) * 100}%` }}>
+              {name.toUpperCase()}
+            </span>
+          ))}
+        </div>
+        <div className={styles.markerCol} style={{ left: `${(point[0] / VW) * 100}%` }} aria-hidden="true">
+          <div className={`${styles.tip} c3-tip`} style={{ clipPath: clip(6), top: `${(point[1] / VH) * 100}%` }}>
+            <span className={styles.tipFace} style={{ clipPath: clip(6) }}>
+              {month.toUpperCase()} · {direction} · {freq} HZ
+            </span>
+          </div>
+          <span className={styles.stem} style={{ top: `${(point[1] / VH) * 100}%`, height: `${((BASE - point[1]) / VH) * 100}%` }} />
+          <span className={styles.ring} style={{ top: `${(point[1] / VH) * 100}%` }} />
+        </div>
       </div>
 
-      <section className={`${styles.rail} c3-readout`} style={shell(18)} aria-label="Cycle controls">
-        <div className={styles.railFace} style={shell(18)}>
-          <div className={styles.railGrid}>
-            <div>
-              <p className={styles.kicker} id="ribbon-question">
-                Where does the line turn?
-              </p>
-              <div className={styles.seasons} role="group" aria-label="Select season context">
-                {SEASONS.map((s) => {
-                  const isActive = season === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSeason(s)}
-                      aria-pressed={isActive}
-                      className={`${styles.shell} ${styles.season} c3-season${isActive ? ` ${styles.on} bg-[#f2f2f0]` : ""}`}
-                      style={shell(11)}
-                    >
-                      <span className={styles.face} style={shell(11)}>
-                        {s}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className={styles.play}>
-              <div className={styles.sliderMeta}>
-                <label htmlFor={sliderId}>Point in cycle</label>
-                <b>
-                  Point {pointIdx + 1} of {pattern.points.length} · {month} · {currentFreq} Hz
-                </b>
-              </div>
-              <input
-                id={sliderId}
-                type="range"
-                min="0"
-                max={pattern.points.length - 1}
-                value={pointIdx}
-                onChange={(e) => handleSelectPoint(Number(e.target.value))}
-                className={styles.range}
-                aria-valuetext={`Point ${pointIdx + 1} of 7, ${month}, ${directionText}, frequency ${currentFreq} hertz`}
-              />
-              <div className={styles.actions}>
-                <CutButton onClick={() => playToneSnippet(currentFreq)}>Hear selected point</CutButton>
-                {!checked || !isCorrect ? (
-                  <CutButton onClick={handleCheckAnswer}>Check my answer</CutButton>
-                ) : (
-                  <CutButton solid onClick={handleNextPattern}>
-                    {patternIdx < PATTERNS.length - 1 ? "Next Pattern →" : "See Result ↗"}
-                  </CutButton>
-                )}
-              </div>
-            </div>
-
-            <aside className={styles.read} aria-label="Signal readout">
-              <h3>{season} Context</h3>
-              <p>{pattern.seasonClues[season] ?? pattern.subtitle}</p>
-              <dl className={styles.stats}>
-                <div>
-                  <dt>Point</dt>
-                  <dd>
-                    {pointIdx + 1} of {pattern.points.length}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Direction</dt>
-                  <dd>{directionText}</dd>
-                </div>
-                <div>
-                  <dt>Acoustic pitch</dt>
-                  <dd>{currentFreq} Hz</dd>
-                </div>
-              </dl>
-              <p className={styles.fact}>{pattern.scientificFact}</p>
-            </aside>
-          </div>
-          <div className={styles.status} role="status" aria-live="polite" data-tone={checked && isCorrect ? "yes" : "idle"}>
-            {checked
-              ? isCorrect
-                ? pattern.turnReason
-                : pattern.missHint
-              : "Find the point where the pattern changes direction, then test your answer."}
-          </div>
+      <div className={styles.controls}>
+        <p className={styles.prompt}>Where does it turn?</p>
+        <div className={styles.seasons} role="group" aria-label="Select season context">
+          {SEASONS.map((name) => {
+            const on = season === name;
+            return (
+              <button
+                key={name}
+                type="button"
+                className={`${styles.shell} c3-season${on ? " bg-[#f2f2f0]" : ""}`}
+                style={{ clipPath: clip(8) }}
+                aria-pressed={on}
+                onClick={() => setSeason(name)}
+              >
+                <span className={styles.face} style={{ clipPath: clip(8) }}>
+                  {name}
+                </span>
+              </button>
+            );
+          })}
         </div>
-      </section>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            className={`${styles.shell} ${styles.play} c3-play`}
+            style={{ clipPath: clip(8) }}
+            aria-label="Hear selected point"
+            onClick={() => playToneSnippet(freq)}
+          >
+            <span className={styles.face} style={{ clipPath: clip(8) }} aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12">
+                <path d="M3 1.5 L10 6 L3 10.5 Z" fill="currentColor" />
+              </svg>
+            </span>
+          </button>
+          <button type="button" className={`${styles.shell} ${styles.check} c3-check`} style={{ clipPath: clip(8) }} onClick={check}>
+            <span className={styles.face} style={{ clipPath: clip(8) }}>
+              Check
+            </span>
+          </button>
+        </div>
+      </div>
+      <p className={styles.sr} role="status" aria-live="polite">{live}</p>
     </main>
   );
 }
