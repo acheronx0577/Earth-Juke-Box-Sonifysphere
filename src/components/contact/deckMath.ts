@@ -102,10 +102,8 @@ interface Scale {
   readonly originY: number;
 }
 
-/** Keeps the phone hero large, but small enough that both neighbours fit in the band. */
-function phoneHeroFraction(width: number): number {
-  return Math.min(0.52, Math.max(0.4, 168 / Math.max(width, 1)));
-}
+/** Phone hero height as a share of the deck band. The band itself does not move. */
+const PHONE_HERO_BAND = 0.56;
 
 function scaleFor(view: DeckView): Scale {
   if (!view.phone) {
@@ -119,8 +117,8 @@ function scaleFor(view: DeckView): Scale {
       originY: view.originY ?? 0,
     };
   }
-  const byWidth = view.width * phoneHeroFraction(view.width);
-  const byHeight = view.height * 0.46 * 1.253;
+  const byHeight = view.height * PHONE_HERO_BAND * 1.253;
+  const byWidth = view.width * 0.86;
   const target = Math.min(byWidth, byHeight);
   return {
     depth: 4.492,
@@ -160,7 +158,11 @@ export function pageGeometry(
   const base = -(index - (PAGE_COUNT - 1) * 0.5);
   const wrapped = ((base - scroll + MAX_Z) % (2 * MAX_Z) + 2 * MAX_Z) % (2 * MAX_Z) - MAX_Z;
   const distance = Math.abs(wrapped);
-  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * gap;
+  const fit = view.fit ?? 1;
+  // Pixel offset grows with the hero. Pull the world gap back so a neighbour still peeks in.
+  const usedGap = view.phone ? gap : gap * (0.9 / Math.max(fit, 0.55));
+  const balance = wrapped >= 0 ? 1 : view.phone ? 0.84 : 0.82;
+  const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * usedGap * balance;
   const hero = 1 + HERO_BOOST * (1 - smooth(0.02, 0.88, distance)) * focusAmount;
   const facing = smooth(0, 1, 1 - smooth(0, 0.8, distance)) * focusAmount;
   const focus = multiply(
@@ -238,65 +240,6 @@ export function phoneView(width: number, height: number): DeckView {
   };
 }
 
-function clampNum(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
-function boundsAt(index: number, scroll: number, view: DeckView) {
-  const page = pageGeometry(index, scroll, 0, view.phone ? PHONE_REST_GAP : DESK_REST_GAP, 1, view);
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (let i = 0; i < page.xy.length; i += 2) {
-    minX = Math.min(minX, page.xy[i]);
-    maxX = Math.max(maxX, page.xy[i]);
-    minY = Math.min(minY, page.xy[i + 1]);
-    maxY = Math.max(maxY, page.xy[i + 1]);
-  }
-  return { minX, maxX, minY, maxY, distance: page.distance };
-}
-
-function heroHitsChrome(
-  bounds: { minX: number; maxX: number; minY: number; maxY: number },
-  width: number,
-  height: number,
-): boolean {
-  const pad = 56;
-  const rail = clampNum(width * 0.07, 72, 112);
-  const metaRight = rail + clampNum(width * 0.056, 64, 80) + 156;
-  const metaTop = height / 2 - 169;
-  const metaBottom = metaTop + 338;
-  const listLeft = width - rail - clampNum(width * 0.25, 220, 360);
-  const crossesMeta = bounds.minY < metaBottom && bounds.maxY > metaTop && bounds.minX < metaRight + pad;
-  return crossesMeta || bounds.maxX > listLeft - pad;
-}
-
-/** Desktop cards have to sit inside this rect, clear of the nav and the bottom edge. */
-export function deskSafeRect(width: number, height: number): { top: number; bottom: number; left: number; right: number } {
-  return {
-    top: Math.max(72, Math.min(96, height * 0.1)),
-    bottom: height - Math.max(56, Math.min(80, height * 0.08)),
-    left: 8,
-    right: width - 8,
-  };
-}
-
-function neighboursFit(view: DeckView, width: number, height: number): boolean {
-  const safe = deskSafeRect(width, height);
-  const top = safe.top;
-  const bottom = safe.bottom;
-  for (const shift of [0, 0.25, 0.5]) {
-    const scroll = scrollForMember(2 + shift);
-    for (let index = 0; index < 8; index += 1) {
-      const box = boundsAt(index, scroll, view);
-      if (box.distance > 1.02) continue;
-      if (box.minX < 8 || box.maxX > width - 8 || box.minY < top || box.maxY > bottom) return false;
-    }
-  }
-  return true;
-}
-
 function placeDesk(width: number, height: number, fit: number): DeckView {
   const bare: DeckView = { width, height, phone: false, originX: 0, originY: 0, fit };
   const page = boundsOf(2, bare);
@@ -310,24 +253,43 @@ function placeDesk(width: number, height: number, fit: number): DeckView {
   };
 }
 
-function deckFits(view: DeckView, width: number, height: number): boolean {
-  return neighboursFit(view, width, height) && !heroHitsChrome(boundsOf(2, view), width, height);
+function clampNum(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
-/** Put the desktop hero on the stage centre. Shrink it only if the stack would leave the screen or cover a column. */
+/**
+ * The hero stays between the left odometer and the team list.
+ * The odometer block is 274px at every desktop width (200px digits plus /06).
+ */
+function deskLimits(width: number, height: number) {
+  const rail = clampNum(width * 0.07, 72, 112);
+  const listWidth = clampNum(width * 0.25, 220, 360);
+  const gutter = 40;
+  return {
+    left: rail + 274 + gutter,
+    right: width - rail - listWidth - gutter,
+    top: height * 0.16,
+    bottom: height * 0.84,
+  };
+}
+
+/** Largest centred hero that keeps a gap to both columns and stays on the screen. */
 export function deskView(width: number, height: number): DeckView {
-  let fit = 1;
-  let view = placeDesk(width, height, fit);
-  if (deckFits(view, width, height)) return view;
-  let low = 0.42;
-  let high = 1;
-  for (let step = 0; step < 12; step += 1) {
-    fit = (low + high) / 2;
-    view = placeDesk(width, height, fit);
-    if (deckFits(view, width, height)) low = fit;
-    else high = fit;
+  const limits = deskLimits(width, height);
+  let low = 0.55;
+  let high = 1.85;
+  let best = placeDesk(width, height, low);
+  for (let step = 0; step < 16; step += 1) {
+    const fit = (low + high) / 2;
+    const view = placeDesk(width, height, fit);
+    const box = boundsOf(2, view);
+    const fits = box.minX >= limits.left && box.maxX <= limits.right && box.minY >= limits.top && box.maxY <= limits.bottom;
+    if (fits) {
+      low = fit;
+      best = view;
+    } else high = fit;
   }
-  return placeDesk(width, height, low);
+  return best;
 }
 
 export function viewFor(width: number, height: number, phone: boolean): DeckView {

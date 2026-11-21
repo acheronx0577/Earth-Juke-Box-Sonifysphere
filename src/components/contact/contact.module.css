@@ -497,6 +497,12 @@
   height: 100%;
 }
 
+.icon .frameBody {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .sr {
   position: absolute;
   width: 1px;
@@ -586,6 +592,10 @@
 .stage[data-layout="phone"] .row {
   position: relative;
   margin-bottom: 12px;
+}
+
+.stage[data-layout="desk"] .deck {
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 3%, #000 14%, #000 86%, transparent 97%);
 }
 
 .stage[data-layout="desk"] .listWrap {

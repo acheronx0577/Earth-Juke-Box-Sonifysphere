@@ -10,7 +10,6 @@ import {
   GRID_Y,
   PAGE_COUNT,
   PHONE_REST_GAP,
-  deskSafeRect,
   pageGeometry,
   viewFor,
   type DeckView,
@@ -189,9 +188,7 @@ export function ContactDeck({ onReady }: ContactDeckProps) {
         }
         const mesh = meshes[i];
         const offscreen = maxX < 0 || minX > view.width || maxY < 0 || minY > view.height;
-        const safe = deskSafeRect(view.width, view.height);
-        const sliced = !view.phone && (minX < safe.left || maxX > safe.right || minY < safe.top || maxY > safe.bottom);
-        if (offscreen || sliced) {
+        if (offscreen) {
           mesh.visible = false;
           continue;
         }

@@ -50,7 +50,7 @@ function MemberIcon({ member }: { member: ContactMember }) {
   const graphic = member.icon === "github" ? (
     <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d={GITHUB} /></svg>
   ) : (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="14" height="14" viewBox="4.2 -3.2 24 24" fill="none" aria-hidden="true">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
