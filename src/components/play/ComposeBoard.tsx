@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { LAYERS, MAP_REGIONS, regionById, type LayerId } from "@/data/exploreMap";
 import { playMix, renderMixWav } from "@/lib/signalPlayback";
@@ -17,7 +17,12 @@ import {
   type MixSlot,
 } from "@/lib/signalTheory";
 import { IconDownload, IconPlay, IconStop } from "@/components/shared/Icons";
+import { ChamferMark } from "@/components/listen/ChamferMark";
+import { chamferClip } from "@/components/listen/chamfer";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
+import { curveModel, fallbackModel, type CurveModel } from "@/components/play/composeCurve";
+import { playSlotPreview, useComposeDrag, type ComposeDrop } from "@/components/play/composeDrag";
+import { ShareSheet } from "@/components/play/ShareSheet";
 import styles from "./compose.module.css";
 
 const LAYER_NOTE: Record<LayerId, number> = {
@@ -50,7 +55,7 @@ const SHORT_LAYER: Record<string, string> = {
 };
 
 const HOW =
-  "Pick a place or a record, then a slot. Or pick a slot, then a sound. Empty slots are rests. The left and right arrow keys move a sound, and Delete clears it. Bar height is the base note. Places are the twelve regions. Records are temperature, sea ice, CO₂, and methane. Tempo runs from 60 to 160. Play mix compiles the row, then plays it.";
+  "Drag a sound into a slot, or pick a sound and then a slot. Empty slots are rests. Drag a placed bar into another slot, or drop it outside the row to clear it. The left and right arrow keys move a sound, and Delete clears it. Bar height is the base note. Places are the twelve regions. Records are temperature, sea ice, CO₂, and methane. Tempo runs from 60 to 160. Play mix compiles the row, then plays it.";
 
 function sameSlot(left: MixSlot | null, right: MixSlot | null): boolean {
   if (!left || !right) return false;
@@ -75,85 +80,6 @@ function barHeight(note: number | null): number {
 
 function clip(cut: number) {
   return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
-}
-
-function monotone(points: readonly [number, number][]): string {
-  const n = points.length;
-  if (n < 2) return "";
-  const dx: number[] = [];
-  const slope: number[] = [];
-  const m = new Array<number>(n).fill(0);
-  for (let i = 0; i < n - 1; i += 1) {
-    dx[i] = points[i + 1][0] - points[i][0] || 1;
-    slope[i] = (points[i + 1][1] - points[i][1]) / dx[i];
-  }
-  m[0] = slope[0];
-  m[n - 1] = slope[n - 2];
-  for (let i = 1; i < n - 1; i += 1) m[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2;
-  for (let i = 0; i < n - 1; i += 1) {
-    if (Math.abs(slope[i]) < 1e-6) {
-      m[i] = 0;
-      m[i + 1] = 0;
-    } else {
-      const a = m[i] / slope[i];
-      const b = m[i + 1] / slope[i];
-      const h = a * a + b * b;
-      if (h > 9) {
-        const t = 3 / Math.sqrt(h);
-        m[i] = t * a * slope[i];
-        m[i + 1] = t * b * slope[i];
-      }
-    }
-  }
-  let d = `M ${points[0][0]} ${points[0][1]}`;
-  for (let i = 0; i < n - 1; i += 1) {
-    const c1x = points[i][0] + dx[i] / 3;
-    const c1y = points[i][1] + (m[i] * dx[i]) / 3;
-    const c2x = points[i + 1][0] - dx[i] / 3;
-    const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
-    d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
-  }
-  return d;
-}
-
-function sequencePath(heights: readonly number[]): string {
-  const width = 800;
-  const plot = 200;
-  const yFor = (value: number) => plot * (1 - value / 100);
-  const known = heights.map((value) => (value > 0 ? yFor(value) : null));
-  const ys = known.map((y, index) => {
-    if (y !== null) return y;
-    let previous = -1;
-    let next = -1;
-    for (let i = index - 1; i >= 0; i -= 1) {
-      if (known[i] !== null) {
-        previous = i;
-        break;
-      }
-    }
-    for (let i = index + 1; i < known.length; i += 1) {
-      if (known[i] !== null) {
-        next = i;
-        break;
-      }
-    }
-    if (previous >= 0 && next >= 0) {
-      const span = next - previous;
-      const t = (index - previous) / span;
-      return known[previous]! + (known[next]! - known[previous]!) * t;
-    }
-    if (previous >= 0) return known[previous]!;
-    if (next >= 0) return known[next]!;
-    return plot - 8;
-  });
-  const points = ys.map((y, index) => [((index + 0.5) / ys.length) * width, y] as [number, number]);
-  const first = points[0] ?? [0, plot - 1];
-  const last = points[points.length - 1] ?? first;
-  return monotone([
-    [0, first[1]],
-    ...points,
-    [width, last[1]],
-  ]);
 }
 
 function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number, count: number, focusAt: (next: number) => void) {
@@ -193,6 +119,8 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const [renderError, setRenderError] = useState<string | null>(null);
   const [soundOff, setSoundOff] = useState(false);
   const [shareNote, setShareNote] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
   const [editing, setEditing] = useState(true);
   const [infoOpen, setInfoOpen] = useState(false);
   const [regionCursor, setRegionCursor] = useState(0);
@@ -206,7 +134,15 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const slotRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const glowId = `${useId().replace(/:/g, "")}glow`;
+  const curveRef = useRef<SVGSVGElement | null>(null);
+  const slotsRootRef = useRef<HTMLDivElement | null>(null);
+  const dropRef = useRef<(drop: ComposeDrop) => void>(() => undefined);
+  const [curveFrame, setCurveFrame] = useState<({ w: number; h: number } & CurveModel) | null>(null);
+  const gradId = useId().replace(/:/g, "");
+  const drag = useComposeDrag({
+    slotsRoot: () => slotsRootRef.current,
+    onDrop: (drop) => dropRef.current(drop),
+  });
 
   const stop = () => {
     stopRef.current?.();
@@ -258,11 +194,40 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     setSlots((current) => current.map((item, itemIndex) => (itemIndex === index ? slot : item)));
     setSelected(null);
     invalidate();
+    void playSlotPreview(slot);
   };
 
   const clearSlot = (index: number) => {
     setSlots((current) => current.map((item, itemIndex) => (itemIndex === index ? null : item)));
     invalidate();
+  };
+
+  dropRef.current = (drop) => {
+    setReplaceIndex(null);
+    if (drop.fromIndex === null) {
+      if (drop.toIndex === null) return;
+      place(drop.toIndex, drop.slot);
+      setArmed(null);
+      return;
+    }
+    if (drop.toIndex === null) {
+      if (drop.outside) clearSlot(drop.fromIndex);
+      return;
+    }
+    if (drop.toIndex === drop.fromIndex) return;
+    const fromIndex = drop.fromIndex;
+    const toIndex = drop.toIndex;
+    setSlots((current) => {
+      const copy = [...current];
+      const moving = copy[fromIndex];
+      copy[fromIndex] = copy[toIndex] ?? null;
+      copy[toIndex] = moving ?? null;
+      return copy;
+    });
+    setSelected(null);
+    setArmed(null);
+    invalidate();
+    void playSlotPreview(drop.slot);
   };
 
   const onPalette = (slot: MixSlot) => {
@@ -386,18 +351,14 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     }
   };
 
-  const share = async () => {
+  const openShare = () => {
     if (filledCount === 0) return;
     setReplaceIndex(null);
     const mix = encodeMix(slots, bpm);
     const url = `${window.location.origin}/challenge/compose?mix=${encodeURIComponent(mix)}`;
     window.history.replaceState(null, "", url);
-    try {
-      await navigator.clipboard.writeText(url);
-      setShareNote("Link copied.");
-    } catch {
-      setShareNote(url);
-    }
+    setShareUrl(url);
+    setShareOpen(true);
   };
 
   const saveImage = async () => {
@@ -435,7 +396,46 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const targetIndex = armed && selected === null ? firstEmpty : selected !== null && !slots[selected] ? selected : firstEmpty;
   const showReady = Boolean(plan) && audio === "idle" && !editing;
   const heights = slots.map((slot) => barHeight(slotNote(slot)));
-  const curve = sequencePath(heights);
+  const heightsRef = useRef(heights);
+  heightsRef.current = heights;
+  const curveKey = `${heights.join(",")}:${showReady ? "ready" : "edit"}`;
+  useLayoutEffect(() => {
+    const svg = curveRef.current;
+    if (!svg) return;
+    const measure = () => {
+      const currentHeights = heightsRef.current;
+      const rect = svg.getBoundingClientRect();
+      const w = Math.round(rect.width * 100) / 100;
+      const h = Math.round(rect.height * 100) / 100;
+      if (!(w > 1) || !(h > 1)) return;
+      const samples = Array.from({ length: MIX_SLOT_COUNT }, (_, index) => {
+        const column = slotRefs.current[index]?.querySelector(".sonify-slot");
+        if (!(column instanceof HTMLElement)) return null;
+        const box = column.getBoundingClientRect();
+        const x = Math.round((box.left + box.width / 2 - rect.left) * 100) / 100;
+        const half = Math.round(box.width * 0.35 * 50) / 100;
+        const y = currentHeights[index] > 0 ? Math.round((box.bottom - (currentHeights[index] / 100) * box.height - rect.top) * 100) / 100 : null;
+        return { x, y, left: Math.round((x - half) * 100) / 100, right: Math.round((x + half) * 100) / 100 };
+      });
+      if (samples.some((sample) => sample === null)) return;
+      const model = curveModel(samples as { x: number; y: number | null; left: number; right: number }[], w, h);
+      setCurveFrame((prev) => {
+        const sameBars =
+          prev !== null &&
+          prev.bars.length === model.bars.length &&
+          prev.bars.every((bar, index) => bar.index === model.bars[index]?.index && bar.d === model.bars[index]?.d);
+        return prev && prev.w === w && prev.h === h && prev.d === model.d && sameBars ? prev : { w, h, d: model.d, bars: model.bars };
+      });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [curveKey]);
+  const fallback = useMemo(() => fallbackModel(heights), [heights]);
+  const curve = curveFrame?.d || fallback.d;
+  const barShapes = curveFrame?.bars ?? fallback.bars;
+  const curveView = curveFrame ? `0 0 ${curveFrame.w} ${curveFrame.h}` : "0 0 800 200";
   const prompt =
     audio === "playing"
       ? "Playing the mix."
@@ -445,7 +445,9 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         ? "Now pick a slot."
         : selected !== null
           ? "Now pick a sound."
-          : "Choose a sound, then a slot.";
+          : drag.dragging
+            ? "Drop into a slot."
+            : "Drag a sound into a slot.";
 
   const squares = (
     <span className={styles.squares} role="group" aria-label={`${filledCount} of 8 slots`}>
@@ -484,15 +486,41 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
 
   const sequencer = (showPlace: boolean) => (
     <div className={styles.stage}>
-      <div className={styles.slots} data-testid="compose-slots">
-        <svg className={styles.curve} viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true">
+      <div ref={slotsRootRef} className={styles.slots} data-testid="compose-slots">
+        <svg ref={curveRef} className={styles.curve} viewBox={curveView} preserveAspectRatio="none" aria-hidden="true">
           <defs>
-            <filter id={glowId} x="-4%" y="-20%" width="108%" height="140%">
-              <feGaussianBlur stdDeviation="2.4" />
-            </filter>
+            <linearGradient id={`${gradId}idle`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f2f2f0" />
+              <stop offset="0.04" stopColor="rgba(242, 242, 240, 0.72)" />
+              <stop offset="0.42" stopColor="rgba(242, 242, 240, 0.28)" />
+              <stop offset="1" stopColor="rgba(242, 242, 240, 0)" />
+            </linearGradient>
+            <linearGradient id={`${gradId}play`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f2f2f0" />
+              <stop offset="0.04" stopColor="rgba(242, 242, 240, 0.95)" />
+              <stop offset="0.42" stopColor="rgba(242, 242, 240, 0.35)" />
+              <stop offset="1" stopColor="rgba(242, 242, 240, 0)" />
+            </linearGradient>
           </defs>
-          <path className={styles.glow} d={curve} filter={`url(#${glowId})`} />
-          <path className={styles.line} d={curve} />
+          {barShapes.map((bar) => {
+            const playing = audio === "playing" && playingIndex === bar.index;
+            return (
+              <path
+                key={bar.index}
+                className={styles.barFill}
+                data-testid="compose-bar"
+                data-play={playing ? "true" : "false"}
+                d={bar.d}
+                fill={`url(#${gradId}${playing ? "play" : "idle"})`}
+              />
+            );
+          })}
+          {curve ? (
+            <>
+              <path className={styles.glow} d={curve} />
+              <path className={styles.line} d={curve} data-testid="compose-curve" />
+            </>
+          ) : null}
         </svg>
         {slots.map((slot, index) => {
           const full = slot ? slotLabel(slot) : "empty";
@@ -507,10 +535,18 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               }}
               className={styles.slot}
               data-on={slot ? "true" : "false"}
+              data-slot-index={index}
+              data-drop={drag.over === index ? "true" : "false"}
               aria-label={`Slot ${index + 1}, ${full}`}
               aria-pressed={selected === index}
               tabIndex={slotCursor === index ? 0 : -1}
+              onPointerDown={(event) => {
+                if (!slot) return;
+                drag.start(event, { slot, fromIndex: index, label: name });
+              }}
+              onContextMenu={(event) => event.preventDefault()}
               onClick={() => {
+                if (drag.consumeClick()) return;
                 setSlotCursor(index);
                 onSlot(index);
               }}
@@ -537,12 +573,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               }}
             >
               <span className={`${styles.col} sonify-slot${playing ? " is-playing" : ""}`}>
-                {slot ? (
-                  <>
-                    <span className={styles.bar} data-on="true" data-play={playing ? "true" : "false"} style={{ height: `${heights[index]}%` }} />
-                    <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} />
-                  </>
-                ) : null}
+                {slot ? <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} /> : null}
               </span>
               <span className={styles.meta}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
@@ -551,7 +582,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           );
         })}
-        {showPlace && audio !== "playing" ? (
+        {showPlace && audio !== "playing" && !drag.dragging ? (
           <span
             className={`${styles.shell} ${styles.place}`}
             style={{
@@ -581,7 +612,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   ) : null;
 
   return (
-    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-hide-target-cursor="true">
+    <main id="main-content" tabIndex={-1} className={styles.page} data-result={showReady ? "true" : undefined} data-dragging={drag.dragging ? "true" : "false"} data-hide-target-cursor="true">
       <div className={styles.board} data-testid="compose-board" data-audio={audio}>
       <p className={styles.sr} aria-live="polite">
         {prompt}
@@ -630,7 +661,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             </button>
           </div>
           <div className={styles.links}>
-            <button type="button" onClick={() => void share()}>
+            <button type="button" data-testid="compose-share" onClick={openShare}>
               Copy link
             </button>
             <button type="button" onClick={() => void saveImage()}>
@@ -668,7 +699,10 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   aria-pressed={pressed}
                   aria-label={region.name}
                   tabIndex={regionCursor === regionIndex ? 0 : -1}
+                  onPointerDown={(event) => drag.start(event, { slot, fromIndex: null, label: SHORT_REGION[region.id] ?? region.name })}
+                  onContextMenu={(event) => event.preventDefault()}
                   onClick={() => {
+                    if (drag.consumeClick()) return;
                     setRegionCursor(regionIndex);
                     onPalette(slot);
                   }}
@@ -702,7 +736,10 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   aria-pressed={pressed}
                   aria-label={recordDisplayName(layer.id)}
                   tabIndex={layerCursor === layerIndex ? 0 : -1}
+                  onPointerDown={(event) => drag.start(event, { slot, fromIndex: null, label: SHORT_LAYER[layer.id] ?? recordDisplayName(layer.id) })}
+                  onContextMenu={(event) => event.preventDefault()}
                   onClick={() => {
+                    if (drag.consumeClick()) return;
                     setLayerCursor(layerIndex);
                     onPalette(slot);
                   }}
@@ -753,7 +790,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                 <button type="button" className={styles.iconButton} aria-label="Download WAV" disabled={!filled || rendering} onClick={() => void download()}>
                   <IconDownload />
                 </button>
-                <button type="button" className={styles.iconButton} aria-label="Share link" disabled={!filled} onClick={() => void share()}>
+                <button type="button" className={styles.iconButton} aria-label="Share link" data-testid="compose-share" disabled={!filled} onClick={openShare}>
                   <ShareIcon />
                 </button>
               </span>
@@ -787,6 +824,25 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </>
       )}
       </div>
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        title="Share this mix"
+        detail={`${filledCount} of 8 slots · ${bpm} BPM`}
+        url={shareUrl}
+        shareText={`Earth mixtape · ${filledCount} of 8 slots · ${bpm} BPM`}
+        onSaveImage={saveImage}
+      />
+      {drag.ghost ? (
+        <span
+          className={styles.ghost}
+          data-testid="compose-ghost"
+          style={{ left: drag.ghost.x, top: drag.ghost.y, clipPath: chamferClip(7) }}
+        >
+          <ChamferMark />
+          {drag.ghost.label}
+        </span>
+      ) : null}
     </main>
   );
 }
