@@ -452,38 +452,23 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     </span>
   );
 
-  const sequencer = (compact: boolean) => (
-    <div className={compact ? styles.mini : styles.stage}>
-      <div className={styles.lane} aria-hidden={compact || undefined}>
+  const sequencer = (showPlace: boolean) => (
+    <div className={styles.stage}>
+      <div className={styles.slots} data-testid="compose-slots">
         <svg className={styles.curve} viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true">
           <defs>
-            <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
-              <feGaussianBlur stdDeviation="6" />
+            <filter id={glowId} x="-4%" y="-30%" width="108%" height="160%">
+              <feGaussianBlur stdDeviation="5" />
             </filter>
           </defs>
           <path className={styles.glow} d={curve} filter={`url(#${glowId})`} />
           <path className={styles.line} d={curve} />
         </svg>
-        <div className={styles.bars}>
-          {slots.map((slot, index) => (
-            <span key={`bar-${index}`} className={`${styles.col} sonify-slot${audio === "playing" && playingIndex === index ? " is-playing" : ""}`}>
-              {slot ? (
-                <span
-                  className={styles.bar}
-                  data-on="true"
-                  data-play={audio === "playing" && playingIndex === index ? "true" : "false"}
-                  style={{ height: `${heights[index]}%` }}
-                />
-              ) : null}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className={styles.captions} data-testid="compose-slots">
         {slots.map((slot, index) => {
           const full = slot ? slotLabel(slot) : "empty";
-          const target = !slot && targetIndex === index;
+          const target = showPlace && !slot && targetIndex === index;
           const name = slot ? shortLabel(slot) : "Rest";
+          const playing = audio === "playing" && playingIndex === index;
           return (
             <button
               key={`slot-${index}`}
@@ -491,7 +476,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               ref={(node) => {
                 slotRefs.current[index] = node;
               }}
-              className={styles.caption}
+              className={styles.slot}
               data-on={slot ? "true" : "false"}
               aria-label={`Slot ${index + 1}, ${full}`}
               aria-pressed={selected === index}
@@ -522,17 +507,23 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                 });
               }}
             >
-              <span>{String(index + 1).padStart(2, "0")}</span>
-              {target && !compact ? (
-                <span className={`${styles.shell} ${styles.place}`} style={{ clipPath: clip(5) }}>
-                  <span className={styles.face} style={{ clipPath: clip(5) }}>
-                    <span className={styles.placeWord}>Place here</span>
-                    <span className={styles.plus}>+</span>
+              <span className={`${styles.col} sonify-slot${playing ? " is-playing" : ""}`}>
+                {slot ? (
+                  <span className={styles.bar} data-on="true" data-play={playing ? "true" : "false"} style={{ height: `${heights[index]}%` }} />
+                ) : null}
+                {target ? (
+                  <span className={`${styles.shell} ${styles.place}`} style={{ clipPath: clip(12) }}>
+                    <span className={styles.face} style={{ clipPath: clip(12) }}>
+                      <span className={styles.placeWord}>Place here</span>
+                      <span className={styles.plus}>+</span>
+                    </span>
                   </span>
-                </span>
-              ) : (
+                ) : null}
+              </span>
+              <span className={styles.meta}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
                 <span className={styles.slotName}>{name}</span>
-              )}
+              </span>
             </button>
           );
         })}
