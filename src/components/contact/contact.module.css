@@ -595,7 +595,17 @@
 }
 
 .stage[data-layout="desk"] .deck {
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 3%, #000 14%, #000 86%, transparent 97%);
+  --nav-clear: 64px;
+  --foot-clear: calc(var(--edge) + 20px);
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent var(--nav-clear),
+    #000 calc(var(--nav-clear) + 36px),
+    #000 calc(100% - var(--foot-clear) - 36px),
+    transparent calc(100% - var(--foot-clear)),
+    transparent 100%
+  );
 }
 
 .stage[data-layout="desk"] .listWrap {

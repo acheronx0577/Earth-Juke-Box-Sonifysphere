@@ -102,8 +102,8 @@ interface Scale {
   readonly originY: number;
 }
 
-/** Phone hero height as a share of the deck band. The band itself does not move. */
-const PHONE_HERO_BAND = 0.56;
+/** Phone hero width as a share of the viewport. The deck band stays where it is. */
+const PHONE_HERO_WIDTH = 0.82;
 
 function scaleFor(view: DeckView): Scale {
   if (!view.phone) {
@@ -117,8 +117,8 @@ function scaleFor(view: DeckView): Scale {
       originY: view.originY ?? 0,
     };
   }
-  const byHeight = view.height * PHONE_HERO_BAND * 1.253;
-  const byWidth = view.width * 0.86;
+  const byWidth = view.width * PHONE_HERO_WIDTH;
+  const byHeight = view.height * 0.9 * 1.253;
   const target = Math.min(byWidth, byHeight);
   return {
     depth: 4.492,
@@ -160,8 +160,8 @@ export function pageGeometry(
   const distance = Math.abs(wrapped);
   const fit = view.fit ?? 1;
   // Pixel offset grows with the hero. Pull the world gap back so a neighbour still peeks in.
-  const usedGap = view.phone ? gap : gap * (0.9 / Math.max(fit, 0.55));
-  const balance = wrapped >= 0 ? 1 : view.phone ? 0.84 : 0.82;
+  const usedGap = view.phone ? gap * 0.8 : gap * (0.9 / Math.max(fit, 0.55));
+  const balance = wrapped >= 0 ? 1 : view.phone ? 0.74 : 0.82;
   const opened = wrapped + (wrapped < 0 ? -1 : 1) * smooth(0.08, 0.92, distance) * usedGap * balance;
   const hero = 1 + HERO_BOOST * (1 - smooth(0.02, 0.88, distance)) * focusAmount;
   const facing = smooth(0, 1, 1 - smooth(0, 0.8, distance)) * focusAmount;
@@ -264,7 +264,8 @@ function clampNum(value: number, min: number, max: number): number {
 function deskLimits(width: number, height: number) {
   const rail = clampNum(width * 0.07, 72, 112);
   const listWidth = clampNum(width * 0.25, 220, 360);
-  const gutter = 40;
+  // 32px at 1366, back to 40px by 1440 so the approved wider desktops stay put.
+  const gutter = clampNum(32 + ((width - 1366) * 8) / 74, 32, 40);
   return {
     left: rail + 274 + gutter,
     right: width - rail - listWidth - gutter,
