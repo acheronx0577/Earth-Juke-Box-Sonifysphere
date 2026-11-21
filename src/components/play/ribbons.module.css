@@ -663,6 +663,62 @@
   }
 }
 
+/* Desktop only. The container is the page content box, so 880px
+   starts at a 1024 viewport and stays off at 853. */
+@container c3 (min-width: 880px) {
+  .feedback {
+    order: 1;
+    text-align: center;
+  }
+
+  .controls {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: none;
+    align-items: center;
+  }
+
+  .listen,
+  .check,
+  .prompt,
+  .seasons {
+    grid-area: auto;
+  }
+
+  .listen {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  .answer {
+    display: contents;
+  }
+
+  .prompt {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    align-self: center;
+    margin-left: calc(48px + clamp(8px, 0.75vw, 12px) + clamp(22px, 1.6vw, 28px) + clamp(8px, 0.75vw, 12px));
+  }
+
+  .seasons {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    width: max-content;
+    max-width: none;
+    min-width: 0;
+    flex: none;
+  }
+
+  .check {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page :global(.sonify-cut-shell),
   .eq i {
