@@ -67,6 +67,8 @@ export function GuessResults({
   const [slide, setSlide] = useState(0);
   const [slideNote, setSlideNote] = useState("");
   const titleId = useId();
+  const sourcesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLOListElement | null>(null);
   const slideRef = useRef(0);
   const primed = useRef(false);
@@ -76,11 +78,43 @@ export function GuessResults({
 
   useEffect(() => {
     if (!sourcesOpen) return;
+    const dialog = sheetRef.current;
+    if (!dialog) return;
+    const focusables = () =>
+      Array.from(dialog.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")).filter(
+        (node) => !node.hasAttribute("disabled") && node.tabIndex !== -1,
+      );
+    const initial = window.setTimeout(() => focusables()[0]?.focus(), 0);
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSourcesOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        setSourcesOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !dialog.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      window.clearTimeout(initial);
+      document.removeEventListener("keydown", onKey, true);
+      sourcesButtonRef.current?.focus();
+    };
   }, [sourcesOpen]);
 
   useEffect(() => {
@@ -157,6 +191,7 @@ export function GuessResults({
       ? createPortal(
           <div className={styles.sheetBackdrop} data-hide-target-cursor="true" onMouseDown={() => setSourcesOpen(false)}>
             <div
+              ref={sheetRef}
               className={styles.sheet}
               role="dialog"
               aria-modal="true"
@@ -215,7 +250,7 @@ export function GuessResults({
       <div className={styles.kickerRow}>
         <p className={styles.kicker}>The five signals</p>
         <span className={styles.ring}>
-          <button type="button" className={styles.shell} onClick={() => setSourcesOpen(true)}>
+          <button ref={sourcesButtonRef} type="button" className={styles.shell} onClick={() => setSourcesOpen(true)}>
             <span className={styles.face}>Sources</span>
           </button>
         </span>
