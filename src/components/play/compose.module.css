@@ -746,6 +746,11 @@ a.shell {
     display: inline;
   }
 
+  .place {
+    height: 64px;
+    bottom: calc(var(--slot-meta) + 2%);
+  }
+
   .prompt,
   .toolRow,
   .play {
