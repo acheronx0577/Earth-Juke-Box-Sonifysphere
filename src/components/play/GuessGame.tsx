@@ -1095,6 +1095,7 @@ export function GuessGame({
       rows: history.map((entry) => ({
         name: entry.answerLabel,
         said: entry.pickedLabel,
+        source: recordForClip(entry).source,
         correct: entry.correct,
         values: recordForClip(entry).values,
       })),
