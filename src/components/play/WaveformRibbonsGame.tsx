@@ -365,6 +365,7 @@ export function WaveformRibbonsGame({
   const [tipShift, setTipShift] = useState(0);
   const [tipAnchor, setTipAnchor] = useState<"center" | "start" | "end">("center");
   const fillId = `${useId().replace(/:/g, "")}fill`;
+  const underId = `${useId().replace(/:/g, "")}under`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
 
@@ -976,11 +977,14 @@ export function WaveformRibbonsGame({
             onClick={onChartClick}
           >
             <defs>
-              <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.28" />
-                <stop offset="70%" stopColor="#f2f2f0" stopOpacity="0.05" />
-                <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
-              </linearGradient>
+            <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f2f2f0" stopOpacity="0.28" />
+              <stop offset="70%" stopColor="#f2f2f0" stopOpacity="0.05" />
+              <stop offset="100%" stopColor="#f2f2f0" stopOpacity="0" />
+            </linearGradient>
+            <clipPath id={underId}>
+              <path d={geometry.fill} />
+            </clipPath>
               <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
                 <feGaussianBlur stdDeviation="8" />
               </filter>
@@ -991,6 +995,20 @@ export function WaveformRibbonsGame({
             <g clipPath={`url(#${plotClipId})`}>
               <path d={geometry.fill} fill={`url(#${fillId})`} />
               <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+            </g>
+            <g clipPath={`url(#${underId})`}>
+              {spans.map(([x0, x1]) => (
+                <rect
+                  key={`band-${x0}`}
+                  data-season-span={season ?? ""}
+                  x={x0}
+                  y={0}
+                  width={Math.max(0, x1 - x0)}
+                  height={BASE}
+                  fill="#f2f2f0"
+                  fillOpacity="0.16"
+                />
+              ))}
             </g>
             <path className={styles.line} d={geometry.line} />
             <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
@@ -1012,23 +1030,15 @@ export function WaveformRibbonsGame({
           </div>
         </div>
         <div className={styles.timeline}>
-          {spans.map(([x0, x1]) => (
-            <span
-              key={`bar-${x0}`}
-              className={styles.spanBar}
-              data-season-span={season ?? ""}
-              style={{ left: `${(x0 / VW) * 100}%`, width: `${((x1 - x0) / VW) * 100}%` }}
-            />
-          ))}
           {pattern.months.map((name, index) => {
             const inSpan = Boolean(season) && SEASON_OF[name] === season;
             const here = index === pointIdx;
             return (
               <span key={`label-${index}`} className={styles.monthSlot} style={{ left: `${(XS[index] / VW) * 100}%` }}>
-                <span className={inSpan || here ? styles.monthOn : styles.month} data-span={inSpan ? "true" : "false"}>
+                <span className={inSpan ? styles.tickOn : styles.tick} data-axis-tick="" />
+                <span className={inSpan || here ? styles.monthOn : styles.month} data-axis-label="" data-span={inSpan ? "true" : "false"}>
                   {name.toUpperCase()}
                 </span>
-                <i className={inSpan ? styles.tickOn : styles.tick} />
               </span>
             );
           })}

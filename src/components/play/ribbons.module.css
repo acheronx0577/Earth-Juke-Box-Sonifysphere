@@ -132,56 +132,55 @@
 }
 
 .timeline {
+  --tick: clamp(8px, 1.05vh, 12px);
+  --tick-gap: 5px;
   position: relative;
   flex: none;
-  height: clamp(36px, 5vh, 56px);
+  height: calc(var(--tick) + var(--tick-gap) + 1.15em);
+  margin-top: -1px;
+  font-size: clamp(13px, 0.45rem + 0.85vw, 28px);
   pointer-events: none;
-}
-
-.spanBar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: rgba(242, 242, 240, 0.16);
 }
 
 .monthSlot {
   position: absolute;
   top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateX(-50%);
-}
-
-.month,
-.monthOn {
-  position: relative;
-  left: auto;
-  color: #b4b2ae;
-  font-family: var(--font-mono), monospace;
-  font-size: clamp(13px, 0.45rem + 0.85vw, 28px);
-  letter-spacing: 0.08em;
-  line-height: 1;
-  transform: translateY(0);
-  white-space: nowrap;
-}
-
-.monthOn {
-  color: #f2f2f0;
+  width: 0;
+  height: 0;
 }
 
 .tick,
 .tickOn {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 1px;
-  height: clamp(8px, 1.15vh, 14px);
-  margin-top: 3px;
-  background: rgba(242, 242, 240, 0.4);
+  height: var(--tick);
+  background: rgba(242, 242, 240, 0.55);
+  transform: translateX(-50%);
 }
 
 .tickOn {
   background: #f2f2f0;
+}
+
+.month,
+.monthOn {
+  position: absolute;
+  top: calc(var(--tick) + var(--tick-gap));
+  left: 0;
+  color: #b4b2ae;
+  font-family: var(--font-mono), monospace;
+  font-size: 1em;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.monthOn {
+  color: #f2f2f0;
 }
 
 .markerCol {
