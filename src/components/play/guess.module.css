@@ -48,6 +48,10 @@
   .page[data-result="true"] .resultBack {
     flex: none;
   }
+
+  .page[data-result="true"] .header {
+    margin-bottom: clamp(10px, 3.2vw, 14px);
+  }
 }
 
 .game {

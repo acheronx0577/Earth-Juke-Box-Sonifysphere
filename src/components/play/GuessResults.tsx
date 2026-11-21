@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboard
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import type { GuessHistoryEntry } from "@/lib/guessSession";
-import { RESULT_CURVE_VIEW, recordForClip, seriesReadout, type DrawnCurve } from "./guessResultCurve";
+import { RESULT_CURVE_VIEW, recordForClip, type DrawnCurve } from "./guessResultCurve";
 import styles from "./guessResults.module.css";
 
 function PlayIcon() {
@@ -21,20 +21,6 @@ function PauseIcon() {
       <path d="M3.1 2.2h2.5v9.6H3.1V2.2Zm5.3 0h2.5v9.6H8.4V2.2Z" fill="currentColor" />
     </svg>
   );
-}
-
-function joinList(items: readonly string[]): string {
-  if (items.length <= 1) return items[0] ?? "";
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
-
-function summaryFor(history: readonly GuessHistoryEntry[]): string {
-  const named = history.filter((entry) => entry.correct).map((entry) => entry.answerLabel);
-  const missed = history.filter((entry) => !entry.correct).map((entry) => entry.answerLabel);
-  if (!missed.length) return `You named ${joinList(named)}.`;
-  if (!named.length) return `None of the signals were named. ${joinList(missed)} slipped past.`;
-  return `You named ${joinList(named)}. ${joinList(missed)} slipped past.`;
 }
 
 export function GuessResults({
@@ -216,7 +202,6 @@ export function GuessResults({
             <span>Best streak {best}</span>
           </p>
         </div>
-        <p className={styles.summary}>{summaryFor(history)}</p>
         <ol className={styles.chips} aria-label="Round results">
           {history.map((entry, index) => (
             <li key={`${entry.answerId}-${index}`} className={styles.chip} data-correct={entry.correct ? "true" : "false"}>
@@ -249,7 +234,6 @@ export function GuessResults({
       >
         {history.map((entry, index) => {
           const curve = curves[index];
-          const readout = seriesReadout(entry);
           const active = playing && playingIndex === index;
           const clipId = `guess-heard-${index}`;
           return (
@@ -273,7 +257,6 @@ export function GuessResults({
                     </span>
                   </p>
                   <p className={styles.name}>{entry.answerLabel}</p>
-                  <p className={styles.kind}>{entry.kind === "region" ? "Region round" : "Record round"}</p>
                 </div>
                 <div className={styles.plotBlock}>
                   <div className={styles.plot}>
@@ -302,21 +285,11 @@ export function GuessResults({
                       data-on="off"
                     />
                   </div>
-                  <p className={styles.statLine}>
-                    {readout.caption}
-                    {" · "}
-                    {readout.start.year} {readout.start.text}
-                    {" · "}
-                    {readout.extreme.kind === "low" ? "Low" : "High"} {readout.extreme.year} {readout.extreme.text}
-                    {" · "}
-                    {readout.end.year} {readout.end.text}
-                  </p>
                 </div>
                 <div className={styles.verdict}>
                   <p className={styles.said}>
-                    You said {entry.correct ? "✓" : "✗"} {entry.pickedLabel}
+                    You said: {entry.correct ? "✓" : "✗"} {entry.pickedLabel}
                   </p>
-                  <p className={styles.real}>Real signal {entry.answerLabel}</p>
                 </div>
                 <div className={styles.replay}>
                   <span className={styles.ring}>
