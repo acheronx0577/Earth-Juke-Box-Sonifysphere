@@ -84,7 +84,9 @@ export function GuessResults({
   const [slide, setSlide] = useState(0);
   const [slideNote, setSlideNote] = useState("");
   const titleId = useId();
+  const boardRef = useRef<HTMLElement | null>(null);
   const sourcesButtonRef = useRef<HTMLButtonElement | null>(null);
+  const sourcesNarrowRef = useRef<HTMLButtonElement | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const scrollerRef = useRef<HTMLOListElement | null>(null);
   const slideRef = useRef(0);
@@ -130,16 +132,20 @@ export function GuessResults({
     return () => {
       window.clearTimeout(initial);
       document.removeEventListener("keydown", onKey, true);
-      sourcesButtonRef.current?.focus();
+      const narrow = sourcesNarrowRef.current;
+      if (narrow && narrow.getClientRects().length > 0) narrow.focus();
+      else sourcesButtonRef.current?.focus();
     };
   }, [sourcesOpen]);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 767px)");
-    const sync = () => setPhone(media.matches);
+    const node = boardRef.current;
+    if (!node) return;
+    const sync = () => setPhone(node.getBoundingClientRect().width <= 900);
+    const observer = new ResizeObserver(sync);
+    observer.observe(node);
     sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -242,7 +248,7 @@ export function GuessResults({
       : null;
 
   return (
-    <section className={styles.board} data-testid="guess-result" aria-labelledby="guess-result-title">
+    <section ref={boardRef} className={styles.board} data-testid="guess-result" aria-labelledby="guess-result-title">
       <div className={styles.hero}>
         <div className={styles.heroLine}>
           <h1 id="guess-result-title">
@@ -413,16 +419,33 @@ export function GuessResults({
       </div>
       </div>
       <div className={styles.actions}>
+        <div className={styles.actionsShell}>
+        <div className={styles.actionsFace}>
         <div className={styles.cluster}>
+          <span className={`${styles.ring} ${styles.sourcesNarrow}`}>
+            <button ref={sourcesNarrowRef} type="button" className={styles.shell} onClick={() => setSourcesOpen(true)}>
+              <span className={styles.face}>Sources</span>
+            </button>
+          </span>
           <span className={`${styles.ring} ${styles.playWide}`}>
             <button ref={againRef} type="button" className={`${styles.shell} ${styles.primary}`} onClick={onAgain}>
               <span className={styles.face}>Play again</span>
             </button>
           </span>
-          <span className={`${styles.ring} ${styles.shareSlot}`}>
-            <button type="button" className={styles.shell} onClick={onShare}>
-              <span className={styles.face}>Share</span>
-            </button>
+          <span className={styles.pair}>
+            <span className={`${styles.ring} ${styles.shareSlot}`}>
+              <button type="button" className={styles.shell} onClick={onShare}>
+                <span className={styles.face}>Share</span>
+              </button>
+            </span>
+            <Link className={`${styles.linkSlot} ${styles.nextSlot} ${styles.narrowTab}`} href="/challenge/compose">
+              <span className={styles.ring}>
+                <span className={styles.linkFace}>
+                  Next · Compose
+                  <span className={styles.linkArrow} aria-hidden="true">→</span>
+                </span>
+              </span>
+            </Link>
           </span>
         </div>
         <div className={styles.cluster}>
@@ -442,14 +465,6 @@ export function GuessResults({
               </span>
             </span>
           </Link>
-          <Link className={`${styles.linkSlot} ${styles.nextSlot} ${styles.narrowTab}`} href="/challenge/compose">
-            <span className={styles.ring}>
-              <span className={styles.linkFace}>
-                Next · Compose
-                <span className={styles.linkArrow} aria-hidden="true">→</span>
-              </span>
-            </span>
-          </Link>
           <Link className={`${styles.linkSlot} ${styles.hearWide} ${styles.narrowTab}`} href={listenHref}>
             <span className={styles.ring}>
               <span className={styles.linkFace}>
@@ -458,6 +473,8 @@ export function GuessResults({
               </span>
             </span>
           </Link>
+        </div>
+        </div>
         </div>
       </div>
       {shareNote ? <p className={styles.note}>{shareNote}</p> : null}

@@ -55,6 +55,16 @@
   }
 }
 
+@container guess (max-width: 900px) {
+  .page[data-result="true"] .resultEyebrow {
+    display: none;
+  }
+
+  .page[data-result="true"] .header {
+    margin-bottom: clamp(12px, 2svh, 16px);
+  }
+}
+
 @media (max-width: 767px) {
   .page[data-result="true"] .resultBack {
     flex: none;
