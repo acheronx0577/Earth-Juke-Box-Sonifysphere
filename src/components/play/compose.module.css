@@ -114,8 +114,7 @@
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 0;
+  min-height: clamp(180px, 34svh, 520px);
   min-width: 0;
   overflow: hidden;
   margin-inline: calc(clamp(16px, 2.4vw, 64px) * -1);
@@ -125,9 +124,7 @@
 .lane {
   position: relative;
   flex: 1 1 auto;
-  height: clamp(150px, 32svh, 380px);
   min-height: 0;
-  max-height: 100%;
   overflow: hidden;
 }
 
