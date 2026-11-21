@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { regionById, type LayerId } from "@/data/exploreMap";
 import { explainGuess, recordDisplayName } from "@/lib/guessWhy";
 import { isResumableGuessRun, readGuessRun, writeGuessRun, type GuessHistoryEntry, type StoredGuessRun } from "@/lib/guessSession";
-import { hushExplore, triggerExploreNote } from "@/lib/exploreAudio";
-import { PHRASE_MS, playRegionPhrase } from "@/lib/signalPlayback";
+import { playbackAllowed } from "@/lib/playbackGate";
+import { PHRASE_MS } from "@/lib/signalPlayback";
 import { setSignalLive } from "@/lib/signalLive";
 import {
   GUESS_ROUND_COUNT,
@@ -22,7 +22,7 @@ import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResult
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
 import { GuessSharePopup, type GuessShareRequest } from "./GuessSharePopup";
-import { RESULT_CURVE_VIEW, RESULT_PHRASE_YEARS, curveY, drawResultCurves, type DrawnCurve } from "./guessResultCurve";
+import { RESULT_CURVE_VIEW, curveY, drawResultCurves, recordForClip, seriesPitches, type DrawnCurve, type ResultClip } from "./guessResultCurve";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -56,6 +56,52 @@ async function unlockAudio(): Promise<boolean> {
     const name = error instanceof DOMException ? error.name : "";
     return name !== "NotAllowedError" && name !== "SecurityError";
   }
+}
+
+let seriesSynth: import("tone").Synth | null = null;
+
+async function playSeriesPitch(frequency: number, durationMs: number, onError?: () => void): Promise<void> {
+  if (!playbackAllowed()) return;
+  try {
+    const Tone = await loadTone();
+    await Tone.start();
+    if (!playbackAllowed()) return;
+    if (!seriesSynth) {
+      seriesSynth = new Tone.Synth({
+        oscillator: { type: "triangle" },
+        envelope: { attack: 0.008, decay: 0.05, sustain: 0.18, release: 0.08 },
+      }).toDestination();
+      seriesSynth.volume.value = -6;
+    }
+    seriesSynth.triggerAttackRelease(frequency, Math.max(0.045, durationMs / 1000));
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    if (name === "NotAllowedError" || name === "SecurityError") onError?.();
+  }
+}
+
+function hushSeries(): void {
+  try {
+    seriesSynth?.triggerRelease();
+  } catch {
+    // The synth may already be releasing.
+  }
+}
+
+function queueSeries(clip: ResultClip, elapsed: number, onError?: () => void): number[] {
+  const pitches = seriesPitches(clip);
+  const gap = PHRASE_MS / Math.max(1, pitches.length);
+  const timers: number[] = [];
+  pitches.forEach((frequency, index) => {
+    const at = index * gap;
+    if (elapsed > at + 24) return;
+    timers.push(
+      window.setTimeout(() => {
+        void playSeriesPitch(frequency, gap * 0.82, onError);
+      }, Math.max(0, at - elapsed)),
+    );
+  });
+  return timers;
 }
 
 function sliceLevel(data: Float32Array, index: number, parts: number): number {
@@ -533,18 +579,11 @@ export function GuessGame({
       stopPhrase();
       pause();
       setBlocked(false);
-      const region = regionById(next.regionId);
-      stopRef.current = playRegionPhrase(
-        {
-          layer: next.layer,
-          season: next.season,
-          weather: next.weather,
-          wind: 36,
-          year: 1988,
-          note: region.note,
-        },
-        { onError: () => setBlocked(true) }
-      );
+      const timers = queueSeries(next, 0, () => setBlocked(true));
+      stopRef.current = () => {
+        timers.forEach((id) => window.clearTimeout(id));
+        hushSeries();
+      };
       playingRef.current = true;
       setLive(true);
       setSignalLive(true);
@@ -837,28 +876,10 @@ export function GuessGame({
   }, []);
 
   const replayHistory = (entry: GuessHistoryEntry, entryIndex: number) => {
-    const noteGap = (PHRASE_MS - 420) / Math.max(1, RESULT_PHRASE_YEARS.length - 1);
     const begin = (elapsed: number) => {
       stopPhrase();
       pause();
-      const region = regionById(entry.regionId);
-      const timers: number[] = [];
-      RESULT_PHRASE_YEARS.forEach((year, noteIndex) => {
-        const at = noteIndex * noteGap;
-        if (elapsed > at + 30) return;
-        timers.push(
-          window.setTimeout(() => {
-            void triggerExploreNote({
-              layer: entry.layer,
-              season: entry.season,
-              weather: entry.weather,
-              wind: 36,
-              year,
-              note: region.note,
-            });
-          }, Math.max(0, at - elapsed)),
-        );
-      });
+      const timers = queueSeries(entry, elapsed, () => setBlocked(true));
       const started = performance.now();
       replayOnRef.current = true;
       replayIndexRef.current = entryIndex;
@@ -879,7 +900,7 @@ export function GuessGame({
       stopRef.current = () => {
         timers.forEach((id) => window.clearTimeout(id));
         cancelAnimationFrame(replayFrameRef.current);
-        hushExplore();
+        hushSeries();
       };
       liveTimer.current = window.setTimeout(() => {
         replayOnRef.current = false;
@@ -1134,7 +1155,7 @@ export function GuessGame({
                 const playing = replayOn && replayIndex === entryIndex;
                 const clipId = `${fillId}heard${entryIndex}`;
                 return (
-                  <li key={`${entry.answerId}-${entryIndex}`} className={`${styles.card} ${styles.cutShell}`} data-correct={entry.correct ? "true" : "false"} data-playing={playing ? "true" : "false"} data-testid="guess-result-card">
+                  <li key={`${entry.answerId}-${entryIndex}`} className={`${styles.card} ${styles.cutShell}`} data-correct={entry.correct ? "true" : "false"} data-playing={playing ? "true" : "false"} data-record={recordForClip(entry).id} data-testid="guess-result-card">
                     <div className={styles.cutFace}>
                     <div className={styles.plot}>
                       <svg viewBox={`0 0 ${RESULT_CURVE_VIEW.width} ${RESULT_CURVE_VIEW.height}`} preserveAspectRatio="none" aria-hidden="true">

@@ -1,29 +1,5 @@
-import { regionById, type LayerId, type SeasonId, type WeatherId } from "../../data/exploreMap";
-
-const SEASON_SHIFT: Record<SeasonId, number> = { spring: 0, summer: 36, fall: -12, winter: -48 };
-const WEATHER_SHIFT: Record<WeatherId, number> = { clear: 0, rain: -8, storm: -28, heat: 64 };
-
-/** Same mapping as signalFrequency in signalTheory.ts. */
-function signalFrequency(note: number, year: number, season: SeasonId, weather: WeatherId): number {
-  return Math.max(90, note + (year - 1958) * 1.05 + SEASON_SHIFT[season] + WEATHER_SHIFT[weather]);
-}
-
-/**
- * The four years playRegionPhrase actually sounds, in order.
- * Kept beside the result curve so each card plots that clip, not a shared silhouette.
- */
-export const RESULT_PHRASE_YEARS = [1968, 1988, 2006, 2024] as const;
-
-/**
- * Added after the shared floor, matching triggerExploreNote in exploreAudio.
- * Season, weather, and the region note already live in signalFrequency.
- */
-const LAYER_SHIFT: Record<LayerId, number> = {
-  temperature: 0,
-  co2: 48,
-  methane: -36,
-  "sea-ice": -24,
-};
+import type { LayerId, SeasonId, WeatherId } from "../../data/exploreMap";
+import { GISTEMP_MONTHLY, LISTEN_ONI, MAUNA_LOA_CO2, NOAA_METHANE, NSIDC_SEA_ICE } from "./guessRecords";
 
 export interface ResultClip {
   readonly regionId: string;
@@ -32,32 +8,75 @@ export interface ResultClip {
   readonly weather: WeatherId;
 }
 
-/** Pitch of each note in the clip, same formula the synth plays. */
-export function heardPhraseFreqs(clip: ResultClip): number[] {
-  const note = regionById(clip.regionId).note;
-  return RESULT_PHRASE_YEARS.map((year) => {
-    const freq = signalFrequency(note, year, clip.season, clip.weather);
-    return Math.max(90, freq + LAYER_SHIFT[clip.layer]);
-  });
+export interface SignalRecord {
+  readonly id: string;
+  readonly source: string;
+  readonly values: readonly number[];
 }
 
-function plotY(freq: number, min: number, max: number, high: number, low: number): number {
-  const span = Math.max(1, max - min);
-  const t = Math.min(1, Math.max(0, (freq - min) / span));
-  const eased = 1 - (1 - t) ** 1.9;
-  return low - eased * (low - high);
+const OCEAN_TEMPERATURE = new Set(["pacific", "atlantic", "indian", "nino34"]);
+
+/** The embedded measurement series behind this clip. */
+export function recordForClip(clip: ResultClip): SignalRecord {
+  if (clip.layer === "sea-ice") {
+    return {
+      id: "nsidc-sea-ice",
+      source: "NSIDC Sea Ice Index annual extent, embedded landing sparkline (48 years). The line falls as extent falls.",
+      values: NSIDC_SEA_ICE,
+    };
+  }
+  if (clip.layer === "methane") {
+    return {
+      id: "noaa-methane",
+      source: "NOAA GML global monthly methane, embedded landing sparkline (516 months).",
+      values: NOAA_METHANE,
+    };
+  }
+  if (clip.layer === "co2") {
+    return {
+      id: "mauna-loa-co2",
+      source: "NOAA GML Mauna Loa monthly CO₂, embedded landing sparkline (823 months, March 1958 through September 2026).",
+      values: MAUNA_LOA_CO2,
+    };
+  }
+  if (OCEAN_TEMPERATURE.has(clip.regionId)) {
+    return {
+      id: "listen-oni",
+      source: "NOAA Oceanic Niño Index drawn on Listen (spark-line.svg). Ocean-temperature clips use this series.",
+      values: LISTEN_ONI,
+    };
+  }
+  return {
+    id: "gistemp-v4",
+    source: "NASA GISTEMP v4 monthly global surface anomaly, embedded landing sparkline (1761 months).",
+    values: GISTEMP_MONTHLY,
+  };
 }
 
-function extendLevel(points: readonly [number, number][], left: number, right: number, floor: number): [number, number][] {
-  const clampY = (y: number) => Math.min(y, floor);
-  const leftSlope = (points[1][1] - points[0][1]) / (points[1][0] - points[0][0]);
-  const last = points.length - 1;
-  const rightSlope = (points[last][1] - points[last - 1][1]) / (points[last][0] - points[last - 1][0]);
-  return [
-    [left, clampY(points[0][1] - leftSlope * (points[0][0] - left))],
-    ...points.map(([x, y]) => [x, clampY(y)] as [number, number]),
-    [right, clampY(points[last][1] + rightSlope * (right - points[last][0]))],
-  ];
+export const SERIES_NOTE_COUNT = 14;
+
+/** Pitches whose contour matches the drawn series, low measurement to low note. */
+export function seriesPitches(clip: ResultClip): number[] {
+  const { values } = recordForClip(clip);
+  const samples = resample(values, SERIES_NOTE_COUNT);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  return samples.map((value) => Math.round(150 + ((value - min) / span) * 430));
+}
+
+function resample(values: readonly number[], count: number): number[] {
+  if (values.length === 0) return [];
+  if (values.length === 1 || count <= 1) return [values[0]];
+  const out: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const t = (index * (values.length - 1)) / (count - 1);
+    const left = Math.floor(t);
+    const right = Math.min(values.length - 1, left + 1);
+    const mix = t - left;
+    out.push((values[left] ?? 0) * (1 - mix) + (values[right] ?? 0) * mix);
+  }
+  return out;
 }
 
 function cubicAt(p0: number, c1: number, c2: number, p1: number, t: number): number {
@@ -134,9 +153,8 @@ export function curveY(samples: readonly [number, number][], x: number): number 
 
 const VIEW_W = 240;
 const VIEW_H = 64;
-const PLOT_HIGH = 14;
-const PLOT_LOW = 50;
-const PLOT_FLOOR = 58;
+const PLOT_HIGH = 8;
+const PLOT_LOW = 56;
 
 export interface DrawnCurve {
   readonly d: string;
@@ -144,31 +162,25 @@ export interface DrawnCurve {
   readonly samples: readonly [number, number][];
 }
 
-function curvePath(freqs: readonly number[], min: number, max: number): DrawnCurve {
-  const step = (VIEW_W - 32) / Math.max(1, freqs.length - 1);
-  const points = freqs.map((freq, index) => [16 + index * step, plotY(freq, min, max, PLOT_HIGH, PLOT_LOW)] as [number, number]);
-  const built = monotone(extendLevel(points, 0, VIEW_W, PLOT_FLOOR));
+function curvePath(values: readonly number[]): DrawnCurve {
+  const count = Math.min(220, Math.max(values.length, 2));
+  const samples = resample(values, count);
+  const min = Math.min(...samples);
+  const max = Math.max(...samples);
+  const span = max - min || 1;
+  const points = samples.map((value, index) => {
+    const x = (index / (samples.length - 1)) * VIEW_W;
+    const t = (value - min) / span;
+    const y = PLOT_LOW - t * (PLOT_LOW - PLOT_HIGH);
+    return [x, y] as [number, number];
+  });
+  const built = monotone(points);
   return { d: built.d, fill: `${built.d} L ${VIEW_W} ${VIEW_H} L 0 ${VIEW_H} Z`, samples: built.samples };
 }
 
-/**
- * One path per clip, drawn on a single frequency scale.
- * Normalizing each clip to its own min and max erases the note, season,
- * weather, and layer: those are constant offsets, and the year slope is shared,
- * so every card became the same curve.
- */
+/** One path per clip, from that clip's embedded measurement series. */
 export function drawResultCurves(clips: readonly ResultClip[]): DrawnCurve[] {
-  const series = clips.map(heardPhraseFreqs);
-  const values = series.flat();
-  if (values.length === 0) return [];
-  let min = Math.min(...values);
-  let max = Math.max(...values);
-  const span = Math.max(24, max - min);
-  const mid = (min + max) / 2;
-  min = mid - span / 2;
-  max = mid + span / 2;
-  const pad = (max - min) * 0.14;
-  return series.map((freqs) => curvePath(freqs, min - pad, max + pad));
+  return clips.map((clip) => curvePath(recordForClip(clip).values));
 }
 
 export function resultCurvePaths(clips: readonly ResultClip[]): string[] {
