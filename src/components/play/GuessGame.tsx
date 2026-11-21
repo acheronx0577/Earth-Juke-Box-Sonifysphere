@@ -18,6 +18,8 @@ import {
 } from "@/lib/signalTheory";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
+import { ChamferMark } from "@/components/listen/ChamferMark";
+import { chamferClip } from "@/components/listen/chamfer";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -30,6 +32,42 @@ const AXIS = ["1968", "1987", "2005", "2024"];
 const PLAY_YEARS = [1968, 1988, 2006, 2024];
 const HOW =
   "Five rounds alternate a region and a record. Hear the four-note signal, then pick 1–4. R replays, Enter continues. A correct answer scores 100, plus 25 for each step of the streak.";
+const SOUND_FAILED = "The sound did not start. Press Hear signal again.";
+const BAR_COUNT = 5;
+
+let tonePromise: Promise<typeof import("tone")> | null = null;
+
+function loadTone(): Promise<typeof import("tone")> {
+  tonePromise ??= import("tone");
+  return tonePromise;
+}
+
+if (typeof window !== "undefined") void loadTone();
+
+async function unlockAudio(): Promise<boolean> {
+  try {
+    const Tone = await loadTone();
+    await Tone.start();
+    return true;
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    return name !== "NotAllowedError" && name !== "SecurityError";
+  }
+}
+
+function sliceLevel(data: Float32Array, index: number, parts: number): number {
+  const size = Math.max(1, Math.floor(data.length / parts));
+  const start = index * size;
+  let sum = 0;
+  let count = 0;
+  for (let cursor = start; cursor < start + size && cursor < data.length; cursor += 1) {
+    const sample = data[cursor] ?? 0;
+    sum += sample * sample;
+    count += 1;
+  }
+  if (!count) return 0;
+  return Math.min(1, Math.sqrt(sum / count) * 3.4);
+}
 
 function choiceLabel(round: GuessRound, id: string): string {
   return round.choices.find((choice) => choice.id === id)?.label ?? id;
@@ -68,10 +106,15 @@ function clip(cut: number) {
   return `polygon(${cut}px 0, calc(100% - ${cut}px) 0, 100% ${cut}px, 100% calc(100% - ${cut}px), calc(100% - ${cut}px) 100%, ${cut}px 100%, 0 calc(100% - ${cut}px), 0 ${cut}px)`;
 }
 
-function monotone(points: readonly [number, number][]): string {
+function cubicAt(p0: number, c1: number, c2: number, p1: number, t: number): number {
+  const u = 1 - t;
+  return u * u * u * p0 + 3 * u * u * t * c1 + 3 * u * t * t * c2 + t * t * t * p1;
+}
+
+function monotoneCurve(points: readonly [number, number][]): { d: string; samples: [number, number][] } {
   const n = points.length;
-  if (n === 0) return "";
-  if (n === 1) return `M ${points[0][0]} ${points[0][1]}`;
+  if (n === 0) return { d: "", samples: [] };
+  if (n === 1) return { d: `M ${points[0][0]} ${points[0][1]}`, samples: [[points[0][0], points[0][1]]] };
   const dx: number[] = [];
   const slope: number[] = [];
   const m = new Array<number>(n).fill(0);
@@ -100,14 +143,43 @@ function monotone(points: readonly [number, number][]): string {
     }
   }
   let d = `M ${points[0][0]} ${points[0][1]}`;
+  const samples: [number, number][] = [[points[0][0], points[0][1]]];
   for (let i = 0; i < n - 1; i += 1) {
     const c1x = points[i][0] + dx[i] / 3;
     const c1y = points[i][1] + (m[i] * dx[i]) / 3;
     const c2x = points[i + 1][0] - dx[i] / 3;
     const c2y = points[i + 1][1] - (m[i + 1] * dx[i]) / 3;
     d += ` C ${c1x} ${c1y} ${c2x} ${c2y} ${points[i + 1][0]} ${points[i + 1][1]}`;
+    for (let step = 1; step <= 16; step += 1) {
+      const t = step / 16;
+      samples.push([
+        cubicAt(points[i][0], c1x, c2x, points[i + 1][0], t),
+        cubicAt(points[i][1], c1y, c2y, points[i + 1][1], t),
+      ]);
+    }
   }
-  return d;
+  return { d, samples };
+}
+
+function monotone(points: readonly [number, number][]): string {
+  return monotoneCurve(points).d;
+}
+
+function yAt(samples: readonly [number, number][], x: number): number {
+  if (samples.length === 0) return BASE / 2;
+  if (x <= samples[0][0]) return samples[0][1];
+  const last = samples[samples.length - 1];
+  if (x >= last[0]) return last[1];
+  let lo = 0;
+  let hi = samples.length - 1;
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (samples[mid][0] <= x) lo = mid;
+    else hi = mid;
+  }
+  const [x0, y0] = samples[lo];
+  const [x1, y1] = samples[hi];
+  return y0 + ((x - x0) / (x1 - x0 || 1)) * (y1 - y0);
 }
 
 function phraseFreqs(regionId: string, season: GuessRound["season"], weather: GuessRound["weather"]): number[] {
@@ -139,8 +211,8 @@ function heroGeometry(freqs: readonly number[]) {
   const max = Math.max(...freqs);
   const floor = BASE - 12;
   const mapped = freqs.map((freq, index) => [XS[index], plotY(freq, min, max, 108, 430)] as [number, number]);
-  const line = monotone(extendLevel(mapped, 0, VW, floor));
-  return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
+  const curve = monotoneCurve(extendLevel(mapped, 0, VW, floor));
+  return { mapped, line: curve.d, samples: curve.samples, fill: `${curve.d} L ${VW} ${BASE} L 0 ${BASE} Z` };
 }
 
 function miniPath(freqs: readonly number[]): string {
@@ -150,22 +222,27 @@ function miniPath(freqs: readonly number[]): string {
   return monotone(extendLevel(points, 0, 240, 58));
 }
 
-function carrierWave(): string {
-  let d = "";
-  for (let x = 0; x <= VW; x += 8) {
-    const y = 300 + Math.sin(x / 92) * 22 + Math.sin(x / 31) * 7;
-    d += d ? ` L ${x.toFixed(1)} ${y.toFixed(1)}` : `M ${x.toFixed(1)} ${y.toFixed(1)}`;
-  }
-  return d;
-}
-
-const WAVE = carrierWave();
-
 function ReplayIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
       <path d="M6.2 4.2 3.4 6.4 6.2 8.6" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
       <path d="M4.2 6.4h4.2a4 4 0 1 1-1.2 3.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M4.1 2.3v9.4l6.8-4.7-6.8-4.7Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M3.1 2.2h2.5v9.6H3.1V2.2Zm5.3 0h2.5v9.6H8.4V2.2Z" fill="currentColor" />
     </svg>
   );
 }
@@ -243,6 +320,7 @@ export function GuessGame({
   const [correctCount, setCorrectCount] = useState(0);
   const [history, setHistory] = useState<GuessHistoryEntry[]>([]);
   const [live, setLive] = useState(false);
+  const [playToken, setPlayToken] = useState(0);
   const [blocked, setBlocked] = useState(false);
   const [soundOff, setSoundOff] = useState(false);
   const [gain, setGain] = useState(0);
@@ -263,9 +341,22 @@ export function GuessGame({
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const pendingSound = useRef<(() => void) | null>(null);
+  const playingRef = useRef(false);
+  const progressRef = useRef<HTMLSpanElement | null>(null);
+  const progressTrackRef = useRef<HTMLDivElement | null>(null);
+  const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const playheadRef = useRef<HTMLDivElement | null>(null);
+  const playheadDotRef = useRef<HTMLSpanElement | null>(null);
+  const playheadStemRef = useRef<HTMLSpanElement | null>(null);
+  const playClipRef = useRef<SVGRectElement | null>(null);
+  const samplesRef = useRef<readonly [number, number][]>([]);
+  const progressAmount = useRef(0);
+  const reduceMotion = useRef(false);
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
+  const playClipId = `${useId().replace(/:/g, "")}play`;
   phaseRef.current = phase;
 
   useEffect(() => {
@@ -378,13 +469,62 @@ export function GuessGame({
     return () => document.removeEventListener("keydown", onKey);
   }, [infoOpen]);
 
-  const stopPhrase = useCallback(() => {
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => {
+      reduceMotion.current = media.matches;
+    };
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const placePlayhead = useCallback((amount: number, mode: "play" | "pause" | "end" | "off") => {
+    const stage = stageRef.current;
+    const head = playheadRef.current;
+    const clip = playClipRef.current;
+    const dot = playheadDotRef.current;
+    const stem = playheadStemRef.current;
+    if (!stage || !head || !clip || !dot || !stem) return;
+    if (reduceMotion.current || mode === "off") {
+      stage.removeAttribute("data-scrub");
+      head.dataset.on = "off";
+      clip.setAttribute("width", "0");
+      return;
+    }
+    const clamped = Math.min(1, Math.max(0, amount));
+    const x = clamped * VW;
+    const y = yAt(samplesRef.current, x);
+    stage.dataset.scrub = mode === "end" ? "end" : "on";
+    head.dataset.on = mode === "end" ? "end" : mode === "pause" ? "pause" : "play";
+    clip.setAttribute("width", x.toFixed(2));
+    const left = `${(x / VW) * 100}%`;
+    const top = `${(y / VH) * 100}%`;
+    dot.style.left = left;
+    dot.style.top = top;
+    stem.style.left = left;
+    stem.style.top = top;
+    stem.style.height = `${(Math.max(0, BASE - y) / VH) * 100}%`;
+  }, []);
+
+  const resetProgress = useCallback(() => {
+    progressAmount.current = 0;
+    if (progressRef.current) progressRef.current.style.transform = "scaleX(0)";
+    progressTrackRef.current?.setAttribute("aria-valuenow", "0");
+    placePlayhead(0, "off");
+  }, [placePlayhead]);
+
+  const stopPhrase = useCallback((freeze = false) => {
+    playingRef.current = false;
     stopRef.current?.();
     stopRef.current = null;
     if (liveTimer.current !== null) window.clearTimeout(liveTimer.current);
+    liveTimer.current = null;
     setLive(false);
     setSignalLive(false);
-  }, []);
+    if (freeze) placePlayhead(progressAmount.current, "pause");
+    else resetProgress();
+  }, [placePlayhead, resetProgress]);
 
   useEffect(() => {
     if (soundOn) return;
@@ -421,16 +561,90 @@ export function GuessGame({
         },
         { onError: () => setBlocked(true) }
       );
+      playingRef.current = true;
       setLive(true);
       setSignalLive(true);
+      setPlayToken((value) => value + 1);
       setAnnouncement("Playing signal");
       liveTimer.current = window.setTimeout(() => {
+        playingRef.current = false;
         setLive(false);
         setSignalLive(false);
+        if (progressRef.current) progressRef.current.style.transform = "scaleX(1)";
+        progressTrackRef.current?.setAttribute("aria-valuenow", "100");
+        placePlayhead(1, "end");
+        setAnnouncement((current) => (current === "Playing signal" ? "Signal ended" : current));
       }, PHRASE_MS);
     },
-    [pause, stopPhrase]
+    [pause, placePlayhead, stopPhrase]
   );
+
+  useEffect(() => {
+    if (!live) return;
+    const fill = progressRef.current;
+    const track = progressTrackRef.current;
+    if (!fill || !track) return;
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      if (!playingRef.current) return;
+      const amount = Math.min(1, (now - started) / PHRASE_MS);
+      progressAmount.current = amount;
+      fill.style.transform = `scaleX(${amount})`;
+      track.setAttribute("aria-valuenow", String(Math.round(amount * 100)));
+      placePlayhead(amount, "play");
+      if (amount < 1) frame = requestAnimationFrame(tick);
+    };
+    fill.style.transform = "scaleX(0)";
+    track.setAttribute("aria-valuenow", "0");
+    placePlayhead(0, "play");
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [live, placePlayhead, playToken]);
+
+  useEffect(() => {
+    if (!live) return;
+    let cancelled = false;
+    let frame = 0;
+    let release: (() => void) | null = null;
+    const paint = (data: Float32Array | undefined) => {
+      barRefs.current.forEach((bar, index) => {
+        if (!bar) return;
+        bar.style.setProperty("--level", data ? sliceLevel(data, index, BAR_COUNT).toFixed(3) : "0");
+      });
+    };
+    const tick = (analyser: import("tone").Analyser | null) => {
+      if (cancelled || !playingRef.current) return;
+      if (analyser) {
+        const raw = analyser.getValue();
+        const data = raw instanceof Float32Array ? raw : raw[0];
+        paint(data);
+      }
+      frame = requestAnimationFrame(() => tick(analyser));
+    };
+    void loadTone().then((Tone) => {
+      if (cancelled) return;
+      const analyser = new Tone.Analyser({ type: "waveform", size: 64, smoothing: 0.45 });
+      const destination = Tone.getDestination();
+      destination.connect(analyser);
+      release = () => {
+        try {
+          destination.disconnect(analyser);
+        } catch {
+          // The tap is already gone when the context closes.
+        }
+        analyser.dispose();
+      };
+      frame = requestAnimationFrame(() => tick(analyser));
+    });
+    const bars = barRefs.current;
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      release?.();
+      bars.forEach((bar) => bar?.style.removeProperty("--level"));
+    };
+  }, [live]);
 
   const playRound = useCallback(
     (next: GuessRound) => {
@@ -447,13 +661,59 @@ export function GuessGame({
 
   useEffect(() => () => stopPhrase(), [stopPhrase]);
 
+  const arm = useCallback((action: () => void) => {
+    void unlockAudio().then((ok) => {
+      if (!ok) {
+        setBlocked(true);
+        setAnnouncement(SOUND_FAILED);
+        return;
+      }
+      action();
+    });
+  }, []);
+
+  const playArmed = useCallback((next: GuessRound, indexAtClick: number) => {
+    void unlockAudio().then((ok) => {
+      if (indexRef.current !== indexAtClick || phaseRef.current === "result") return;
+      if (!ok) {
+        setBlocked(true);
+        setAnnouncement(SOUND_FAILED);
+        return;
+      }
+      playRound(next);
+    });
+  }, [playRound]);
+
   const hear = useCallback(() => {
     if (!round) return;
-    if (!playRound(round)) return;
+    if (!isSoundOn()) {
+      playRound(round);
+      return;
+    }
     phaseRef.current = "listening";
     setPhase("listening");
     setPickedId(null);
-  }, [playRound, round]);
+    playArmed(round, indexRef.current);
+  }, [isSoundOn, playArmed, playRound, round]);
+
+  const toggleClue = useCallback(() => {
+    if (!round) return;
+    if (live) {
+      stopPhrase(true);
+      setAnnouncement("Paused");
+      return;
+    }
+    if (!isSoundOn()) {
+      playRound(round);
+      return;
+    }
+    if (phaseRef.current === "ready") {
+      phaseRef.current = "listening";
+      setPhase("listening");
+      setPickedId(null);
+    }
+    playArmed(round, indexRef.current);
+  }, [isSoundOn, live, playArmed, playRound, round, stopPhrase]);
 
   const choose = useCallback(
     (id: string, viaKeyboard = false) => {
@@ -529,7 +789,7 @@ export function GuessGame({
       }
       if ((current === "listening" || current === "answered") && (event.key === "r" || event.key === "R")) {
         event.preventDefault();
-        playRound(active);
+        arm(() => playRound(active));
       }
       if (current === "answered" && event.key === "Enter") {
         if (target instanceof HTMLElement && target.closest(".sonify-next, button, a, [role='dialog']")) return;
@@ -539,11 +799,11 @@ export function GuessGame({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [advance, blocked, choose, deck, playRound]);
+  }, [advance, arm, blocked, choose, deck, playRound]);
 
   const replay = () => {
     if (!round || phase === "ready" || phase === "result") return;
-    playRound(round);
+    arm(() => playRound(round));
   };
 
   const again = () => {
@@ -582,12 +842,14 @@ export function GuessGame({
         setSignalLive(false);
       }, PHRASE_MS);
     };
-    if (!isSoundOn()) {
-      holdForSound(play);
-      return;
-    }
-    setSoundOff(false);
-    play();
+    arm(() => {
+      if (!isSoundOn()) {
+        holdForSound(play);
+        return;
+      }
+      setSoundOff(false);
+      play();
+    });
   };
 
   useEffect(() => {
@@ -630,6 +892,7 @@ export function GuessGame({
     bestStreak: best,
   };
   const geometry = round ? heroGeometry(phraseFreqs(round.regionId, round.season, round.weather)) : null;
+  samplesRef.current = geometry?.samples ?? [];
   const verdict = `${correct ? "Yes" : "No"} — ${answerText}.`;
   const tip = `${correct ? "✓" : "✕"} ${answerText}${correct && gain ? ` +${gain}` : ""}`;
 
@@ -822,7 +1085,7 @@ export function GuessGame({
           </section>
         ) : round && geometry ? (
           <>
-            <div className={styles.stage}>
+            <div ref={stageRef} className={styles.stage}>
               <span className={`${styles.shell} ${styles.clue}`} style={{ clipPath: clip(7) }}>
                 <span className={styles.face} style={{ clipPath: clip(7) }}>
                   {`CLUE ${clueValue(round).toUpperCase()}`}
@@ -841,14 +1104,24 @@ export function GuessGame({
                   <clipPath id={plotClipId}>
                     <rect x="0" y="0" width={VW} height={BASE} />
                   </clipPath>
+                  <clipPath id={playClipId}>
+                    <rect ref={playClipRef} x="0" y="0" height={VH} />
+                  </clipPath>
                 </defs>
-                <path className={styles.wave} d={WAVE} />
                 <g clipPath={`url(#${plotClipId})`}>
                   <path d={geometry.fill} fill={`url(#${fillId})`} />
                   <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
                   <path className={styles.line} d={geometry.line} />
+                  <g clipPath={`url(#${playClipId})`}>
+                    <path className={styles.playedGlow} d={geometry.line} filter={`url(#${glowId})`} />
+                    <path className={styles.played} d={geometry.line} />
+                  </g>
                 </g>
               </svg>
+              <div ref={playheadRef} className={styles.playhead} data-testid="guess-playhead" aria-hidden="true">
+                <span ref={playheadStemRef} className={styles.playheadStem} />
+                <span ref={playheadDotRef} className={styles.playheadDot} data-testid="guess-playhead-dot" />
+              </div>
               <div className={styles.years} aria-hidden="true">
                 {AXIS.map((year, yearIndex) => (
                   <span key={year} className={styles.year} style={{ left: `${(XS[yearIndex] / VW) * 100}%` }}>
@@ -883,6 +1156,46 @@ export function GuessGame({
             ) : null}
 
             <div className={styles.dock}>
+              <div className={styles.transport} data-testid="guess-transport" data-playing={live ? "true" : "false"}>
+                <button
+                  type="button"
+                  className={styles.playToggle}
+                  style={{ clipPath: chamferClip(8) }}
+                  data-testid="guess-play"
+                  aria-pressed={live}
+                  aria-label={live ? "Pause clue" : "Play clue"}
+                  onClick={toggleClue}
+                >
+                  <ChamferMark />
+                  {live ? <PauseIcon /> : <PlayIcon />}
+                  <span>{live ? "Pause" : "Play"}</span>
+                </button>
+                <span className={styles.eq} data-testid="guess-meter" data-playing={live ? "true" : "false"} aria-hidden="true">
+                  {Array.from({ length: BAR_COUNT }, (_, index) => (
+                    <span
+                      key={index}
+                      className={styles.eqBar}
+                      ref={(node) => {
+                        barRefs.current[index] = node;
+                      }}
+                    />
+                  ))}
+                </span>
+                <div
+                  ref={(node) => {
+                    progressTrackRef.current = node;
+                    if (node && !node.hasAttribute("aria-valuenow")) node.setAttribute("aria-valuenow", "0");
+                  }}
+                  className={styles.progress}
+                  data-testid="guess-progress"
+                  role="progressbar"
+                  aria-label="Clue progress"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <span ref={progressRef} />
+                </div>
+              </div>
               {phase === "answered" ? null : (
                 <h2 ref={questionRef} className={styles.prompt} tabIndex={-1}>
                   {question}
@@ -961,7 +1274,7 @@ export function GuessGame({
               ) : null}
               {blocked ? (
                 <div className={styles.alert} role="alert">
-                  <p>The sound did not start. Press Hear signal again.</p>
+                  <p>{SOUND_FAILED}</p>
                 </div>
               ) : null}
             </div>

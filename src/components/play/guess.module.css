@@ -130,26 +130,91 @@
   height: 100%;
 }
 
-.wave {
-  fill: none;
-  stroke: rgba(242, 242, 240, 0.22);
-  stroke-width: 1.25;
-  vector-effect: non-scaling-stroke;
-}
-
-.glow {
+.glow,
+.playedGlow {
   fill: none;
   stroke: rgba(242, 242, 240, 0.9);
   stroke-width: 16;
   stroke-linecap: round;
   opacity: 0.5;
+  transition: opacity 0.65s ease;
 }
 
-.line {
+.line,
+.played {
   fill: none;
   stroke: #f2f2f0;
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
+  transition: opacity 0.65s ease;
+}
+
+.played,
+.playedGlow {
+  opacity: 0;
+}
+
+.played {
+  stroke-width: 2.75;
+}
+
+.stage[data-scrub="on"] .line {
+  opacity: 0.4;
+}
+
+.stage[data-scrub="on"] .glow {
+  opacity: 0.16;
+}
+
+.stage[data-scrub="on"] .played {
+  opacity: 1;
+}
+
+.stage[data-scrub="on"] .playedGlow {
+  opacity: 0.85;
+}
+
+.stage[data-scrub="end"] .played,
+.stage[data-scrub="end"] .playedGlow {
+  opacity: 0;
+}
+
+.playhead {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.playhead[data-on="play"],
+.playhead[data-on="pause"] {
+  opacity: 1;
+  transition: none;
+}
+
+.playhead[data-on="end"] {
+  opacity: 0;
+}
+
+.playheadStem {
+  position: absolute;
+  width: 1.5px;
+  background: rgba(242, 242, 240, 0.72);
+  transform: translateX(-50%);
+}
+
+.playheadDot {
+  position: absolute;
+  width: clamp(12px, 0.95vw, 18px);
+  height: clamp(12px, 0.95vw, 18px);
+  border-radius: 50%;
+  background: #f2f2f0;
+  box-shadow:
+    0 0 0 clamp(4px, 0.4vw, 7px) rgba(242, 242, 240, 0.22),
+    0 0 18px 6px rgba(242, 242, 240, 0.55);
+  transform: translate(-50%, -50%);
 }
 
 .years {
@@ -283,6 +348,136 @@
   gap: clamp(8px, 1.2svh, 12px);
   min-width: 0;
   padding-top: clamp(8px, 1.4svh, 16px);
+}
+
+.transport {
+  --label-size: clamp(14px, 0.78rem + 0.22vw, 16px);
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1vw, 14px);
+  min-width: 0;
+}
+
+.playToggle {
+  --cut: 8px;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 0.7vw, 8px);
+  min-height: 44px;
+  min-width: clamp(6.75rem, 16vw, 8.5rem);
+  padding: 0 clamp(12px, 1.2vw, 16px);
+  border: 0;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--label-size);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.playToggle:focus {
+  outline: none;
+}
+
+.playToggle:focus-visible {
+  outline: 2px solid #fff3ea;
+  outline-offset: 3px;
+}
+
+.playToggle :global(.lv-chamfer-svg) {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.playToggle :global(.lv-chamfer-svg) polygon {
+  fill: none;
+  stroke: #555555;
+  stroke-width: 1.5px;
+  stroke-linejoin: miter;
+  vector-effect: non-scaling-stroke;
+}
+
+.eq {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: clamp(3px, 0.3vw, 5px);
+  width: calc(var(--label-size) * 2.8);
+  height: calc(var(--label-size) * 2);
+}
+
+.eqBar {
+  flex: 1 1 0;
+  height: 18%;
+  background: var(--cream);
+  transform-origin: bottom center;
+}
+
+.eq[data-playing="true"] .eqBar {
+  height: calc(30% + (var(--level, 0) * 70%));
+  animation-name: guessEq;
+  animation-duration: 0.7s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+.eq[data-playing="true"] .eqBar:nth-child(2) {
+  animation-duration: 0.5s;
+  animation-delay: -0.15s;
+}
+
+.eq[data-playing="true"] .eqBar:nth-child(3) {
+  animation-duration: 0.84s;
+  animation-delay: -0.28s;
+}
+
+.eq[data-playing="true"] .eqBar:nth-child(4) {
+  animation-duration: 0.62s;
+  animation-delay: -0.4s;
+}
+
+.eq[data-playing="true"] .eqBar:nth-child(5) {
+  animation-duration: 0.76s;
+  animation-delay: -0.1s;
+}
+
+@keyframes guessEq {
+  from {
+    transform: scaleY(0.42);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.progress {
+  position: relative;
+  flex: 1 1 auto;
+  height: clamp(4px, 0.55svh, 6px);
+  min-width: 0;
+  background: var(--muted);
+}
+
+.progress > span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--cream);
+  transform: scaleX(0);
+  transform-origin: left center;
 }
 
 .prompt {
@@ -751,4 +946,46 @@ a.shell {
   .page * {
     scroll-behavior: auto;
   }
+
+  .eq[data-playing="true"] .eqBar {
+    animation: none;
+    height: 58%;
+    transform: none;
+  }
+
+  .playhead,
+  .played,
+  .playedGlow {
+    display: none;
+  }
+
+  .stage[data-scrub="on"] .line,
+  .stage[data-scrub="end"] .line {
+    opacity: 1;
+  }
+
+  .stage[data-scrub="on"] .glow,
+  .stage[data-scrub="end"] .glow {
+    opacity: 0.5;
+  }
+}
+
+/* TargetCursor hides the system cursor on the document, then this page suppresses the bracket. */
+.page,
+.page *,
+.page *::before,
+.page *::after {
+  cursor: auto !important;
+}
+
+.page :is(a, button, [role="button"]),
+.page :is(a, button, [role="button"]) * {
+  cursor: pointer !important;
+}
+
+.page button:disabled,
+.page button:disabled *,
+.page [aria-disabled="true"][disabled],
+.page [aria-disabled="true"][disabled] * {
+  cursor: default !important;
 }
