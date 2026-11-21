@@ -50,6 +50,11 @@
   letter-spacing: 0.12em;
 }
 
+.titleRow .num {
+  color: #b4b2ae;
+  font-size: clamp(13px, 0.95vw, 16px);
+}
+
 .titleRow h1,
 .result h1 {
   margin: 0;
@@ -66,9 +71,9 @@
   align-items: center;
   gap: clamp(8px, 0.7vw, 12px);
   flex: none;
-  color: var(--c3-dim);
+  color: #b4b2ae;
   font-family: var(--font-mono), monospace;
-  font-size: clamp(10px, 0.65vw, 12px);
+  font-size: clamp(13px, 0.95vw, 16px);
   letter-spacing: 0.12em;
 }
 

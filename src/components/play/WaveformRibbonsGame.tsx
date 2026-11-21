@@ -198,12 +198,14 @@ function chartGeometry(raw: readonly [number, number][]) {
   const max = Math.max(...ys);
   const span = max - min || 1;
   const mapped = raw.map((point, index) => [XS[index], 150 + ((point[1] - min) / span) * 360] as [number, number]);
+  const floor = BASE - 12;
+  const clampPlot = (y: number) => Math.min(y, floor);
   const leftSlope = (mapped[1][1] - mapped[0][1]) / (mapped[1][0] - mapped[0][0]);
   const rightSlope = (mapped[6][1] - mapped[5][1]) / (mapped[6][0] - mapped[5][0]);
   const extended: [number, number][] = [
-    [0, mapped[0][1] - leftSlope * mapped[0][0]],
+    [0, clampPlot(mapped[0][1] - leftSlope * mapped[0][0])],
     ...mapped,
-    [VW, mapped[6][1] + rightSlope * (VW - mapped[6][0])],
+    [VW, clampPlot(mapped[6][1] + rightSlope * (VW - mapped[6][0]))],
   ];
   const line = monotone(extended);
   return { mapped, line, fill: `${line} L ${VW} ${BASE} L 0 ${BASE} Z` };
@@ -250,6 +252,7 @@ export function WaveformRibbonsGame({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
+  const plotClipId = `${useId().replace(/:/g, "")}plot`;
 
   const pattern = PATTERNS[patternIdx] ?? PATTERNS[0];
   const geometry = chartGeometry(pattern.points);
@@ -523,9 +526,14 @@ export function WaveformRibbonsGame({
             <filter id={glowId} x="-8%" y="-40%" width="116%" height="180%">
               <feGaussianBlur stdDeviation="8" />
             </filter>
+            <clipPath id={plotClipId}>
+              <rect x="0" y="0" width={VW} height={BASE} />
+            </clipPath>
           </defs>
-          <path d={geometry.fill} fill={`url(#${fillId})`} />
-          <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+          <g clipPath={`url(#${plotClipId})`}>
+            <path d={geometry.fill} fill={`url(#${fillId})`} />
+            <path className={styles.glow} d={geometry.line} filter={`url(#${glowId})`} />
+          </g>
           <path className={styles.line} d={geometry.line} />
           <line x1="0" y1={BASE} x2={VW} y2={BASE} stroke="rgba(242,242,240,0.28)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           {XS.map((x, index) => (
