@@ -576,7 +576,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
           <p className={styles.stats}>
             {filledCount} OF 8 SLOTS · {bpm} BPM
           </p>
-          {sequencer(true)}
+          {sequencer(false)}
           <div className={styles.resultActions}>
             <button type="button" className={`${styles.shell} ${styles.plain} bg-[#f2f2f0]`} style={{ clipPath: clip(8) }} data-testid="compose-play" onClick={() => void play()}>
               <span className={styles.face} style={{ clipPath: clip(8) }}>
@@ -611,7 +611,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
         </section>
       ) : (
         <>
-          {sequencer(false)}
+          {sequencer(true)}
           <div className={styles.palette} role="group" aria-label="Sounds">
             {MAP_REGIONS.map((region, regionIndex) => {
               const slot = { source: "region", id: region.id } as const;

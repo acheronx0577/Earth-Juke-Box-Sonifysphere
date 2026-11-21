@@ -125,6 +125,7 @@
   flex: 1 1 auto;
   gap: clamp(4px, 0.6vw, 10px);
   min-height: 0;
+  overflow: hidden;
   padding-inline: clamp(10px, 1.4vw, 22px);
 }
 
@@ -179,7 +180,7 @@
   height: 100%;
   min-height: 0;
   padding: 8px;
-  background: transparent;
+  background: var(--ink);
   color: var(--cream);
   font-size: clamp(11px, 0.7vw, 13px);
 }
@@ -199,8 +200,8 @@
 .glow {
   fill: none;
   stroke: rgba(242, 242, 240, 0.85);
-  stroke-width: 14;
-  opacity: 0.45;
+  stroke-width: 8;
+  opacity: 0.4;
 }
 
 .line {
