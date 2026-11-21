@@ -119,41 +119,37 @@ function monotone(points: readonly [number, number][]): string {
 function sequencePath(heights: readonly number[]): string {
   const width = 800;
   const plot = 200;
+  const count = heights.length;
+  if (count < 1) return "";
   const yFor = (value: number) => plot * (1 - value / 100);
-  const known = heights.map((value) => (value > 0 ? yFor(value) : null));
-  const ys = known.map((y, index) => {
-    if (y !== null) return y;
-    let previous = -1;
-    let next = -1;
-    for (let i = index - 1; i >= 0; i -= 1) {
-      if (known[i] !== null) {
-        previous = i;
-        break;
-      }
-    }
-    for (let i = index + 1; i < known.length; i += 1) {
-      if (known[i] !== null) {
-        next = i;
-        break;
-      }
-    }
-    if (previous >= 0 && next >= 0) {
-      const span = next - previous;
-      const t = (index - previous) / span;
-      return known[previous]! + (known[next]! - known[previous]!) * t;
-    }
-    if (previous >= 0) return known[previous]!;
-    if (next >= 0) return known[next]!;
-    return plot - 8;
-  });
-  const points = ys.map((y, index) => [((index + 0.5) / ys.length) * width, y] as [number, number]);
-  const first = points[0] ?? [0, plot - 1];
-  const last = points[points.length - 1] ?? first;
-  return monotone([
-    [0, first[1]],
-    ...points,
-    [width, last[1]],
-  ]);
+  const filled = heights.flatMap((value, index) => (value > 0 ? [{ index, y: yFor(value) }] : []));
+  if (filled.length === 0) {
+    const y = plot - 8;
+    return `M 0 ${y} L ${width} ${y}`;
+  }
+  const column = width / count;
+  // Bars are 35% of the column. A single knot at the center does sit on the
+  // cap, but the secant tangent then slices through that narrow bar, so the
+  // stroke reads above one top and under the next. Hold the cap across the
+  // bar and let the monotone cubic bend only in the gaps, rests included.
+  const half = column * 0.175;
+  const points: [number, number][] = [[0, filled[0].y]];
+  for (const { index, y } of filled) {
+    const center = (index + 0.5) * column;
+    const previous = points[points.length - 1][0];
+    const left = Math.min(center, Math.max(center - half, previous + 0.01));
+    const right = Math.max(center, Math.min(width, center + half));
+    points.push([left, y], [center, y], [right, y]);
+  }
+  const end = points[points.length - 1];
+  if (end[0] < width) points.push([width, end[1]]);
+  const rising: [number, number][] = [];
+  for (const point of points) {
+    const previous = rising[rising.length - 1];
+    if (previous && point[0] <= previous[0] + 0.01) continue;
+    rising.push(point);
+  }
+  return monotone(rising);
 }
 
 function moveFocus(event: KeyboardEvent<HTMLButtonElement>, index: number, count: number, focusAt: (next: number) => void) {
