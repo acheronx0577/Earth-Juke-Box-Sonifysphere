@@ -18,6 +18,8 @@ import {
 } from "@/lib/signalTheory";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
+import { ChamferMark } from "@/components/listen/ChamferMark";
+import { chamferClip } from "@/components/listen/chamfer";
 import styles from "./guess.module.css";
 
 type Phase = "ready" | "listening" | "answered" | "result";
@@ -30,6 +32,42 @@ const AXIS = ["1968", "1987", "2005", "2024"];
 const PLAY_YEARS = [1968, 1988, 2006, 2024];
 const HOW =
   "Five rounds alternate a region and a record. Hear the four-note signal, then pick 1–4. R replays, Enter continues. A correct answer scores 100, plus 25 for each step of the streak.";
+const SOUND_FAILED = "The sound did not start. Press Hear signal again.";
+const BAR_COUNT = 5;
+
+let tonePromise: Promise<typeof import("tone")> | null = null;
+
+function loadTone(): Promise<typeof import("tone")> {
+  tonePromise ??= import("tone");
+  return tonePromise;
+}
+
+if (typeof window !== "undefined") void loadTone();
+
+async function unlockAudio(): Promise<boolean> {
+  try {
+    const Tone = await loadTone();
+    await Tone.start();
+    return true;
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    return name !== "NotAllowedError" && name !== "SecurityError";
+  }
+}
+
+function sliceLevel(data: Float32Array, index: number, parts: number): number {
+  const size = Math.max(1, Math.floor(data.length / parts));
+  const start = index * size;
+  let sum = 0;
+  let count = 0;
+  for (let cursor = start; cursor < start + size && cursor < data.length; cursor += 1) {
+    const sample = data[cursor] ?? 0;
+    sum += sample * sample;
+    count += 1;
+  }
+  if (!count) return 0;
+  return Math.min(1, Math.sqrt(sum / count) * 3.4);
+}
 
 function choiceLabel(round: GuessRound, id: string): string {
   return round.choices.find((choice) => choice.id === id)?.label ?? id;
@@ -170,6 +208,22 @@ function ReplayIcon() {
   );
 }
 
+function PlayIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M4.1 2.3v9.4l6.8-4.7-6.8-4.7Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M3.1 2.2h2.5v9.6H3.1V2.2Zm5.3 0h2.5v9.6H8.4V2.2Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 function resultUrl(result: SharedGuessResult): string {
   const url = new URL("/challenge/guess", window.location.origin);
   url.searchParams.set("result", encodeGuessResult(result));
@@ -243,6 +297,7 @@ export function GuessGame({
   const [correctCount, setCorrectCount] = useState(0);
   const [history, setHistory] = useState<GuessHistoryEntry[]>([]);
   const [live, setLive] = useState(false);
+  const [playToken, setPlayToken] = useState(0);
   const [blocked, setBlocked] = useState(false);
   const [soundOff, setSoundOff] = useState(false);
   const [gain, setGain] = useState(0);
@@ -263,6 +318,10 @@ export function GuessGame({
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const pendingSound = useRef<(() => void) | null>(null);
+  const playingRef = useRef(false);
+  const progressRef = useRef<HTMLSpanElement | null>(null);
+  const progressTrackRef = useRef<HTMLDivElement | null>(null);
+  const barRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const fillId = `${useId().replace(/:/g, "")}fill`;
   const glowId = `${useId().replace(/:/g, "")}glow`;
   const plotClipId = `${useId().replace(/:/g, "")}plot`;
@@ -378,13 +437,21 @@ export function GuessGame({
     return () => document.removeEventListener("keydown", onKey);
   }, [infoOpen]);
 
-  const stopPhrase = useCallback(() => {
+  const resetProgress = useCallback(() => {
+    if (progressRef.current) progressRef.current.style.transform = "scaleX(0)";
+    progressTrackRef.current?.setAttribute("aria-valuenow", "0");
+  }, []);
+
+  const stopPhrase = useCallback((freeze = false) => {
+    playingRef.current = false;
     stopRef.current?.();
     stopRef.current = null;
     if (liveTimer.current !== null) window.clearTimeout(liveTimer.current);
+    liveTimer.current = null;
     setLive(false);
     setSignalLive(false);
-  }, []);
+    if (!freeze) resetProgress();
+  }, [resetProgress]);
 
   useEffect(() => {
     if (soundOn) return;
@@ -421,16 +488,86 @@ export function GuessGame({
         },
         { onError: () => setBlocked(true) }
       );
+      playingRef.current = true;
       setLive(true);
       setSignalLive(true);
+      setPlayToken((value) => value + 1);
       setAnnouncement("Playing signal");
       liveTimer.current = window.setTimeout(() => {
+        playingRef.current = false;
         setLive(false);
         setSignalLive(false);
+        if (progressRef.current) progressRef.current.style.transform = "scaleX(1)";
+        progressTrackRef.current?.setAttribute("aria-valuenow", "100");
+        setAnnouncement((current) => (current === "Playing signal" ? "Signal ended" : current));
       }, PHRASE_MS);
     },
     [pause, stopPhrase]
   );
+
+  useEffect(() => {
+    if (!live) return;
+    const fill = progressRef.current;
+    const track = progressTrackRef.current;
+    if (!fill || !track) return;
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      if (!playingRef.current) return;
+      const amount = Math.min(1, (now - started) / PHRASE_MS);
+      fill.style.transform = `scaleX(${amount})`;
+      track.setAttribute("aria-valuenow", String(Math.round(amount * 100)));
+      if (amount < 1) frame = requestAnimationFrame(tick);
+    };
+    fill.style.transform = "scaleX(0)";
+    track.setAttribute("aria-valuenow", "0");
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [live, playToken]);
+
+  useEffect(() => {
+    if (!live) return;
+    let cancelled = false;
+    let frame = 0;
+    let release: (() => void) | null = null;
+    const paint = (data: Float32Array | undefined) => {
+      barRefs.current.forEach((bar, index) => {
+        if (!bar) return;
+        bar.style.setProperty("--level", data ? sliceLevel(data, index, BAR_COUNT).toFixed(3) : "0");
+      });
+    };
+    const tick = (analyser: import("tone").Analyser | null) => {
+      if (cancelled || !playingRef.current) return;
+      if (analyser) {
+        const raw = analyser.getValue();
+        const data = raw instanceof Float32Array ? raw : raw[0];
+        paint(data);
+      }
+      frame = requestAnimationFrame(() => tick(analyser));
+    };
+    void loadTone().then((Tone) => {
+      if (cancelled) return;
+      const analyser = new Tone.Analyser({ type: "waveform", size: 64, smoothing: 0.45 });
+      const destination = Tone.getDestination();
+      destination.connect(analyser);
+      release = () => {
+        try {
+          destination.disconnect(analyser);
+        } catch {
+          // The tap is already gone when the context closes.
+        }
+        analyser.dispose();
+      };
+      frame = requestAnimationFrame(() => tick(analyser));
+    });
+    const bars = barRefs.current;
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+      release?.();
+      bars.forEach((bar) => bar?.style.removeProperty("--level"));
+    };
+  }, [live]);
 
   const playRound = useCallback(
     (next: GuessRound) => {
@@ -447,13 +584,59 @@ export function GuessGame({
 
   useEffect(() => () => stopPhrase(), [stopPhrase]);
 
+  const arm = useCallback((action: () => void) => {
+    void unlockAudio().then((ok) => {
+      if (!ok) {
+        setBlocked(true);
+        setAnnouncement(SOUND_FAILED);
+        return;
+      }
+      action();
+    });
+  }, []);
+
+  const playArmed = useCallback((next: GuessRound, indexAtClick: number) => {
+    void unlockAudio().then((ok) => {
+      if (indexRef.current !== indexAtClick || phaseRef.current === "result") return;
+      if (!ok) {
+        setBlocked(true);
+        setAnnouncement(SOUND_FAILED);
+        return;
+      }
+      playRound(next);
+    });
+  }, [playRound]);
+
   const hear = useCallback(() => {
     if (!round) return;
-    if (!playRound(round)) return;
+    if (!isSoundOn()) {
+      playRound(round);
+      return;
+    }
     phaseRef.current = "listening";
     setPhase("listening");
     setPickedId(null);
-  }, [playRound, round]);
+    playArmed(round, indexRef.current);
+  }, [isSoundOn, playArmed, playRound, round]);
+
+  const toggleClue = useCallback(() => {
+    if (!round) return;
+    if (live) {
+      stopPhrase(true);
+      setAnnouncement("Paused");
+      return;
+    }
+    if (!isSoundOn()) {
+      playRound(round);
+      return;
+    }
+    if (phaseRef.current === "ready") {
+      phaseRef.current = "listening";
+      setPhase("listening");
+      setPickedId(null);
+    }
+    playArmed(round, indexRef.current);
+  }, [isSoundOn, live, playArmed, playRound, round, stopPhrase]);
 
   const choose = useCallback(
     (id: string, viaKeyboard = false) => {
@@ -529,7 +712,7 @@ export function GuessGame({
       }
       if ((current === "listening" || current === "answered") && (event.key === "r" || event.key === "R")) {
         event.preventDefault();
-        playRound(active);
+        arm(() => playRound(active));
       }
       if (current === "answered" && event.key === "Enter") {
         if (target instanceof HTMLElement && target.closest(".sonify-next, button, a, [role='dialog']")) return;
@@ -539,11 +722,11 @@ export function GuessGame({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [advance, blocked, choose, deck, playRound]);
+  }, [advance, arm, blocked, choose, deck, playRound]);
 
   const replay = () => {
     if (!round || phase === "ready" || phase === "result") return;
-    playRound(round);
+    arm(() => playRound(round));
   };
 
   const again = () => {
@@ -582,12 +765,14 @@ export function GuessGame({
         setSignalLive(false);
       }, PHRASE_MS);
     };
-    if (!isSoundOn()) {
-      holdForSound(play);
-      return;
-    }
-    setSoundOff(false);
-    play();
+    arm(() => {
+      if (!isSoundOn()) {
+        holdForSound(play);
+        return;
+      }
+      setSoundOff(false);
+      play();
+    });
   };
 
   useEffect(() => {
@@ -883,6 +1068,46 @@ export function GuessGame({
             ) : null}
 
             <div className={styles.dock}>
+              <div className={styles.transport} data-testid="guess-transport" data-playing={live ? "true" : "false"}>
+                <button
+                  type="button"
+                  className={styles.playToggle}
+                  style={{ clipPath: chamferClip(8) }}
+                  data-testid="guess-play"
+                  aria-pressed={live}
+                  aria-label={live ? "Pause clue" : "Play clue"}
+                  onClick={toggleClue}
+                >
+                  <ChamferMark />
+                  {live ? <PauseIcon /> : <PlayIcon />}
+                  <span>{live ? "Pause" : "Play"}</span>
+                </button>
+                <span className={styles.eq} data-testid="guess-meter" data-playing={live ? "true" : "false"} aria-hidden="true">
+                  {Array.from({ length: BAR_COUNT }, (_, index) => (
+                    <span
+                      key={index}
+                      className={styles.eqBar}
+                      ref={(node) => {
+                        barRefs.current[index] = node;
+                      }}
+                    />
+                  ))}
+                </span>
+                <div
+                  ref={(node) => {
+                    progressTrackRef.current = node;
+                    if (node && !node.hasAttribute("aria-valuenow")) node.setAttribute("aria-valuenow", "0");
+                  }}
+                  className={styles.progress}
+                  data-testid="guess-progress"
+                  role="progressbar"
+                  aria-label="Clue progress"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <span ref={progressRef} />
+                </div>
+              </div>
               {phase === "answered" ? null : (
                 <h2 ref={questionRef} className={styles.prompt} tabIndex={-1}>
                   {question}
@@ -961,7 +1186,7 @@ export function GuessGame({
               ) : null}
               {blocked ? (
                 <div className={styles.alert} role="alert">
-                  <p>The sound did not start. Press Hear signal again.</p>
+                  <p>{SOUND_FAILED}</p>
                 </div>
               ) : null}
             </div>
