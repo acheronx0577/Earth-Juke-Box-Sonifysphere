@@ -688,7 +688,6 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
             <label className={styles.tempo}>
               TEMPO
               <input
-                className="listen-wind sonify-tempo"
                 aria-label="Tempo"
                 type="range"
                 min={60}
@@ -704,7 +703,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
                   retune(Math.min(160, Math.max(60, bpm + delta)));
                 }}
               />
-              <b>{bpm}</b>
+              <span>{bpm} BPM</span>
             </label>
             <button type="button" className={styles.textLink} onClick={clear}>
               Clear

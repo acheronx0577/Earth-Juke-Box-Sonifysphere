@@ -439,8 +439,13 @@ a.shell {
 
 .tempo input {
   flex: 1 1 auto;
+  width: clamp(7rem, 16vw, 16rem);
   min-width: 0;
-  accent-color: #f2f2f0;
+  height: 16px;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .tempo input:focus {
@@ -449,7 +454,41 @@ a.shell {
 
 .tempo input:focus-visible {
   outline: 2px solid #fff3ea;
-  outline-offset: 3px;
+  outline-offset: 4px;
+}
+
+.tempo input::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, #f2f2f0 var(--wind, 36%), #555555 var(--wind, 36%));
+}
+
+.tempo input::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  appearance: none;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2f0;
+}
+
+.tempo input::-moz-range-track {
+  height: 2px;
+  border: 0;
+  background: #555555;
+}
+
+.tempo input::-moz-range-progress {
+  height: 2px;
+  background: #f2f2f0;
+}
+
+.tempo input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f2f0;
 }
 
 .textLink,
