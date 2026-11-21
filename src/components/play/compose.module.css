@@ -267,18 +267,8 @@
   transform: translateX(-50%);
 }
 
-.bar {
-  position: absolute;
-  z-index: 1;
-  bottom: 0;
-  left: 50%;
-  width: 35%;
-  transform: translateX(-50%);
-  background: linear-gradient(to bottom, #f2f2f0 0 3px, rgba(242, 242, 240, 0.72) 3px, rgba(242, 242, 240, 0.28) 42%, rgba(242, 242, 240, 0) 100%);
-}
-
-.bar[data-play="true"] {
-  background: linear-gradient(to bottom, #f2f2f0 0 3px, rgba(242, 242, 240, 0.95) 3px, rgba(242, 242, 240, 0.35) 42%, rgba(242, 242, 240, 0) 100%);
+.barFill {
+  stroke: none;
 }
 
 .dot {

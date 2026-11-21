@@ -59,27 +59,44 @@ async function curveError(page: Page) {
     const ctm = line.getScreenCTM();
     if (!ctm) return 999;
     const total = line.getTotalLength();
-    const points: DOMPoint[] = [];
-    const steps = 1600;
-    for (let index = 0; index <= steps; index += 1) {
-      const point = line.getPointAtLength((total * index) / steps);
-      points.push(new DOMPoint(point.x, point.y).matrixTransform(ctm));
-    }
-    let worst = 0;
-    for (const bar of document.querySelectorAll("[data-testid='compose-bar']")) {
-      const rect = bar.getBoundingClientRect();
-      if (rect.width < 2 || rect.height < 2) continue;
-      const x = rect.left + rect.width / 2;
-      let nearest = Number.POSITIVE_INFINITY;
-      let y = 0;
-      for (const point of points) {
-        const distance = Math.abs(point.x - x);
-        if (distance < nearest) {
-          nearest = distance;
-          y = point.y;
-        }
+    const curveY = (x: number) => {
+      let lo = 0;
+      let hi = total;
+      for (let step = 0; step < 24; step += 1) {
+        const mid = (lo + hi) / 2;
+        const point = line.getPointAtLength(mid);
+        const screen = new DOMPoint(point.x, point.y).matrixTransform(ctm);
+        if (screen.x < x) lo = mid;
+        else hi = mid;
       }
-      worst = Math.max(worst, Math.abs(y - rect.top));
+      const point = line.getPointAtLength((lo + hi) / 2);
+      return new DOMPoint(point.x, point.y).matrixTransform(ctm).y;
+    };
+    const barTop = (bar: SVGPathElement, x: number) => {
+      const barCtm = bar.getScreenCTM();
+      if (!barCtm) return 0;
+      const barInverse = barCtm.inverse();
+      const bounds = bar.getBoundingClientRect();
+      let lo = bounds.top - 4;
+      let hi = bounds.bottom;
+      for (let step = 0; step < 18; step += 1) {
+        const mid = (lo + hi) / 2;
+        const local = new DOMPoint(x, mid).matrixTransform(barInverse);
+        if (bar.isPointInFill(local)) hi = mid;
+        else lo = mid;
+      }
+      return (lo + hi) / 2;
+    };
+    let worst = 0;
+    const fractions = [0.1, 0.3, 0.5, 0.7, 0.9];
+    for (const node of document.querySelectorAll("[data-testid='compose-bar']")) {
+      if (!(node instanceof SVGPathElement)) continue;
+      const bounds = node.getBoundingClientRect();
+      if (bounds.width < 2) continue;
+      for (const fraction of fractions) {
+        const x = bounds.left + bounds.width * fraction;
+        worst = Math.max(worst, Math.abs(barTop(node, x) - curveY(x)));
+      }
     }
     return worst;
   });
@@ -204,6 +221,17 @@ test("the curve hits every filled bar and the share sheet keeps the mix", async 
     const bars = await page.getByTestId("compose-bar").count();
     expect(bars).toBeGreaterThanOrEqual(4);
     await page.screenshot({ path: `/opt/cursor/artifacts/compose-${name}.png` });
+    if (name === "1440") {
+      const clip = await page.evaluate(() => {
+        const nodes = [...document.querySelectorAll("[data-testid='compose-bar']")].slice(1, 4);
+        const boxes = nodes.map((node) => node.getBoundingClientRect());
+        const left = Math.min(...boxes.map((box) => box.left));
+        const right = Math.max(...boxes.map((box) => box.right));
+        const top = Math.min(...boxes.map((box) => box.top));
+        return { x: Math.max(0, left - 36), y: Math.max(0, top - 28), width: right - left + 72, height: 460 };
+      });
+      await page.screenshot({ path: "/opt/cursor/artifacts/compose-1440-bars.png", clip });
+    }
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });

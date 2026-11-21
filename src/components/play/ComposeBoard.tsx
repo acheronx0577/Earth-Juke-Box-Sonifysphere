@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { LAYERS, MAP_REGIONS, regionById, type LayerId } from "@/data/exploreMap";
 import { playMix, renderMixWav } from "@/lib/signalPlayback";
@@ -20,7 +20,7 @@ import { IconDownload, IconPlay, IconStop } from "@/components/shared/Icons";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
-import { curveThroughSamples, sequencePath } from "@/components/play/composeCurve";
+import { curveModel, fallbackModel, type CurveModel } from "@/components/play/composeCurve";
 import { playSlotPreview, useComposeDrag, type ComposeDrop } from "@/components/play/composeDrag";
 import { ShareSheet } from "@/components/play/ShareSheet";
 import styles from "./compose.module.css";
@@ -135,10 +135,10 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const infoRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const curveRef = useRef<SVGSVGElement | null>(null);
-  const barRefs = useRef<Array<HTMLElement | null>>([]);
   const slotsRootRef = useRef<HTMLDivElement | null>(null);
   const dropRef = useRef<(drop: ComposeDrop) => void>(() => undefined);
-  const [curveFrame, setCurveFrame] = useState<{ w: number; h: number; d: string } | null>(null);
+  const [curveFrame, setCurveFrame] = useState<({ w: number; h: number } & CurveModel) | null>(null);
+  const gradId = useId().replace(/:/g, "");
   const drag = useComposeDrag({
     slotsRoot: () => slotsRootRef.current,
     onDrop: (drop) => dropRef.current(drop),
@@ -396,36 +396,45 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
   const targetIndex = armed && selected === null ? firstEmpty : selected !== null && !slots[selected] ? selected : firstEmpty;
   const showReady = Boolean(plan) && audio === "idle" && !editing;
   const heights = slots.map((slot) => barHeight(slotNote(slot)));
-  const curveKey = `${slots.map((slot) => (slot ? `${slot.source}.${slot.id}` : "-")).join(",")}:${showReady ? "ready" : "edit"}`;
+  const heightsRef = useRef(heights);
+  heightsRef.current = heights;
+  const curveKey = `${heights.join(",")}:${showReady ? "ready" : "edit"}`;
   useLayoutEffect(() => {
     const svg = curveRef.current;
     if (!svg) return;
     const measure = () => {
+      const currentHeights = heightsRef.current;
       const rect = svg.getBoundingClientRect();
       const w = Math.round(rect.width * 100) / 100;
       const h = Math.round(rect.height * 100) / 100;
       if (!(w > 1) || !(h > 1)) return;
       const samples = Array.from({ length: MIX_SLOT_COUNT }, (_, index) => {
-        const button = slotRefs.current[index];
-        if (!button) return null;
-        const box = button.getBoundingClientRect();
-        const bar = barRefs.current[index];
-        const barBox = bar?.getBoundingClientRect();
-        const anchor = barBox && barBox.width > 0 ? barBox : box;
-        const y = barBox && barBox.height > 0 ? Math.round((barBox.top - rect.top) * 100) / 100 : null;
-        const x = Math.round((anchor.left + anchor.width / 2 - rect.left) * 100) / 100;
-        return { x, y };
+        const column = slotRefs.current[index]?.querySelector(".sonify-slot");
+        if (!(column instanceof HTMLElement)) return null;
+        const box = column.getBoundingClientRect();
+        const x = Math.round((box.left + box.width / 2 - rect.left) * 100) / 100;
+        const half = Math.round(box.width * 0.35 * 50) / 100;
+        const y = currentHeights[index] > 0 ? Math.round((box.bottom - (currentHeights[index] / 100) * box.height - rect.top) * 100) / 100 : null;
+        return { x, y, left: Math.round((x - half) * 100) / 100, right: Math.round((x + half) * 100) / 100 };
       });
       if (samples.some((sample) => sample === null)) return;
-      const d = curveThroughSamples(samples as { x: number; y: number | null }[], w);
-      setCurveFrame((prev) => (prev && prev.w === w && prev.h === h && prev.d === d ? prev : { w, h, d }));
+      const model = curveModel(samples as { x: number; y: number | null; left: number; right: number }[], w, h);
+      setCurveFrame((prev) => {
+        const sameBars =
+          prev !== null &&
+          prev.bars.length === model.bars.length &&
+          prev.bars.every((bar, index) => bar.index === model.bars[index]?.index && bar.d === model.bars[index]?.d);
+        return prev && prev.w === w && prev.h === h && prev.d === model.d && sameBars ? prev : { w, h, d: model.d, bars: model.bars };
+      });
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(svg);
     return () => observer.disconnect();
   }, [curveKey]);
-  const curve = curveFrame?.d || sequencePath(heights);
+  const fallback = useMemo(() => fallbackModel(heights), [heights]);
+  const curve = curveFrame?.d || fallback.d;
+  const barShapes = curveFrame?.bars ?? fallback.bars;
   const curveView = curveFrame ? `0 0 ${curveFrame.w} ${curveFrame.h}` : "0 0 800 200";
   const prompt =
     audio === "playing"
@@ -479,6 +488,33 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
     <div className={styles.stage}>
       <div ref={slotsRootRef} className={styles.slots} data-testid="compose-slots">
         <svg ref={curveRef} className={styles.curve} viewBox={curveView} preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id={`${gradId}idle`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f2f2f0" />
+              <stop offset="0.04" stopColor="rgba(242, 242, 240, 0.72)" />
+              <stop offset="0.42" stopColor="rgba(242, 242, 240, 0.28)" />
+              <stop offset="1" stopColor="rgba(242, 242, 240, 0)" />
+            </linearGradient>
+            <linearGradient id={`${gradId}play`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f2f2f0" />
+              <stop offset="0.04" stopColor="rgba(242, 242, 240, 0.95)" />
+              <stop offset="0.42" stopColor="rgba(242, 242, 240, 0.35)" />
+              <stop offset="1" stopColor="rgba(242, 242, 240, 0)" />
+            </linearGradient>
+          </defs>
+          {barShapes.map((bar) => {
+            const playing = audio === "playing" && playingIndex === bar.index;
+            return (
+              <path
+                key={bar.index}
+                className={styles.barFill}
+                data-testid="compose-bar"
+                data-play={playing ? "true" : "false"}
+                d={bar.d}
+                fill={`url(#${gradId}${playing ? "play" : "idle"})`}
+              />
+            );
+          })}
           {curve ? (
             <>
               <path className={styles.glow} d={curve} />
@@ -537,21 +573,7 @@ export function ComposeBoard({ initialMix }: { readonly initialMix: string | nul
               }}
             >
               <span className={`${styles.col} sonify-slot${playing ? " is-playing" : ""}`}>
-                {slot ? (
-                  <>
-                    <span
-                      ref={(node) => {
-                        barRefs.current[index] = node;
-                      }}
-                      className={styles.bar}
-                      data-testid="compose-bar"
-                      data-on="true"
-                      data-play={playing ? "true" : "false"}
-                      style={{ height: `${heights[index]}%` }}
-                    />
-                    <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} />
-                  </>
-                ) : null}
+                {slot ? <span className={styles.dot} style={{ bottom: `${heights[index]}%` }} /> : null}
               </span>
               <span className={styles.meta}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
