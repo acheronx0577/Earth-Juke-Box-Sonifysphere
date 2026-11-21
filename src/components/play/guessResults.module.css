@@ -751,6 +751,7 @@
 
 .sheet {
   --cut: 8px;
+  box-sizing: border-box;
   width: min(100%, 36rem);
   max-height: min(70svh, 28rem);
   padding: 1.5px;
@@ -770,10 +771,12 @@
 
 .sheetFace {
   --cut: 8px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: min(70svh, 28rem);
+  width: 100%;
+  max-height: calc(min(70svh, 28rem) - 3px);
   overflow: auto;
   padding: clamp(12px, 2vw, 18px);
   background: #161616;
