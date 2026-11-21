@@ -2,7 +2,7 @@
   --c3-ink: #141414;
   --c3-cream: #f2f2f0;
   --c3-muted: rgba(242, 242, 240, 0.62);
-  --c3-dim: rgba(242, 242, 240, 0.38);
+  --c3-dim: #b4b2ae;
   --c3-line: #777777;
   box-sizing: border-box;
   display: flex;
@@ -134,7 +134,7 @@
 .monthOn {
   position: absolute;
   top: 0;
-  color: rgba(242, 242, 240, 0.38);
+  color: var(--c3-dim);
   font-family: var(--font-mono), monospace;
   font-size: 10px;
   letter-spacing: 0.14em;

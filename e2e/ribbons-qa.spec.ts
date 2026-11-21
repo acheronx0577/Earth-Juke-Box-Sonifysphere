@@ -62,6 +62,35 @@ const AUDIO_HOOK = `(() => {
   window.__qaSnap = () => ({ peak: window.__qaPeak || 0, rows: window.__qaRows || [], tapError: window.__qaTapError || "" });
 })();`;
 
+function contrastAgainstInk(hexOrRgb: string): number {
+  const match = hexOrRgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (!match) return 0;
+  const fg = [Number(match[1]), Number(match[2]), Number(match[3])];
+  const lin = (channel: number) => {
+    const s = channel / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const lum = (rgb: number[]) => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+  const foreground = lum(fg);
+  const background = lum([20, 20, 20]);
+  return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+}
+
+test("ribbons secondary text stays at least 4.5:1", async ({ page }) => {
+  await page.goto("/challenge/ribbons");
+  const month = await page.evaluate(() => {
+    const node = [...document.querySelectorAll("#main-content span")].find((item) => item.textContent?.trim() === "NOV");
+    return node ? getComputedStyle(node).color : "";
+  });
+  expect(contrastAgainstInk(month)).toBeGreaterThanOrEqual(4.5);
+
+  await page.goto("/challenge/ribbons?result=v1.3.300");
+  const label = await liveMain(page).getByText("CO₂ · MAY").evaluate((node) => getComputedStyle(node).color);
+  expect(contrastAgainstInk(label)).toBeGreaterThanOrEqual(4.5);
+  const link = await liveMain(page).getByRole("link", { name: "All challenges" }).evaluate((node) => getComputedStyle(node).color);
+  expect(contrastAgainstInk(link)).toBeGreaterThanOrEqual(4.5);
+});
+
 test("ribbons keeps a visible system cursor on a fine pointer", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/challenge/ribbons");
