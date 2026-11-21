@@ -540,12 +540,24 @@
   }
 }
 
-/* The site cursor hides the system pointer. This page keeps the system cursor. */
+/* TargetCursor hides the system cursor on the document, then this page suppresses the bracket. */
 .page,
-.page * {
+.page *,
+.page *::before,
+.page *::after {
   cursor: auto !important;
 }
 
-.page :is(button, a, input, [role="button"], [role="slider"]):not(:disabled) {
+.page :is(a, button, input, [role="button"], [role="slider"]),
+.page :is(a, button, input, [role="button"], [role="slider"]) * {
   cursor: pointer !important;
+}
+
+.page button:disabled,
+.page button:disabled *,
+.page input:disabled,
+.page input:disabled *,
+.page [aria-disabled="true"][disabled],
+.page [aria-disabled="true"][disabled] * {
+  cursor: default !important;
 }

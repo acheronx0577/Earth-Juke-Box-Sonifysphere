@@ -91,15 +91,29 @@ test("ribbons secondary text stays at least 4.5:1", async ({ page }) => {
   expect(contrastAgainstInk(link)).toBeGreaterThanOrEqual(4.5);
 });
 
-test("ribbons keeps a visible system cursor on a fine pointer", async ({ page }) => {
+test("ribbons keeps the system cursor", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/challenge/ribbons");
-  await page.mouse.move(280, 180, { steps: 12 });
-  await page.mouse.move(640, 420, { steps: 16 });
-
-  const play = liveMain(page).getByRole("button", { name: "Hear selected point" });
-  await expect.poll(async () => play.evaluate((node) => getComputedStyle(node).cursor)).toBe("pointer");
-  await expect.poll(async () => liveMain(page).evaluate((node) => getComputedStyle(node).cursor)).not.toBe("none");
+  const main = liveMain(page);
+  await page.mouse.move(640, 420, { steps: 12 });
+  await page.addStyleTag({ content: "html, html * { cursor: none !important; }" });
+  const cursors = await main.evaluate((root) => {
+    const read = (el: Element | null) => (el ? getComputedStyle(el).cursor : "missing");
+    const play = root.querySelector("[data-testid='ribbons-play']");
+    const chart = root.querySelector("[role='slider']");
+    return {
+      main: read(root),
+      heading: read(root.querySelector("h1")),
+      play: read(play),
+      playLabel: read(play?.querySelector("span") ?? null),
+      chart: read(chart),
+    };
+  });
+  expect(cursors.main).not.toBe("none");
+  expect(cursors.heading).not.toBe("none");
+  expect(cursors.play).toBe("pointer");
+  expect(cursors.playLabel).toBe("pointer");
+  expect(cursors.chart).toBe("pointer");
   await expect(page.locator(".target-cursor")).toHaveAttribute("data-suppressed", "true");
 });
 
