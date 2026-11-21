@@ -439,8 +439,14 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         lastScope = scope;
       }
       const selector = scope ? '[data-target-cursor-scope]' : 'html';
+      // The bracket is suppressed over [data-hide-target-cursor]. Those nodes still
+      // inherited `cursor: none`, and a dialog portaled outside the page never got
+      // the page's system-cursor restore, so the pointer vanished. Give that subtree
+      // the system cursor back. More specific rules on the page still win.
       const rule =
-        s.hideDefaultCursor && pointer.inside ? `${selector}, ${selector} * { cursor: none !important; }` : '';
+        s.hideDefaultCursor && pointer.inside
+          ? `${selector}, ${selector} * { cursor: none !important; } [data-hide-target-cursor], [data-hide-target-cursor] * { cursor: auto !important; }`
+          : '';
       if (style.textContent !== rule) style.textContent = rule;
     };
 
