@@ -9,6 +9,19 @@
   background: rgba(20, 20, 20, 0.78);
 }
 
+/* Portaled to document.body, outside the page rule that restores the system pointer. */
+.backdrop,
+.backdrop *,
+.backdrop *::before,
+.backdrop *::after {
+  cursor: auto !important;
+}
+
+.backdrop :is(a, button, [role="button"]),
+.backdrop :is(a, button, [role="button"]) * {
+  cursor: pointer !important;
+}
+
 .cutShell {
   --cut: 10px;
   box-sizing: border-box;
