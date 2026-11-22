@@ -35,12 +35,12 @@ function SplitCtaCentreBlock() {
       <FaviconMark64 className="sonify-cta-logo relative shrink-0 size-[64px]" />
       <div className="h-[32px] relative shrink-0 w-px" />
       <h2
-        aria-label="tune in"
         className="h-[102.931px] relative shrink-0 w-[min(400px,calc(100vw-3rem))] max-w-full"
         data-name="CTA/Title · tune in"
       >
+        <span className="sr-only">Tune in</span>
         <img
-          alt="tune in"
+          alt=""
           className="absolute block inset-0 max-w-none size-full"
           src={ASSETS.ctaTitleTuneIn}
         />

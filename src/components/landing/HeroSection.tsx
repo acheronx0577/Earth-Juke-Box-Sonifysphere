@@ -78,15 +78,13 @@ function HeroImages() {
 function HeroTitleAndCta() {
   return (
     <div className="hero-content-header">
-      <h1
-        aria-label="earth breathes"
-        className="sonify-hero-title relative w-[min(764px,calc(100vw-3rem))] aspect-[764/94] max-w-full overflow-hidden"
-      >
+      <h1 className="sonify-hero-title relative w-[min(764px,calc(100vw-3rem))] aspect-[764/94] max-w-full overflow-hidden">
+        <span className="sr-only">Earth breathes</span>
         <span className="absolute inset-[2.15%_62.39%_3.22%_0.27%] block">
-          <img alt="earth" className="absolute block inset-0 max-w-none size-full" src={ASSETS.heroTitleEarth} />
+          <img alt="" className="absolute block inset-0 max-w-none size-full" src={ASSETS.heroTitleEarth} />
         </span>
         <span className="absolute inset-[2.15%_0.27%_3.22%_38.81%] block">
-          <img alt="breathes" className="absolute block inset-0 max-w-none size-full" src={ASSETS.heroTitleBreathes} />
+          <img alt="" className="absolute block inset-0 max-w-none size-full" src={ASSETS.heroTitleBreathes} />
         </span>
       </h1>
 
