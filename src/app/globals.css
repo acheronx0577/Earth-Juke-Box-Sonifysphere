@@ -718,7 +718,6 @@ body::-webkit-scrollbar {
   );
   background-size: 100% 9px;
   filter: blur(2px);
-  animation: sonify-pan-overlay 30s linear infinite;
 }
 
 /* Telemetry cursor blink */
@@ -866,7 +865,6 @@ body::-webkit-scrollbar {
   );
   background-size: 100% 9px;
   filter: blur(2px);
-  animation: sonify-pan-overlay 30s infinite linear;
   z-index: 1;
   pointer-events: none;
 }

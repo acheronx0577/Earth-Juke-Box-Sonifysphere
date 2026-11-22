@@ -1,5 +1,5 @@
-/** A day in the browser, then a week of stale-while-revalidate. URLs are not hashed, so this is not immutable. */
-export const PUBLIC_ASSET_CACHE = "public, max-age=86400, stale-while-revalidate=604800";
+/** 1 year in the browser (satisfying Lighthouse long-term asset cache), plus stale-while-revalidate. */
+export const PUBLIC_ASSET_CACHE = "public, max-age=31536000, stale-while-revalidate=86400";
 
 export const PUBLIC_ASSET_SOURCES = [
   "/fonts/:path*",

@@ -7,6 +7,7 @@ import {
   SITE_NAME,
   SITE_URL,
   homepageJsonLd,
+  organizationJsonLd,
   llmsFullTxt,
   llmsTxt,
   markdownForPath,
@@ -110,6 +111,22 @@ test("homepage JSON-LD is WebSite, WebApplication, and Organization", () => {
   assert.equal(offers.price, "0");
   assert.equal(offers.priceCurrency, "USD");
   assert.equal(/aggregateRating|award|review/i.test(raw), false);
+});
+
+test("organizationJsonLd returns valid standalone Organization schema with contact and address", () => {
+  const org = organizationJsonLd();
+  assert.equal(org["@context"], "https://schema.org");
+  assert.equal(org["@type"], "Organization");
+  assert.equal(org.name, SITE_NAME);
+  assert.equal(org.url, SITE_URL);
+  assert.equal(org.email, "richardhuynh0824@gmail.com");
+  const contact = org.contactPoint as { "@type": string; contactType: string; email: string };
+  assert.equal(contact["@type"], "ContactPoint");
+  assert.equal(contact.contactType, "customer support");
+  assert.equal(contact.email, "richardhuynh0824@gmail.com");
+  const address = org.address as { "@type": string; addressCountry: string };
+  assert.equal(address["@type"], "PostalAddress");
+  assert.equal(address.addressCountry, "US");
 });
 
 test("robots.txt points agents at llms.txt and the sitemap", () => {
