@@ -1,0 +1,399 @@
+/* Fixed right-edge NASA Space Apps tab.
+   Cream fill, 10px inner-edge notches, meatball, GitHub mark, mono label. */
+
+.ss-sa-badge {
+  --sa-w: 60px;
+  --sa-h: 292px;
+  --sa-cut: 10px;
+  --sa-logo-h: 38px;
+  --sa-gh: 23px;
+  --sa-gap: 6px;
+  --sa-type: 16px;
+  --sa-track: 0.1em;
+  --sa-ink: #060b0b;
+  --sa-cream: #fff3ea;
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 44;
+  width: var(--sa-w);
+  height: var(--sa-h);
+  box-sizing: border-box;
+  color: var(--sa-ink);
+  background: var(--sa-cream);
+  transform: translateY(-50%);
+  clip-path: polygon(
+    var(--sa-cut) 0,
+    100% 0,
+    100% 100%,
+    var(--sa-cut) 100%,
+    0 calc(100% - var(--sa-cut)),
+    0 var(--sa-cut)
+  );
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ss-sa-badge__page {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ss-sa-badge__mark {
+  position: absolute;
+  top: calc(var(--sa-cut) + 5px);
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ss-sa-badge__mark img {
+  display: block;
+  width: auto;
+  height: var(--sa-logo-h);
+  /* Sphere sits left of the 110 viewBox center because of the vector. */
+  transform: translateX(1px);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ss-sa-badge__gh-hit {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--sa-cut) + 5px + var(--sa-logo-h));
+  left: 50%;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--sa-ink);
+  text-decoration: none;
+  transform: translateX(-50%);
+}
+
+.ss-sa-badge__gh {
+  display: block;
+  width: var(--sa-gh);
+  height: var(--sa-gh);
+  color: var(--sa-ink);
+  transition: opacity 180ms ease;
+}
+
+.ss-sa-badge__gh-hit:hover .ss-sa-badge__gh,
+.ss-sa-badge__gh-hit:focus-visible .ss-sa-badge__gh {
+  opacity: 0.55;
+}
+
+.ss-sa-badge__labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ss-sa-badge__label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--sa-cut) + 8px);
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-weight: 600;
+  font-size: var(--sa-type);
+  letter-spacing: var(--sa-track);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--sa-ink);
+  transform: translateY(50%) rotate(-90deg);
+  transform-origin: left center;
+}
+
+.ss-sa-badge__label--hover {
+  opacity: 0;
+}
+
+.ss-sa-badge__page:hover .ss-sa-badge__label--idle,
+.ss-sa-badge__page:focus-visible .ss-sa-badge__label--idle {
+  opacity: 0;
+}
+
+.ss-sa-badge__page:hover .ss-sa-badge__label--hover,
+.ss-sa-badge__page:focus-visible .ss-sa-badge__label--hover {
+  opacity: 1;
+}
+
+.ss-sa-badge__label--idle,
+.ss-sa-badge__label--hover {
+  transition: opacity 180ms ease;
+}
+
+.ss-sa-badge__page:focus-visible {
+  outline: 2px solid var(--sa-ink);
+  outline-offset: -6px;
+}
+
+.ss-sa-badge__gh-hit:focus-visible {
+  outline: 2px solid var(--sa-ink);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-sa-badge__label--idle,
+  .ss-sa-badge__label--hover,
+  .ss-sa-badge__gh {
+    transition: none;
+  }
+}
+
+/* Pages below keep the tall tab, nudged so it misses real UI. */
+
+/* Listen's sound column keeps its labels 48px off the right edge. */
+@media (min-width: 1024px) {
+  .ss-sa-badge[data-page="listen"] {
+    --sa-w: 42px;
+    --sa-logo-h: 30px;
+    --sa-cut: 8px;
+  }
+}
+
+@media (min-width: 1101px) and (max-height: 860px) {
+  .ss-sa-badge[data-page="about"] {
+    top: 72px;
+    transform: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="privacy"] {
+    top: 560px;
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="contact"] {
+    top: 80px;
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="epic"] {
+    top: 96px;
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="colormap"] {
+    top: 448px;
+    transform: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="colormap"],
+  .ss-sa-badge[data-page="events"] {
+    top: 96px;
+    transform: none;
+  }
+}
+
+/* 44px chip where a 292px tab has no clear band. Meatball only, still linked. */
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="about"] { top: 340px; }
+  .ss-sa-badge[data-page="events"] { top: 368px; }
+  .ss-sa-badge[data-page="match"] { top: 280px; bottom: auto; }
+  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="events"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="events"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="events"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="events"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ss-sa-badge[data-page="about"] { top: 340px; }
+  .ss-sa-badge[data-page="contact"] { top: 252px; }
+  .ss-sa-badge[data-page="classic"] { top: 96px; }
+  .ss-sa-badge[data-page="match"] { top: 640px; bottom: auto; }
+  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="contact"],
+  .ss-sa-badge[data-page="classic"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="classic"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="classic"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="classic"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .ss-sa-badge[data-page="match"] {
+    top: 80px;
+    bottom: auto;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="contact"] {
+    top: 252px;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) {
+  .ss-sa-badge[data-page="compose"] {
+    top: auto;
+    bottom: 136px;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .ss-sa-badge,
+  .ss-sa-badge[data-page] {
+    top: 92px;
+    bottom: auto;
+    transform: none;
+    width: 44px;
+    height: 44px;
+    --sa-cut: 7px;
+    --sa-logo-h: 26px;
+  }
+
+  .ss-sa-badge[data-page="listen"],
+  .ss-sa-badge[data-page="classic"] {
+    top: 304px;
+  }
+
+  .ss-sa-badge[data-page="colormap"],
+  .ss-sa-badge[data-page="events"],
+  .ss-sa-badge[data-page="privacy"] {
+    top: 264px;
+  }
+
+  .ss-sa-badge[data-page="epic"] {
+    top: 460px;
+  }
+
+  .ss-sa-badge[data-page="about"] {
+    top: 420px;
+  }
+
+  .ss-sa-badge[data-page="compose"] {
+    top: 420px;
+  }
+
+  .ss-sa-badge[data-page="match"] {
+    top: 270px;
+  }
+
+  .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  .ss-sa-badge__gh-hit,
+  .ss-sa-badge__labels {
+    display: none;
+  }
+}
