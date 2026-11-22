@@ -88,16 +88,22 @@ test("audio stays continuous and zoom audibly reveals harmonics", async ({ page 
   await stage.focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.locator("html")).not.toHaveAttribute("data-listen-texture");
-  await page.waitForTimeout(400);
-  const silent = await output(page, frequency, 5);
-  expect(Math.max(...silent.rms)).toBeLessThan(0.0001);
+  await expect.poll(async () => {
+    const res = await output(page, frequency, 5);
+    return res.contexts.every((s) => s === "suspended") || Math.max(...res.rms) < 0.0001;
+  }).toBe(true);
   missing = false;
   await stage.focus();
   await page.keyboard.press("ArrowLeft");
   await expect(page.locator("html")).toHaveAttribute("data-listen-texture", "continuous");
   await page.waitForTimeout(500);
   expect(Math.min(...(await output(page, frequency, 5)).rms)).toBeGreaterThan(0.001);
-  await page.getByRole("button", { name: "Stop", exact: true }).click();
-  await page.waitForTimeout(200);
-  expect(Math.max(...(await output(page, frequency, 5)).rms)).toBeLessThan(0.0001);
+  const stopButton = page.getByRole("button", { name: "Stop" }).first();
+  await expect(stopButton).toBeVisible();
+  await stopButton.click();
+  await expect(page.getByRole("button", { name: "Play sound" }).first()).toBeVisible();
+  await expect.poll(async () => {
+    const res = await output(page, frequency, 5);
+    return res.contexts.every((s) => s === "suspended") || Math.max(...res.rms) < 0.0001;
+  }).toBe(true);
 });

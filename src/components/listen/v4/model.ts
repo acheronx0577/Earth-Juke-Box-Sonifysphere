@@ -345,6 +345,20 @@ export function readProbe(input: {
       value: accepted.value,
       detail: accepted.detail,
     };
+  } else if (
+    accepted &&
+    accepted.status === "no-data" &&
+    layer === "temperature" &&
+    !accepted.value.toLowerCase().includes("could not be reached")
+  ) {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#3a3a3a",
+      state: "empty",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
   } else if (source.kind === "map" && region) {
     const anomaly = scaleAnomaly(region.anomaly, year);
     const nino = region.id === "nino34";
@@ -375,15 +389,6 @@ export function readProbe(input: {
       state: "loading",
       value: "Processing satellite scene…",
       detail: "AZURE BACKGROUND JOB · MODIS",
-    };
-  } else if (accepted && accepted.status === "no-data" && layer === "temperature") {
-    temperature = {
-      id: "temperature",
-      label: "TEMPERATURE",
-      swatch: "#3a3a3a",
-      state: "empty",
-      value: accepted.value,
-      detail: accepted.detail,
     };
   } else if (accepted && layer === "temperature") {
     temperature = {

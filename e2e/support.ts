@@ -18,11 +18,13 @@ export function installErrorChecks(): void {
       if (message.type() !== "error") return;
       const text = message.text();
       if (text.includes("Failed to load resource") && text.includes("404")) return;
+      if (text.includes("/_vercel/insights/")) return;
       errors.push(text);
     });
     page.on("response", (response) => {
       if (response.status() < 400) return;
       if (response.request().resourceType() === "document") return;
+      if (response.url().includes("/_vercel/insights/")) return;
       errors.push(`${response.status()} ${response.url()}`);
     });
     (page as Page & { __errors?: string[] }).__errors = errors;

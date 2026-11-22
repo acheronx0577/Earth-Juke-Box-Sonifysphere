@@ -89,10 +89,13 @@ test("nasa search and a recent search reopen a source", async ({ page }) => {
   const searchbox = page.getByRole("searchbox", { name: "Search NASA images, videos or a place" });
   await searchbox.fill("ocean currents");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("region", { name: "NASA search results" })).toBeVisible();
+  const resultsRegion = page.getByRole("region", { name: "NASA search results" });
+  await expect(resultsRegion).toBeVisible();
+  await expect(resultsRegion).toHaveAttribute("aria-busy", "false");
 
   await searchbox.fill("coral reef");
   await page.keyboard.press("Enter");
+  await expect(resultsRegion).toHaveAttribute("aria-busy", "false");
   await page.getByRole("button", { name: /Test coral reef/ }).click();
   await expect(page.getByRole("img", { name: "Test coral reef" })).toBeVisible();
   await expect(page.getByText("FROM PIXELS · NOT A MEASUREMENT")).toBeVisible();

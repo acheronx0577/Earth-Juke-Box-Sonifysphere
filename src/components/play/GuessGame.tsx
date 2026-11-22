@@ -411,7 +411,7 @@ export function GuessGame({
   const pendingFocus = useRef<"next" | "question" | "result" | "hear" | null>(null);
   const nextRef = useRef<HTMLButtonElement | null>(null);
   const hearRef = useRef<HTMLButtonElement | null>(null);
-  const hearGuard = useRef(0);
+  const hearGuard = useRef(-500);
   const questionRef = useRef<HTMLHeadingElement | null>(null);
   const resultRef = useRef<HTMLButtonElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
@@ -799,6 +799,7 @@ export function GuessGame({
       hearRef.current?.focus();
       return;
     }
+    hearGuard.current = performance.now();
     if (phaseRef.current === "listening" && playingRef.current) {
       hearRef.current?.focus();
       return;
@@ -936,7 +937,7 @@ export function GuessGame({
     stopPhrase();
     writeGuessRun(null);
     const nextSeed = freshSeed();
-    hearGuard.current = performance.now();
+    hearGuard.current = -500;
     setVisitSeed(nextSeed);
     setSession(0);
     setIndex(0);

@@ -36,11 +36,12 @@ test("home skip link focuses the page and the nav stays four links", async ({ pa
   await expect(main).toBeFocused();
 
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
-  await expect(nav.getByRole("link")).toHaveCount(4);
+  await expect(nav.getByRole("link")).toHaveCount(5);
   await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Listen" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Challenge" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Challenges" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "About" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Contact" })).toBeVisible();
   await expectNoOverflow(page);
 });
 
