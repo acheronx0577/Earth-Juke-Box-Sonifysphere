@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type * as Tone from "tone";
-import { loadTone, toneModule } from "@/lib/toneLoader";
+import { loadTone, suspendToneIfLoaded, toneModule } from "@/lib/toneLoader";
 import type { InstrumentId, LayerId, PitchMode, SoundStyle, VariationId } from "@/components/listen/v4/model";
 import { frequencyForValue, layerTimbreFor } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
@@ -168,6 +168,7 @@ export function stopProbeAudio(): void {
   for (const previous of retiring) previous.dispose();
   retiring.clear();
   publish(null);
+  void suspendToneIfLoaded();
 }
 
 export async function startProbeAudio(params: HearingParams): Promise<boolean> {

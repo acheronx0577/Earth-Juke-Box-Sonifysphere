@@ -18,6 +18,7 @@ import {
   type GuessRound,
 } from "@/lib/signalTheory";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
+import { loadTone as loadSharedTone } from "@/lib/toneLoader";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
@@ -42,11 +43,8 @@ const HOW =
 const SOUND_FAILED = "The sound did not start. Press Hear signal again.";
 const BAR_COUNT = 5;
 
-let tonePromise: Promise<typeof import("tone")> | null = null;
-
 function loadTone(): Promise<typeof import("tone")> {
-  tonePromise ??= import("tone");
-  return tonePromise;
+  return loadSharedTone();
 }
 
 if (typeof window !== "undefined") void loadTone();

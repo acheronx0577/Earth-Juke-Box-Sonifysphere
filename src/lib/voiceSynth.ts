@@ -1,4 +1,5 @@
 import samples from "@/data/orchestraSamples.json";
+import { loadTone } from "@/lib/toneLoader";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
 import { getVoiceSettings, volumeDb, type InstrumentId, type VoiceId } from "@/lib/voiceSettings";
 
@@ -63,7 +64,7 @@ export function ensureOrchestra(onProgress?: (ratio: number) => void): Promise<v
   }
   if (orchestraLoading) return orchestraLoading;
   orchestraLoading = (async () => {
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     const files = (Object.keys(SAMPLE_GROUPS) as SampleGroup[]).flatMap((group) => Object.values(SAMPLE_GROUPS[group]));
     let loaded = 0;
     await Promise.all(
@@ -119,7 +120,7 @@ export async function triggerVoiceSample(voice: VoiceId, step: number): Promise<
   if (!playbackAllowed()) return;
   const epoch = voiceEpoch;
   try {
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     if (epoch !== voiceEpoch || !playbackAllowed()) return;
     await Tone.start();
     if (epoch !== voiceEpoch || !playbackAllowed()) return;

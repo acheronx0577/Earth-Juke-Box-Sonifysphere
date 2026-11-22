@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { suspendToneIfLoaded, toneModule } from "./toneLoader";
 
 const probe = readFileSync(new URL("../components/listen/v4/probeAudio.ts", import.meta.url), "utf8");
 const nav = readFileSync(new URL("../components/shared/SiteNav.tsx", import.meta.url), "utf8");
@@ -19,6 +20,17 @@ test("nav links do not prefetch their route bundles while idle", () => {
 
 test("the first touch warms the destination before the click", () => {
   assert.match(transitions, /addEventListener\("touchstart", onIntent/);
+});
+
+test("a hidden tab suspends Tone only after it has been created", async () => {
+  assert.equal(toneModule(), null);
+  await suspendToneIfLoaded();
+  assert.equal(toneModule(), null);
+  const player = readFileSync(new URL("../context/SonifyPlayerContext.tsx", import.meta.url), "utf8");
+  const probe = readFileSync(new URL("../components/listen/v4/probeAudio.ts", import.meta.url), "utf8");
+  assert.match(player, /visibilitychange/);
+  assert.match(player, /suspendToneIfLoaded/);
+  assert.match(probe, /suspendToneIfLoaded/);
 });
 
 test("the homepage idle callback does not prefetch Listen", () => {

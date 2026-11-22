@@ -1,4 +1,5 @@
 import type { LayerId, SeasonId, WeatherId } from "@/data/exploreMap";
+import { loadTone as loadSharedTone } from "@/lib/toneLoader";
 import { playbackAllowed } from "@/lib/playbackGate";
 import { getVoiceSettings, volumeDb } from "@/lib/voiceSettings";
 
@@ -20,7 +21,7 @@ let noiseGain: import("tone").Gain | null = null;
 let filter: import("tone").Filter | null = null;
 
 async function loadTone(): Promise<ToneModule> {
-  toneModule ??= await import("tone");
+  toneModule ??= await loadSharedTone();
   return toneModule;
 }
 

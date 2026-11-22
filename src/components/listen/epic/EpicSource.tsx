@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import type { EpicFrame } from "@/lib/nasa/epicTypes";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
+import { loadTone } from "@/lib/toneLoader";
 import styles from "@/components/listen/epic/epic.module.css";
 
 interface FramePayload {
@@ -100,7 +101,7 @@ export function EpicSource() {
       setHearing("No pixel sampled yet.");
       return;
     }
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     if (!playbackAllowed()) return;
     await Tone.start();
     const synth = new Tone.Synth({

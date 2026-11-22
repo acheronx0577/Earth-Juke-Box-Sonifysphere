@@ -15,6 +15,7 @@ import type { ThemeId } from "@/data/landingData";
 import { getVoiceSettings, loadVoiceSettings, voiceIntervalMs, type VoiceId } from "@/lib/voiceSettings";
 import { onPlaybackStopped, playbackAllowed, setPlaybackAllowed } from "@/lib/playbackGate";
 import { triggerVoiceSample } from "@/lib/voiceSynth";
+import { loadTone, suspendToneIfLoaded } from "@/lib/toneLoader";
 
 export type { VoiceId };
 
@@ -81,7 +82,7 @@ const SOLO_READING_LABELS: Record<VoiceId, string> = {
 
 async function unlockToneAudio(): Promise<void> {
   try {
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     await Tone.start();
   } catch {
     // WebAudio not unlocked or unsupported in headless renderer
@@ -302,6 +303,16 @@ export function SonifyPlayerProvider({ children }: Readonly<{ children: ReactNod
 
   useEffect(() => {
     loadVoiceSettings();
+  }, []);
+  useEffect(() => onPlaybackStopped(() => {
+    void suspendToneIfLoaded();
+  }), []);
+  useEffect(() => {
+    const onHide = () => {
+      if (document.hidden) void suspendToneIfLoaded();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
   }, []);
   const [playerDismissed, setPlayerDismissed] = useState(false);
   const {
