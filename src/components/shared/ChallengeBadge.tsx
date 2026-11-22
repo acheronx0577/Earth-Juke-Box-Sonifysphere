@@ -60,6 +60,7 @@ export function ChallengeBadge() {
 
   return (
     <div id="ss-sa-badge" className="ss-sa-badge" data-page={badgePage(pathname)}>
+      <div className="ss-sa-badge__fit">
       <a
         className="ss-sa-badge__page"
         href={SPACE_APPS_URL}
@@ -84,6 +85,7 @@ export function ChallengeBadge() {
       >
         <GitHubMark />
       </a>
+      </div>
     </div>
   );
 }
