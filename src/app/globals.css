@@ -1207,6 +1207,15 @@ nav .nav-mobile-header p,
   }
 }
 
+/* Phones: the 0.75rem inset is a dark column of the page background
+   beside the photo. Drop it so the picture meets the screen on both
+   edges. Tablets keep the inset. */
+@media (max-width: 639px) {
+  .hero {
+    padding: 0;
+  }
+}
+
 @media (max-width: 1000px) {
   .sonify-chapters-display-title {
     font-size: clamp(3.5rem, 24vw, 12rem);
