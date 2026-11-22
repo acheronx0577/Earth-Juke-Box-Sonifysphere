@@ -257,6 +257,7 @@ export function Preloader({
     const warm = () => {
       if (cancelled) return;
       const prepare = () => {
+        if (document.documentElement.dataset.lite === "on") return;
         if (!canWarmAssets()) return;
         void warmListenAssets();
       };

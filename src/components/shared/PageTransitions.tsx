@@ -74,6 +74,7 @@ export function PageTransitions() {
       return url;
     };
     const warm = (url: URL) => {
+      if (document.documentElement.dataset.lite === "on") return;
       if (!canWarmAssets()) return;
       const href = url.pathname + url.search;
       if (Date.now() - (prefetched.get(href) ?? 0) > 30_000) {

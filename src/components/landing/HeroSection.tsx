@@ -5,6 +5,7 @@ import { ASSETS } from "@/data/landingData";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
 import { PrimaryPillButton, TextLinkButton } from "@/components/landing/Primitives";
 import { HeroPixelHover } from "@/components/landing/HeroPixelHover";
+import { LiteToggle } from "@/components/shared/LiteToggle";
 
 export function HeroSoundToggle() {
   const { soundOn, toggleSoundOn } = useSonifyPlayer();
@@ -137,7 +138,10 @@ export function HeroSection() {
           <div className="container">
             <div className="hero-content-nav">
               <HeroWordmark />
-              <HeroSoundToggle />
+              <div className="hero-toggle-cluster">
+                <LiteToggle />
+                <HeroSoundToggle />
+              </div>
             </div>
             <HeroTitleAndCta />
             <HeroFooterReadouts />

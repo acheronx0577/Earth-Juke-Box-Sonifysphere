@@ -225,6 +225,7 @@ export function ContactStage() {
 
     let posed = false;
     let heldCenter: { x: number; y: number; member: number } | null = null;
+    let lastWave = 0;
 
     const paint = (now: number) => {
       const dt = Math.min(0.05, (now - (motion.lastPaint || now)) / 1000);
@@ -323,6 +324,9 @@ export function ContactStage() {
         aiRef.current.style.opacity = show && center ? "1" : "0";
         if (show && center) aiRef.current.style.transform = `translate(${center.x.toFixed(2)}px, ${center.y.toFixed(2)}px)`;
       }
+      const lite = document.documentElement.dataset.lite === "on";
+      if (!lite || now - lastWave >= 1000 / 15) {
+        lastWave = now;
       stage.querySelectorAll<SVGPathElement>("[data-wave] path").forEach((path) => {
         const host = path.ownerSVGElement;
         if (!host) return;
@@ -336,6 +340,7 @@ export function ContactStage() {
         const phase = reduced ? 0 : -(motion.time || 0) * (playing ? 7 : 2.5);
         path.setAttribute("d", sine(width, height, member.wave, amplitude, phase));
       });
+      }
     };
 
     const reveal = () => {
@@ -515,10 +520,34 @@ export function ContactStage() {
     stage.addEventListener("focusin", onFocus);
     window.addEventListener("resize", resize);
     let frame = 0;
+    let paced = false;
+    const stopFrame = () => {
+      if (!frame) return;
+      if (paced) window.clearTimeout(frame);
+      else cancelAnimationFrame(frame);
+      frame = 0;
+      paced = false;
+    };
+    const loop = (now: number) => {
+      frame = 0;
+      paced = false;
+      paint(now);
+      const lite = document.documentElement.dataset.lite === "on";
+      if (!lite) {
+        frame = requestAnimationFrame(loop);
+        return;
+      }
+      const wait = deckIsSettled(motion) ? 1000 / 15 : 1000 / 30;
+      paced = true;
+      frame = window.setTimeout(() => {
+        paced = false;
+        frame = requestAnimationFrame(loop);
+      }, wait);
+    };
     if (reduced) paint(performance.now());
-    else frame = requestAnimationFrame(function loop(now: number) { paint(now); frame = requestAnimationFrame(loop); });
+    else frame = requestAnimationFrame(loop);
     return () => {
-      cancelAnimationFrame(frame);
+      stopFrame();
       window.removeEventListener("wheel", onWheel, { capture: true });
       canvas?.removeEventListener("pointerdown", onPointerDown);
       canvas?.removeEventListener("pointermove", onPointerMove);

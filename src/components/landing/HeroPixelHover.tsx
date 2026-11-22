@@ -117,6 +117,8 @@ export function HeroPixelHover() {
       let frame = 0;
       let pace = 0;
       let previousTime = 0;
+      let idleHold = 0;
+      let onLite = () => {};
       let energy = 0;
       let width = 1;
       let height = 1;
@@ -136,7 +138,8 @@ export function HeroPixelHover() {
       const resize = () => {
         width = imageLayer.clientWidth;
         height = imageLayer.clientHeight;
-        const dpr = Math.min(window.devicePixelRatio, quality.maxPixelRatio);
+        const cap = document.documentElement.dataset.lite === "on" ? Math.min(quality.maxPixelRatio, 1.25) : quality.maxPixelRatio;
+        const dpr = Math.min(window.devicePixelRatio, cap);
         canvas.width = Math.max(1, Math.round(width * dpr));
         canvas.height = Math.max(1, Math.round(height * dpr));
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -179,8 +182,15 @@ export function HeroPixelHover() {
         frame = 0;
         if (disposed || !visible || document.hidden || !ready) return;
         // Keep pointer interaction fluid; the slow idle breath needs fewer GPU draws.
-        const isInteracting = energy || mouse.vX || mouse.vY;
-        const interval = 1000 / (isInteracting ? quality.activeFps : quality.idleFps);
+        const isInteracting = Boolean(energy || mouse.vX || mouse.vY);
+        const lite = document.documentElement.dataset.lite === "on";
+        if (lite && !isInteracting) {
+          if (!idleHold) idleHold = time;
+          if (time - idleHold > 2000) return;
+        } else {
+          idleHold = 0;
+        }
+        const interval = Math.max(1000 / (isInteracting ? quality.activeFps : quality.idleFps), lite ? 1000 / 30 : 0);
         const wait = frameWait(time, previousTime, interval);
         if (wait > 0) {
           pace = window.setTimeout(() => {
@@ -201,6 +211,7 @@ export function HeroPixelHover() {
 
       const wake = () => {
         previousTime = 0;
+        idleHold = 0;
         if (pace) {
           window.clearTimeout(pace);
           pace = 0;
@@ -250,6 +261,7 @@ export function HeroPixelHover() {
         observer.disconnect();
         hero.removeEventListener("pointerenter", enter);
         hero.removeEventListener("pointermove", move);
+        document.removeEventListener("sonifysphere-lite", onLite);
         document.removeEventListener("visibilitychange", wake);
         canvas.removeEventListener("webglcontextlost", contextLost);
         canvas.removeEventListener("webglcontextrestored", contextRestored);
@@ -315,6 +327,11 @@ export function HeroPixelHover() {
         });
         hero.addEventListener("pointerenter", enter);
         hero.addEventListener("pointermove", move, { passive: true });
+        onLite = () => {
+          if (ready) resize();
+          wake();
+        };
+        document.addEventListener("sonifysphere-lite", onLite);
         document.addEventListener("visibilitychange", wake);
         canvas.addEventListener("webglcontextlost", contextLost);
         canvas.addEventListener("webglcontextrestored", contextRestored);
