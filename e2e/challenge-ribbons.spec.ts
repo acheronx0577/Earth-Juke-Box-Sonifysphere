@@ -32,7 +32,7 @@ test("waveform ribbons scores seasons, shows feedback, and opens the scorecard",
   const summer = main.getByRole("button", { name: "Summer" });
   await summer.click();
   await expect(summer).toHaveAttribute("aria-pressed", "true");
-  await expect(summer).toHaveCSS("background-color", "rgb(242, 242, 240)");
+  await expect.poll(async () => summer.evaluate((el) => getComputedStyle(el, "::after").backgroundColor)).toBe("rgb(242, 242, 240)");
   await expect(main.locator("[data-season-span]").first()).toBeVisible();
 
   const feedback = main.getByTestId("ribbons-feedback");
@@ -136,6 +136,9 @@ test("shared ribbons results recompute totals and reject a forged score", async 
   await page.goto("/challenge/ribbons?result=v2.100.60.900");
   const main = liveMain(page);
   await expect(page.getByTestId("ribbons-result")).toBeVisible();
+  const link = main.getByTestId("ribbons-link");
+  await expect(link).toHaveValue(/http:\/\/127\.0\.0\.1:3000\/challenge\/ribbons\?result=/);
+  await expect(link).toHaveCSS("text-align", "left");
   await expect(main.getByText("260", { exact: true })).toBeVisible();
   await expect(main.getByText("900")).toHaveCount(0);
   await expect(main.getByRole("heading", { name: /3\/3 turns/ })).toBeVisible();
