@@ -34,6 +34,12 @@ test("wind remains sound-only and globe hover does not redraw the satellite canv
   await expect(wind).toHaveValue("100");
   await page.waitForTimeout(1500);
   const draws = () => page.evaluate(() => (window as unknown as { __mapDraws: number }).__mapDraws);
+  await expect.poll(async () => {
+    const d1 = await draws();
+    await page.waitForTimeout(200);
+    const d2 = await draws();
+    return d1 === d2;
+  }).toBe(true);
   const before = await draws();
   expect(before).toBeGreaterThan(0);
   await page.waitForTimeout(700);

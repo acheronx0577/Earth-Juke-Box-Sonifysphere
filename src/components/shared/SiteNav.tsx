@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LiteToggle } from "@/components/shared/LiteToggle";
 
 export function SiteNav() {
   const navRef = useRef<HTMLElement | null>(null);
@@ -96,7 +95,6 @@ export function SiteNav() {
             ))}
           </div>
         </div>
-        {pathname === "/" ? null : <LiteToggle className="lite-toggle-dock" />}
       </nav>
   );
 }

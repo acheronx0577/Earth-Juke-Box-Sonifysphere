@@ -8,6 +8,7 @@ import { MiniPlayerPill } from "@/components/shared/MiniPlayerPill";
 import { SiteNav } from "@/components/shared/SiteNav";
 import { SmoothScroll } from "@/components/shared/SmoothScroll";
 import { PageReady } from "@/components/shared/PageReady";
+import { AutomaticLiteMode } from "@/components/shared/AutomaticLiteMode";
 import { PageTransitions } from "@/components/shared/PageTransitions";
 import { SkipLink } from "@/components/shared/SkipLink";
 import TargetCursor from "@/components/shared/TargetCursor";
@@ -94,6 +95,7 @@ export default function RootLayout({
       <body className="bg-[#141414] text-[#f2f2f0] antialiased selection:bg-[#f2f2f0] selection:text-[#141414]">
         <SmoothScroll />
         <PageReady />
+        <AutomaticLiteMode />
         <PageTransitions />
         <SkipLink />
         <TargetCursor

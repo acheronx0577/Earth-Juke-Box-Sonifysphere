@@ -1,4 +1,4 @@
-export const LITE_STORAGE_KEY = "sonifysphere-lite";
+const LITE_STORAGE_KEY = "sonifysphere-lite";
 
 export type LiteChoice = "on" | "off" | null;
 
@@ -44,18 +44,6 @@ export function readStoredLite(): LiteChoice {
   } catch {
     return null;
   }
-}
-
-export function writeStoredLite(on: boolean): void {
-  try {
-    localStorage.setItem(LITE_STORAGE_KEY, on ? "on" : "off");
-  } catch {
-    // Private mode can block storage. The in-memory flag still applies.
-  }
-}
-
-export function isLiteMode(): boolean {
-  return typeof document !== "undefined" && document.documentElement.dataset.lite === "on";
 }
 
 export function applyLiteMode(on: boolean): void {
