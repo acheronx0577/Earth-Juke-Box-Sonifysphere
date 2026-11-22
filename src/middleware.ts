@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { MARKDOWN_CONTENT_TYPE, notFoundMarkdown } from "@/lib/agentCopy";
-import { appendVaryAccept } from "@/lib/contentNegotiation";
+import { setDocumentVary } from "@/lib/contentNegotiation";
 import { negotiateDocument } from "@/lib/documentNegotiation";
 
 function isRscRequest(request: NextRequest): boolean {
@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = decision.pathname === "/" ? "/api/markdown" : `/api/markdown${decision.pathname}`;
     const rewritten = NextResponse.rewrite(url);
-    appendVaryAccept(rewritten.headers);
+    setDocumentVary(rewritten.headers);
     return rewritten;
   }
 
@@ -34,7 +34,7 @@ export function middleware(request: NextRequest) {
       status: 406,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        Vary: "Accept",
+        Vary: "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept",
       },
     });
   }
@@ -44,14 +44,14 @@ export function middleware(request: NextRequest) {
       status: 404,
       headers: {
         "Content-Type": MARKDOWN_CONTENT_TYPE,
-        Vary: "Accept",
+        Vary: "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept",
         "Cache-Control": "public, max-age=0, must-revalidate",
       },
     });
   }
 
   const response = NextResponse.next();
-  appendVaryAccept(response.headers);
+  setDocumentVary(response.headers);
   return response;
 }
 

@@ -12,7 +12,7 @@ if (!prototype.__sonifyVaryMerged) {
   const original = prototype.setHeader;
   prototype.setHeader = function setHeader(name, value) {
     if (typeof name === "string" && name.toLowerCase() === "vary") {
-      return original.call(this, name, mergeVaryHeader(this.getHeader(name), value));
+      return original.call(this, name, mergeVaryHeader(mergeVaryHeader(this.getHeader(name), value), "Accept"));
     }
     return original.call(this, name, value);
   };
