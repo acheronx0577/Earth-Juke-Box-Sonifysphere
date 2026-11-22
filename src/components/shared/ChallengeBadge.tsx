@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import "./badge/challenge-badge.css";
 
@@ -8,6 +8,7 @@ const SPACE_APPS_URL =
   "https://www.spaceappschallenge.org/2026/find-a-team/sonifysphere/?tab=details";
 const GITHUB_URL = "https://github.com/acheronx0577/Earth-Juke-Box-Sonifysphere";
 const NASA_SRC = "/assets/badges/NASA_logo.svg";
+const PHONE_QUERY = "(max-width: 639px)";
 
 function usePreloaderGone() {
   const [ready, setReady] = useState(false);
@@ -21,6 +22,20 @@ function usePreloaderGone() {
   }, []);
 
   return ready;
+}
+
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(PHONE_QUERY);
+    const sync = () => setPhone(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return phone;
 }
 
 function badgePage(pathname: string) {
@@ -49,6 +64,71 @@ function GitHubMark() {
 export function ChallengeBadge() {
   const pathname = usePathname() ?? "/";
   const ready = usePreloaderGone();
+  const phone = useIsPhone();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  const shown = phone && open;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, phone]);
+
+  useEffect(() => {
+    if (!shown) return;
+
+    const panel = panelRef.current;
+    panel?.focus({ preventScroll: true });
+
+    let armed = false;
+    const armTimer = window.setTimeout(() => {
+      armed = true;
+    }, 150);
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      chipRef.current?.focus({ preventScroll: true });
+    };
+
+    const onPointer = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root || root.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+
+    const onScroll = () => {
+      if (!armed) return;
+      const active = document.activeElement;
+      if (panel && active && (active === panel || panel.contains(active))) {
+        chipRef.current?.focus({ preventScroll: true });
+      }
+      setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("scroll", onScroll, true);
+
+    const lenis = (
+      window as unknown as {
+        __lenis?: {
+          on: (event: "scroll", callback: () => void) => void;
+          off: (event: "scroll", callback: () => void) => void;
+        };
+      }
+    ).__lenis;
+    lenis?.on("scroll", onScroll);
+
+    return () => {
+      window.clearTimeout(armTimer);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("scroll", onScroll, true);
+      lenis?.off("scroll", onScroll);
+    };
+  }, [shown]);
 
   if (pathname === "/listen" || pathname.startsWith("/listen/")) {
     return null;
@@ -59,32 +139,59 @@ export function ChallengeBadge() {
   }
 
   return (
-    <div id="ss-sa-badge" className="ss-sa-badge" data-page={badgePage(pathname)}>
-      <div className="ss-sa-badge__fit">
-      <a
-        className="ss-sa-badge__page"
-        href={SPACE_APPS_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="SonifySphere on NASA Space Apps Challenge 2026"
+    <div
+      ref={rootRef}
+      id="ss-sa-badge"
+      className={shown ? "ss-sa-badge is-open" : "ss-sa-badge"}
+      data-page={badgePage(pathname)}
+    >
+      <button
+        ref={chipRef}
+        type="button"
+        className="ss-sa-badge__chip"
+        aria-expanded={open}
+        aria-controls="ss-sa-badge-panel"
+        aria-label={open ? "Close NASA Space Apps badge" : "Open NASA Space Apps badge"}
+        onClick={() => setOpen((value) => !value)}
       >
-        <span className="ss-sa-badge__mark">
-          <img src={NASA_SRC} alt="" width={110} height={92} draggable={false} />
-        </span>
-        <span className="ss-sa-badge__labels">
-          <span className="ss-sa-badge__label ss-sa-badge__label--idle">NASA SPACE APPS</span>
-          <span className="ss-sa-badge__label ss-sa-badge__label--hover">SONIFYSPHERE</span>
-        </span>
-      </a>
-      <a
-        className="ss-sa-badge__gh-hit"
-        href={GITHUB_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="SonifySphere on GitHub"
+        <img src={NASA_SRC} alt="" width={110} height={92} draggable={false} />
+      </button>
+      <div
+        ref={panelRef}
+        id="ss-sa-badge-panel"
+        className="ss-sa-badge__panel"
+        role="region"
+        aria-label="NASA Space Apps"
+        tabIndex={-1}
+        inert={phone && !open ? true : undefined}
+        aria-hidden={phone && !open ? true : undefined}
       >
-        <GitHubMark />
-      </a>
+        <div className="ss-sa-badge__fit">
+          <a
+            className="ss-sa-badge__page"
+            href={SPACE_APPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SonifySphere on NASA Space Apps Challenge 2026"
+          >
+            <span className="ss-sa-badge__mark">
+              <img src={NASA_SRC} alt="" width={110} height={92} draggable={false} />
+            </span>
+            <span className="ss-sa-badge__labels">
+              <span className="ss-sa-badge__label ss-sa-badge__label--idle">NASA SPACE APPS</span>
+              <span className="ss-sa-badge__label ss-sa-badge__label--hover">SONIFYSPHERE</span>
+            </span>
+          </a>
+          <a
+            className="ss-sa-badge__gh-hit"
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SonifySphere on GitHub"
+          >
+            <GitHubMark />
+          </a>
+        </div>
       </div>
     </div>
   );

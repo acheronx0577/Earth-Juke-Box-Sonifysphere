@@ -1,10 +1,13 @@
 /* Fixed right-edge NASA Space Apps tab.
-   One unit, --u, is 1px at a 1440px viewport. Every length inside the
-   60×290 design is a multiple of that unit, then the whole design is
-   scaled, so the ratios do not change between 360px and 2560px. */
+   --u is the only scale. It is 1px at 1440, and every length in the
+   60×273 design is multiplied by it, so the internal ratios stay fixed.
+   Below 1440 the slope is unchanged (50px wide from 1200px down).
+   Above 1440 it follows the nav: the pill stays 2rem and the label only
+   climbs from 0.8rem to 0.85rem, so the tab goes 60 → 64 at 1920 and
+   caps at 72 at 2560. */
 
 .ss-sa-badge {
-  --u: clamp(0.8333px, 0.069444vw, 1.4333px);
+  --u: clamp(0.8333px, 0.069444vw, 1px);
   --design-w: 60px;
   --design-h: 273px;
   position: fixed;
@@ -16,6 +19,20 @@
   transform: translateY(-50%);
   container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 60px at 1440, 64px at 1920. u = 0.8px + 1vw/72. */
+@media (min-width: 1440px) {
+  .ss-sa-badge {
+    --u: calc(0.8px + 1vw / 72);
+  }
+}
+
+/* 64px at 1920, 72px at 2560, then hold. u = 2/3 px + 1vw/48. */
+@media (min-width: 1920px) {
+  .ss-sa-badge {
+    --u: clamp(1.066666px, calc(0.666666px + 1vw / 48), 1.2px);
+  }
 }
 
 .ss-sa-badge__fit {
@@ -151,10 +168,16 @@
   outline-offset: -2px;
 }
 
+.ss-sa-badge__chip {
+  display: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ss-sa-badge__label--idle,
   .ss-sa-badge__label--hover,
-  .ss-sa-badge__gh {
+  .ss-sa-badge__gh,
+  .ss-sa-badge__panel,
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
     transition: none;
   }
 }
@@ -472,17 +495,19 @@
   }
 }
 
+/* Phones: a meatball chip. Tapping it slides the full tab in from the right.
+   The tab uses the same 60×273 design and the same --u, so its proportions
+   match the desktop tab. The chip stays under the nav (nav ends at 4rem). */
 @media (max-width: 639px) {
   .ss-sa-badge,
   .ss-sa-badge[data-page] {
     --sa-chip: clamp(40px, 7.5vw, 48px);
-    --design-w: 44px;
-    --design-h: 44px;
     top: 92px;
     bottom: auto;
     transform: none;
     width: var(--sa-chip);
     height: var(--sa-chip);
+    overflow: visible;
   }
 
   .ss-sa-badge[data-page="privacy"] {
@@ -498,24 +523,101 @@
     top: 270px;
   }
 
-  .ss-sa-badge__mark {
+  .ss-sa-badge__chip {
+    position: absolute;
     top: 0;
-    bottom: 0;
-    height: 44px;
+    right: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #fff3ea;
+    color: #060b0b;
+    cursor: pointer;
+    /* 7px notch on the 44px chip design. */
+    clip-path: polygon(15.91% 0, 100% 0, 100% 100%, 15.91% 100%, 0 84.09%, 0 15.91%);
   }
 
-  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
-  .ss-sa-badge__fit {
-    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  .ss-sa-badge__chip img {
+    display: block;
+    width: auto;
+    height: calc(26 / 44 * var(--sa-chip));
+    transform: translateX(calc(1.5 / 44 * var(--sa-chip)));
+    pointer-events: none;
   }
 
-  .ss-sa-badge__mark img {
-    height: 26px;
-    transform: translateX(1.5px);
+  .ss-sa-badge__chip:focus-visible {
+    outline: 2px solid #060b0b;
+    outline-offset: -3px;
   }
 
-  .ss-sa-badge__gh-hit,
-  .ss-sa-badge__labels {
-    display: none;
+  .ss-sa-badge__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 3;
+    width: calc(60px * var(--u) / 1px);
+    height: calc(273px * var(--u) / 1px);
+    container-type: inline-size;
+    overflow: hidden;
+    transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 250ms ease, visibility 0s linear 250ms;
+  }
+
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 250ms ease, visibility 0s linear 0s;
+  }
+
+  .ss-sa-badge__panel .ss-sa-badge__fit {
+    --design-w: 60px;
+    --design-h: 273px;
+    width: 60px;
+    height: 273px;
+    clip-path: polygon(
+      10px 0,
+      100% 0,
+      100% 100%,
+      10px 100%,
+      0 calc(100% - 10px),
+      0 10px
+    );
+  }
+
+  /* The open chip is a transparent hit target over the tab's meatball.
+     Tapping it again closes the tab; the rest of the tab stays a link. */
+  .ss-sa-badge.is-open .ss-sa-badge__chip {
+    width: calc(60px * var(--u) / 1px);
+    height: calc(56px * var(--u) / 1px);
+    background: transparent;
+    clip-path: none;
+  }
+
+  .ss-sa-badge.is-open .ss-sa-badge__chip img {
+    visibility: hidden;
+  }
+
+  .ss-sa-badge__panel:focus {
+    outline: none;
+  }
+
+  .ss-sa-badge__panel:focus-visible {
+    outline: 2px solid #060b0b;
+    outline-offset: -6px;
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .ss-sa-badge__panel,
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
+    transition: none;
   }
 }
