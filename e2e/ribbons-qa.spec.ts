@@ -84,8 +84,8 @@ test("ribbons secondary text stays at least 4.5:1", async ({ page }) => {
   });
   expect(contrastAgainstInk(month)).toBeGreaterThanOrEqual(4.5);
 
-  await page.goto("/challenge/ribbons?result=v1.3.300");
-  const label = await liveMain(page).getByText("CO₂ · MAY").evaluate((node) => getComputedStyle(node).color);
+  await page.goto("/challenge/ribbons?result=v2.1S.1A.1U");
+  const label = await liveMain(page).getByText("You said").first().evaluate((node) => getComputedStyle(node).color);
   expect(contrastAgainstInk(label)).toBeGreaterThanOrEqual(4.5);
   const link = await liveMain(page).getByRole("link", { name: "All challenges" }).evaluate((node) => getComputedStyle(node).color);
   expect(contrastAgainstInk(link)).toBeGreaterThanOrEqual(4.5);

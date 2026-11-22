@@ -196,7 +196,7 @@ test("a pointer stays visible across pages, overlays, drag, and re-entry", async
   await expectBox(page, "h1");
   await expectBox(page, "#main-content a");
 
-  await page.goto("/challenge/ribbons?result=v1.4.400");
+  await page.goto("/challenge/ribbons?result=v2.1S.1A.1U");
   const away = page.getByRole("link", { name: "All challenges" });
   await expect(away).toBeVisible();
   const awayBox = await away.boundingBox();

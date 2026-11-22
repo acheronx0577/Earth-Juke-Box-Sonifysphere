@@ -3,7 +3,25 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChamferMark } from "@/components/listen/ChamferMark";
-import { encodeRibbonsResult, type SharedRibbonsResult } from "@/lib/challengeResults";
+import {
+  HOW,
+  PATTERNS,
+  SEASON_OF,
+  SEASONS,
+  answerSeason,
+  encodeRibbonsResult,
+  lineDirection,
+  revealCopy,
+  scoreForTry,
+  skipCopy,
+  wrongCopy,
+  type RibbonPattern,
+  type RoundRecord,
+  type SeasonName,
+  type SharedRibbonsResult,
+} from "@/lib/ribbonsResult";
+import { RibbonsResults } from "./RibbonsResults";
+import { saveRibbonsResultImage, type RibbonImageTile } from "./ribbonsResultImage";
 import styles from "./ribbons.module.css";
 
 const VW = 1480;
@@ -15,109 +33,8 @@ const CYCLE = 2;
 const GLIDE = 0.045;
 const TIP_GUTTER = 12;
 
-const SEASONS = ["Spring", "Summer", "Autumn", "Winter"] as const;
-type SeasonName = (typeof SEASONS)[number];
-
-const SEASON_OF: Record<string, SeasonName> = {
-  Jan: "Winter",
-  Feb: "Winter",
-  Mar: "Spring",
-  Apr: "Spring",
-  May: "Spring",
-  Jun: "Summer",
-  Jul: "Summer",
-  Aug: "Summer",
-  Sep: "Autumn",
-  Oct: "Autumn",
-  Nov: "Autumn",
-  Dec: "Winter",
-};
-
-interface RibbonPattern {
-  readonly id: string;
-  readonly shortTitle: string;
-  readonly resultLabel: string;
-  readonly defaultSeason: string;
-  readonly turnIndex: number;
-  readonly points: readonly [number, number][];
-  readonly months: readonly string[];
-  readonly turnReason: string;
-  readonly missHint: string;
-  readonly infoFact: string;
-}
-
-const HOW =
-  "Play the curve and leave it running. Pitch follows the line, higher where the curve is higher, and the phrase loops until you pause. Choose the season where it turns, then Check.";
-
-const PATTERNS: readonly RibbonPattern[] = [
-  {
-    id: "co2-keeling",
-    shortTitle: "CO₂ Cycle",
-    resultLabel: "CO₂ · MAY",
-    defaultSeason: "Spring",
-    turnIndex: 3,
-    points: [
-      [0, 185],
-      [100, 160],
-      [200, 105],
-      [300, 70],
-      [400, 90],
-      [500, 145],
-      [600, 190],
-    ],
-    months: ["Nov", "Jan", "Mar", "May", "Jul", "Sep", "Nov"],
-    turnReason: "Yes! At point 4 (late spring / May), atmospheric CO₂ crests before Northern Hemisphere photosynthesis accelerates.",
-    missHint: "Listen for the crest, where the line stops rising and turns down into the summer drawdown.",
-    infoFact: "CO₂ peaks each May, before northern forests leaf out. Keeling first measured this “inhale” on Mauna Loa in 1958.",
-  },
-  {
-    id: "sea-ice-minimum",
-    shortTitle: "Sea Ice",
-    resultLabel: "SEA ICE · SEP",
-    defaultSeason: "Autumn",
-    turnIndex: 3,
-    points: [
-      [0, 80],
-      [100, 115],
-      [200, 160],
-      [300, 205],
-      [400, 175],
-      [500, 125],
-      [600, 85],
-    ],
-    months: ["Mar", "May", "Jul", "Sep", "Nov", "Jan", "Mar"],
-    turnReason: "Correct! Point 4 marks the annual September minimum extent, after which freezing resumes.",
-    missHint: "Listen for the trough, where the summer melt stops and the line turns back up.",
-    infoFact: "The September minimum is the turn, after which the pack freezes again. NASA has tracked it since 1979.",
-  },
-  {
-    id: "ocean-heat-content",
-    shortTitle: "Ocean Heat",
-    resultLabel: "OCEAN HEAT · AUG",
-    defaultSeason: "Summer",
-    turnIndex: 3,
-    points: [
-      [0, 180],
-      [100, 150],
-      [200, 100],
-      [300, 65],
-      [400, 85],
-      [500, 140],
-      [600, 185],
-    ],
-    months: ["Feb", "Apr", "Jun", "Aug", "Oct", "Dec", "Feb"],
-    turnReason: "Spot on! Point 4 represents the late-summer crest in upper ocean heat content before autumn cooling.",
-    missHint: "Listen for the thermal crest, where the line stops rising and turns down.",
-    infoFact: "Upper-ocean heat crests in late summer, then releases to the air. Most of Earth's extra heat is stored in the ocean.",
-  },
-];
-
 function freqForCoord(y: number): number {
   return Math.round(220 + (220 - y) * 2.8);
-}
-
-function answerSeason(pattern: RibbonPattern): SeasonName {
-  return SEASON_OF[pattern.months[pattern.turnIndex]] ?? (pattern.defaultSeason as SeasonName);
 }
 
 function cellEdge(index: number, side: "left" | "right"): number {
@@ -139,12 +56,6 @@ function seasonSpans(months: readonly string[], season: string): Array<[number, 
     start = -1;
   });
   return groups;
-}
-
-function directionWord(index: number, turn: number): string {
-  if (index < turn) return "RISING";
-  if (index === turn) return "TURN";
-  return "FALLING";
 }
 
 function tangents(points: readonly [number, number][]): number[] {
@@ -270,19 +181,9 @@ function chartGeometry(raw: readonly [number, number][]) {
 }
 
 function ChallengeTitle({ text }: { text: string }) {
-  const co2 = text.startsWith("CO\u2082");
   return (
     <h1>
       <span className={styles.titlePlain}>{text}</span>
-      <span className={styles.titleSet}>
-        {co2 ? (
-          <>
-            CO<sub>2</sub> Cycle
-          </>
-        ) : (
-          text
-        )}
-      </span>
     </h1>
   );
 }
@@ -316,27 +217,8 @@ function nearestIndex(mapped: readonly [number, number][], x: number): number {
   return closest;
 }
 
-function resultUrl(score: number, solved: number) {
-  const url = new URL("/challenge/ribbons", window.location.origin);
-  url.searchParams.set("result", encodeRibbonsResult({ patternsSolved: solved, totalScore: score }));
-  return url.toString();
-}
-
-async function copyText(value: string) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const input = document.createElement("textarea");
-  input.value = value;
-  input.setAttribute("readonly", "");
-  input.style.position = "fixed";
-  input.style.opacity = "0";
-  document.body.appendChild(input);
-  input.select();
-  const copied = document.execCommand("copy");
-  input.remove();
-  if (!copied) throw new Error("Clipboard access was blocked.");
+function resultPath(rounds: readonly RoundRecord[]) {
+  return `/challenge/ribbons?result=${encodeRibbonsResult({ rounds })}`;
 }
 
 function cutStyle(cut: number): React.CSSProperties {
@@ -360,17 +242,21 @@ export function WaveformRibbonsGame({
   const [patternIdx, setPatternIdx] = useState(0);
   const [headU, setHeadU] = useState(() => uForIndex(1));
   const [season, setSeason] = useState<SeasonName | null>(null);
-  const [score, setScore] = useState(0);
+  const [misses, setMisses] = useState<SeasonName[]>([]);
+  const [resolved, setResolved] = useState<RoundRecord | null>(null);
+  const [history, setHistory] = useState<RoundRecord[]>([]);
   const [isComplete, setIsComplete] = useState(Boolean(sharedResult));
   const [infoOpen, setInfoOpen] = useState(false);
   const [live, setLive] = useState("");
   const [verdict, setVerdict] = useState<"idle" | "choice" | "correct" | "wrong" | "empty">("idle");
-  const [shareNote, setShareNote] = useState("");
+  const [replayIndex, setReplayIndex] = useState<number | null>(null);
   const chartRef = useRef<SVGSVGElement | null>(null);
   const plotRef = useRef<HTMLDivElement | null>(null);
   const lineRef = useRef<SVGPathElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
+  const checkRef = useRef<HTMLButtonElement | null>(null);
+  const seasonGroupRef = useRef<HTMLDivElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLElement | null>(null);
   const eqRef = useRef<HTMLSpanElement | null>(null);
@@ -409,7 +295,8 @@ export function WaveformRibbonsGame({
   const pointIdx = nearestIndex(geometry.mapped, posePoint[0]);
   const freq = freqForCoord(pattern.points[pointIdx]?.[1] ?? 160);
   const month = pattern.months[pointIdx] ?? "";
-  const direction = directionWord(pointIdx, pattern.turnIndex);
+  const direction = lineDirection(pattern.points, pointIdx);
+  const banked = history.reduce((sum, round) => sum + round.score, 0) + (resolved?.score ?? 0);
   const valueText = `${month}, ${direction.toLowerCase()}, ${freq} hertz`;
   const spans = season ? seasonSpans(pattern.months, season) : [];
   const answer = answerSeason(pattern);
@@ -796,40 +683,87 @@ export function WaveformRibbonsGame({
     svg.focus();
   };
 
+  const focusSeason = () => {
+    seasonGroupRef.current?.querySelector("button")?.focus();
+  };
+
+  const closeRound = (record: RoundRecord, message: string, nextVerdict: "correct" | "wrong") => {
+    if (playingRef.current) pauseLoop();
+    setResolved(record);
+    setVerdict(nextVerdict);
+    setLive(message);
+    if (record.outcome === "solved") void chime();
+    window.setTimeout(() => checkRef.current?.focus(), 0);
+  };
+
   const chooseSeason = (name: SeasonName) => {
+    if (resolved || misses.includes(name)) return;
     setSeason(name);
     setVerdict("choice");
     setLive(`${name} selected.`);
   };
 
+  const advance = () => {
+    if (!resolved) return;
+    const nextHistory = [...history, resolved];
+    if (patternIdx < PATTERNS.length - 1) {
+      const start = uForIndex(1);
+      setHistory(nextHistory);
+      setPatternIdx(patternIdx + 1);
+      setHeadU(start);
+      headRef.current = start;
+      setSeason(null);
+      setMisses([]);
+      setResolved(null);
+      setInfoOpen(false);
+      setLive("");
+      setVerdict("idle");
+      window.setTimeout(focusSeason, 0);
+      return;
+    }
+    setHistory(nextHistory);
+    setIsComplete(true);
+  };
+
   const check = () => {
+    if (resolved) {
+      advance();
+      return;
+    }
     if (!season) {
       setVerdict("empty");
       setLive("Pick the season where the curve turns.");
+      window.setTimeout(focusSeason, 0);
       return;
     }
-    const correct = season === answer;
-    if (!correct) {
+    if (misses.includes(season)) {
       setVerdict("wrong");
-      setLive(`${season} is not where it turns. ${pattern.missHint}`);
+      setLive(`${season} was already tried. Pick another season.`);
       return;
     }
-    setVerdict("correct");
-    setLive(pattern.turnReason);
-    void chime();
-    if (playingRef.current) pauseLoop();
-    setScore((value) => value + 100);
-    if (patternIdx < PATTERNS.length - 1) {
-      const next = patternIdx + 1;
-      setPatternIdx(next);
-      setHeadU(uForIndex(1));
-      headRef.current = uForIndex(1);
+    if (season !== answer) {
+      const nextMisses = [...misses, season];
+      setMisses(nextMisses);
       setSeason(null);
-      setInfoOpen(false);
-      setVerdict("idle");
-    } else {
-      setIsComplete(true);
+      if (nextMisses.length >= 3) {
+        closeRound({ guesses: nextMisses, outcome: "reveal", score: 0 }, revealCopy(pattern), "wrong");
+        return;
+      }
+      setVerdict("wrong");
+      setLive(wrongCopy(season, pattern, nextMisses.length));
+      return;
     }
+    const tryNumber = misses.length + 1;
+    closeRound(
+      { guesses: [...misses, season], outcome: "solved", score: scoreForTry(tryNumber) },
+      pattern.turnReason,
+      "correct",
+    );
+  };
+
+  const skip = () => {
+    if (resolved) return;
+    closeRound({ guesses: misses, outcome: "skip", score: 0 }, skipCopy(pattern), "wrong");
   };
 
   const restart = () => {
@@ -840,112 +774,93 @@ export function WaveformRibbonsGame({
     setHeadU(uForIndex(1));
     headRef.current = uForIndex(1);
     setSeason(null);
-    setScore(0);
+    setMisses([]);
+    setResolved(null);
+    setHistory([]);
     setLive("");
     setVerdict("idle");
-    setShareNote("");
+    setReplayIndex(null);
     setIsComplete(false);
   };
 
-  const copyLink = async (total: number, solved: number) => {
-    try {
-      await copyText(resultUrl(total, solved));
-      setShareNote("Result link copied.");
-    } catch (error) {
-      setShareNote(error instanceof Error ? error.message : "The result link could not be copied.");
+  const finishedRounds = sharedResult?.rounds ?? history;
+
+  const replay = (index: number) => {
+    const next = PATTERNS[index];
+    if (!next) return;
+    if (playingRef.current && engineRef.current?.patternId === next.id) {
+      pauseLoop();
+      setReplayIndex(null);
+      return;
     }
+    if (engineRef.current) releaseEngine();
+    patternRef.current = next;
+    const start = uForIndex(0);
+    setHeadU(start);
+    headRef.current = start;
+    setReplayIndex(index);
+    wantPlay.current = true;
+    const token = (playToken.current += 1);
+    void playLoop(token);
   };
 
-  const saveImage = async (total: number) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 1200;
-    canvas.height = 630;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    context.fillStyle = "#141414";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = "#f2f2f0";
-    context.font = "600 64px sans-serif";
-    context.fillText("Harmonics aligned", 72, 280);
-    context.font = "500 28px ui-monospace, monospace";
-    context.fillText(`${total} PTS`, 72, 360);
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!blob) return;
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = "sonifysphere-waveform-ribbons-result.png";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-    setShareNote("Result image downloaded.");
+  const saveResultImage = () => {
+    const source = sharedResult ?? {
+      rounds: history,
+      patternsSolved: history.filter((round) => round.outcome === "solved").length,
+      totalScore: history.reduce((sum, round) => sum + round.score, 0),
+      firstTries: history.filter((round) => round.score === 100).length,
+    };
+    const tiles: RibbonImageTile[] = PATTERNS.map((item, index) => {
+      const geometry = chartGeometry(item.points);
+      const round = source.rounds[index];
+      const samples: [number, number][] = [];
+      for (let step = 0; step <= 48; step += 1) samples.push(sampleCurve(geometry.mapped, step / 48));
+      const misses = round && round.outcome === "solved" ? round.guesses.slice(0, -1) : round?.guesses ?? [];
+      const said = `${misses.join(" ")} ${answerSeason(item)} · ${item.months[item.turnIndex]}`.trim();
+      return {
+        title: item.shortTitle,
+        badge: round?.outcome === "solved" ? `${round.score === 100 ? "1st" : round.score === 60 ? "2nd" : "3rd"} try` : round?.outcome === "reveal" ? "Revealed" : "Skipped",
+        said,
+        points: round?.score ?? 0,
+        month: item.months[item.turnIndex] ?? "",
+        samples,
+        turn: geometry.mapped[item.turnIndex] ?? geometry.mapped[0],
+      };
+    });
+    return saveRibbonsResultImage({
+      found: source.patternsSolved,
+      total: source.totalScore,
+      firstTries: source.firstTries,
+      url: new URL(resultPath(source.rounds), window.location.origin).toString(),
+      tiles,
+    });
   };
 
-  if (isComplete) {
-    const displayScore = sharedResult ? sharedResult.totalScore : score;
-    const solved = sharedResult ? sharedResult.patternsSolved : PATTERNS.length;
+  if (isComplete && finishedRounds.length === PATTERNS.length) {
+    const result = sharedResult ?? {
+      rounds: history,
+      patternsSolved: history.filter((round) => round.outcome === "solved").length,
+      totalScore: history.reduce((sum, round) => sum + round.score, 0),
+      firstTries: history.filter((round) => round.score === 100).length,
+    };
+    const replayPattern = replayIndex === null ? null : PATTERNS[replayIndex];
+    const replayGeometry = replayPattern ? chartGeometry(replayPattern.points) : null;
+    const replayHead = replayGeometry ? sampleCurve(replayGeometry.mapped, forwardT(headU)) : null;
     return (
-      <main id="main-content" tabIndex={-1} className={styles.page} data-hide-target-cursor="true">
-        <header className={styles.header}>
-          <Link href="/challenge" className={styles.resultBack}>
-            ← Challenges
-          </Link>
-          <div className={styles.scoreSide}>
-            <span>{displayScore} PTS</span>
-            <span className={styles.dots} aria-hidden="true">
-              {PATTERNS.map((item) => (
-                <i key={item.id} className={styles.dot} data-on="true" />
-              ))}
-            </span>
-          </div>
-        </header>
-        <div className={styles.result} data-testid="ribbons-result">
-          <span className={`${styles.frame} ${styles.mark} lv-cut`} style={cutStyle(8)} aria-hidden="true">
-            <ChamferMark />
-            <span className={styles.frameFace}>✓</span>
-          </span>
-          <h1>Harmonics aligned</h1>
-          <div className={styles.ribbons}>
-            {PATTERNS.map((item) => {
-              const mini = chartGeometry(item.points);
-              return (
-                <div key={item.id} className={styles.mini}>
-                  <svg viewBox={`0 120 ${VW} 460`} preserveAspectRatio="none" aria-hidden="true">
-                    <path d={mini.line} fill="none" stroke="#f2f2f0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-                    <circle cx={mini.mapped[item.turnIndex][0]} cy={mini.mapped[item.turnIndex][1]} r="5" fill="#f2f2f0" />
-                  </svg>
-                  <div className={styles.miniRow}>
-                    <span>{item.resultLabel}</span>
-                    <span>+100</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {sharedResult ? (
-            <Link href="/challenge/ribbons" className={`${styles.frame} ${styles.again} lv-cut`} style={cutStyle(10)}>
-              <ChamferMark />
-              <span className={styles.frameFace}>Play again</span>
-            </Link>
-          ) : (
-            <button type="button" className={`${styles.frame} ${styles.again} lv-cut`} style={cutStyle(10)} onClick={restart}>
-              <ChamferMark />
-              <span className={styles.frameFace}>Play again</span>
-            </button>
-          )}
-          <div className={styles.links}>
-            <button type="button" onClick={() => void copyLink(displayScore, solved)}>
-              Copy link
-            </button>
-            <button type="button" onClick={() => void saveImage(displayScore)}>
-              Save image
-            </button>
-            <Link href="/challenge">All challenges</Link>
-          </div>
-          <p className={styles.sr} role="status">{shareNote}</p>
-        </div>
-      </main>
+      <RibbonsResults
+        result={result}
+        curves={PATTERNS.map((item) => chartGeometry(item.points))}
+        viewWidth={VW}
+        viewHeight={BASE}
+        playingIndex={audio === "playing" ? replayIndex : null}
+        head={replayHead}
+        sharePath={resultPath(result.rounds)}
+        onReplay={replay}
+        onSave={saveResultImage}
+        onAgain={sharedResult ? undefined : restart}
+        againHref={sharedResult ? "/challenge/ribbons" : undefined}
+      />
     );
   }
 
@@ -965,10 +880,15 @@ export function WaveformRibbonsGame({
       data-starts={gate.starts}
       data-stops={gate.stops}
       data-head={headU.toFixed(4)}
+      data-round={patternIdx + 1}
     >
       <header className={styles.header}>
-        <div className={styles.titleRow}>
-          <span className={styles.num}>03</span>
+        <div className={styles.titleBlock}>
+          <Link href="/challenge" className={styles.back} data-testid="ribbons-back">
+            <span aria-hidden="true">←</span> Challenges
+          </Link>
+          <p className={styles.kicker}>Challenge 03 · Waveform Ribbons</p>
+          <div className={styles.titleRow}>
           <ChallengeTitle text={pattern.shortTitle} />
           <span className={styles.infoWrap}>
             <button
@@ -998,15 +918,17 @@ export function WaveformRibbonsGame({
                 <div className={styles.frameFace}>
                   <span className={styles.num}>How it works</span>
                   <p>{HOW}</p>
-                  <p>{pattern.infoFact}</p>
+                  {resolved ? <p>{pattern.infoFact}</p> : null}
                 </div>
               </div>
             ) : null}
           </span>
+          </div>
         </div>
         <div className={styles.scoreSide}>
-          <span>{score} PTS</span>
-          <span className={styles.dots} role="group" aria-label={`Pattern ${patternIdx + 1} of ${PATTERNS.length}`}>
+          <span className={styles.roundLabel}>Round {patternIdx + 1}/3</span>
+          <span>{banked} PTS</span>
+          <span className={styles.dots} role="group" aria-label={`Round ${patternIdx + 1} of ${PATTERNS.length}`}>
             {PATTERNS.map((item, index) => (
               <i key={item.id} className={styles.dot} data-on={index === patternIdx ? "true" : "false"} />
             ))}
@@ -1027,7 +949,7 @@ export function WaveformRibbonsGame({
             aria-valuemax={pattern.points.length - 1}
             aria-valuenow={pointIdx}
             aria-valuetext={valueText}
-            aria-label={`${pattern.shortTitle} curve`}
+            aria-label={`${pattern.shortTitle} playback position. Seasons answer the round.`}
             onKeyDown={onChartKey}
             onClick={onChartClick}
           >
@@ -1108,9 +1030,16 @@ export function WaveformRibbonsGame({
         </div>
       </div>
 
-      <p className={styles.feedback} role="status" aria-live="polite" data-verdict={verdict} data-testid="ribbons-feedback">
-        {live}
-        {cue ? <span className={styles.sr}> {cue}</span> : null}
+      <p
+        className={styles.feedback}
+        role="status"
+        aria-live="polite"
+        data-verdict={verdict}
+        data-empty={live || audio === "playing" || cue.startsWith("The") ? "false" : "true"}
+        data-testid="ribbons-feedback"
+      >
+        {audio === "playing" ? `Playing · ${month} · ${freq} Hz` : cue.startsWith("The") ? cue : ""}
+        {live ? `${audio === "playing" || cue.startsWith("The") ? " " : ""}${live}` : ""}
       </p>
 
       <div className={styles.controls}>
@@ -1146,9 +1075,10 @@ export function WaveformRibbonsGame({
 
         <div className={styles.answer}>
           <p className={styles.prompt}>Where does it turn?</p>
-          <div className={styles.seasons} role="group" aria-label="Season where it turns">
+          <div ref={seasonGroupRef} className={styles.seasons} role="group" aria-label="Season where it turns">
             {SEASONS.map((name) => {
               const on = season === name;
+              const spent = misses.includes(name) || Boolean(resolved);
               return (
                 <button
                   key={name}
@@ -1156,6 +1086,8 @@ export function WaveformRibbonsGame({
                   className={`${styles.frame} ${styles.season} lv-cut c3-season${on ? ` ${styles.frameOn}` : ""}`}
                   style={cutStyle(8)}
                   aria-pressed={on}
+                  aria-disabled={spent}
+                  disabled={spent}
                   onClick={() => chooseSeason(name)}
                 >
                   <ChamferMark />
@@ -1164,11 +1096,17 @@ export function WaveformRibbonsGame({
               );
             })}
           </div>
+          {resolved ? null : (
+            <button type="button" className={`${styles.frame} ${styles.skip} lv-cut`} style={cutStyle(8)} data-testid="ribbons-skip" onClick={skip}>
+              <ChamferMark />
+              <span className={styles.frameFace}>Skip</span>
+            </button>
+          )}
         </div>
 
-        <button type="button" className={`${styles.frame} ${styles.check} lv-cut c3-check`} style={cutStyle(8)} onClick={check}>
+        <button ref={checkRef} type="button" className={`${styles.frame} ${styles.check} lv-cut c3-check`} style={cutStyle(8)} data-testid="ribbons-check" onClick={check}>
           <ChamferMark />
-          <span className={styles.frameFace}>Check</span>
+          <span className={styles.frameFace}>{resolved ? (patternIdx < PATTERNS.length - 1 ? "Next" : "Results") : "Check"}</span>
         </button>
       </div>
     </main>
