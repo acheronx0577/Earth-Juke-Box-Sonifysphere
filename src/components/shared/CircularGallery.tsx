@@ -475,6 +475,7 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
     }
     let pool: PoolEntry[] = [];
     let raf = 0;
+    let pace = 0;
     let last = 0;
     let visible = true;
     let snapTimer: ReturnType<typeof setTimeout> | undefined;
@@ -855,7 +856,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
       const s = settingsRef.current;
       view.width = Math.max(1, container.clientWidth);
       view.height = Math.max(1, container.clientHeight);
-      view.ratio = Math.min(s.dpr || window.devicePixelRatio || 1, 2);
+      const cap = document.documentElement.dataset.lite === "on" ? 1.5 : 2;
+      view.ratio = Math.min(s.dpr || window.devicePixelRatio || 1, cap);
       canvas.width = Math.max(1, Math.round(view.width * view.ratio));
       canvas.height = Math.max(1, Math.round(view.height * view.ratio));
       const { spacing } = measure();
@@ -974,8 +976,16 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
         state.intro < 1 ||
         (state.ring !== 0 && state.ring !== 1) ||
         settling;
-      if (moving) raf = requestAnimationFrame(frame);
-      else last = 0;
+      if (moving) {
+        if (document.documentElement.dataset.lite === "on") {
+          pace = window.setTimeout(() => {
+            pace = 0;
+            if (!raf && visible && !document.hidden) raf = requestAnimationFrame(frame);
+          }, 1000 / 30);
+        } else {
+          raf = requestAnimationFrame(frame);
+        }
+      } else last = 0;
       inFrame = false;
     };
 
@@ -1210,6 +1220,8 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(container);
+    const onLite = () => resize();
+    window.addEventListener("sonifysphere-lite", onLite);
     const intersection = new IntersectionObserver((entries) => {
       visible = entries.some((entry) => entry.isIntersecting);
       if (visible) {
@@ -1256,9 +1268,11 @@ const CircularGallery = forwardRef<CircularGalleryRef, CircularGalleryProps>(fun
 
     return () => {
       cancelAnimationFrame(raf);
+      if (pace) window.clearTimeout(pace);
       clearTimeout(snapTimer);
       engineRef.current = null;
       resizeObserver.disconnect();
+      window.removeEventListener("sonifysphere-lite", onLite);
       intersection.disconnect();
       container.removeEventListener('pointerdown', onPointerDown);
       container.removeEventListener('pointermove', onPointerMove);

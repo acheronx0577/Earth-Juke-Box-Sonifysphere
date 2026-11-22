@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { playbackAllowed } from "@/lib/playbackGate";
+import { loadTone } from "@/lib/toneLoader";
 import { scheduleMix, type MixSlot } from "@/lib/signalTheory";
 
 const HOLD_MS = 340;
@@ -43,7 +44,7 @@ export async function playSlotPreview(slot: MixSlot): Promise<boolean> {
   try {
     const note = scheduleMix([slot], 96).notes[0];
     if (!note) return false;
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     if (!playbackAllowed()) return false;
     await Tone.start();
     if (!playbackAllowed()) return false;

@@ -6,6 +6,7 @@ import { ChamferMark } from "@/components/listen/ChamferMark";
 import { pulsesForEvents } from "@/lib/nasa/eventPulse";
 import type { EonetEvent } from "@/lib/nasa/eonet";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
+import { loadTone } from "@/lib/toneLoader";
 import styles from "@/components/listen/events/events.module.css";
 
 const DEFAULT_VIEW = { west: "-130", south: "24", east: "-66", north: "50", days: "30", category: "" };
@@ -98,7 +99,7 @@ export function EventPulses() {
       setStatus("No open events in this view.");
       return;
     }
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     if (!playbackAllowed()) return;
     await Tone.start();
     const voices = {

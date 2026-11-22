@@ -20,6 +20,8 @@ export interface ListenSource {
   readonly eyebrow: string;
   readonly meta: string;
   readonly preview: string;
+  /** Small rail image. The stage still uses `preview` when this source is opened. */
+  readonly thumb?: string;
   readonly video?: string;
   readonly duration?: string;
   readonly layer?: LayerId;
@@ -125,6 +127,7 @@ export const SEED_SOURCES: readonly ListenSource[] = [
     eyebrow: "IMG",
     meta: "NASA SVS 5196 · image-derived",
     preview: "/api/listen/svs/image?id=5196",
+    thumb: "/assets/listen/thumbs/svs-5196.webp",
     video: "/api/listen/svs/video?id=5196",
     layer: "co2",
     legend: null,
@@ -136,6 +139,7 @@ export const SEED_SOURCES: readonly ListenSource[] = [
     eyebrow: "VID",
     meta: "NASA SVS 3912 · image-derived",
     preview: "/api/listen/svs/image?id=3912",
+    thumb: "/assets/listen/thumbs/svs-3912.webp",
     video: "/api/listen/svs/video?id=3912",
     duration: "0:48",
     layer: "currents",
@@ -148,6 +152,7 @@ export const SEED_SOURCES: readonly ListenSource[] = [
     eyebrow: "VID",
     meta: "NASA SVS 5011 · pulse triggers",
     preview: "/api/listen/svs/image?id=5011",
+    thumb: "/assets/listen/thumbs/svs-5011.webp",
     video: "/api/listen/svs/video?id=5011",
     duration: "0:25",
     layer: "all",
@@ -340,6 +345,20 @@ export function readProbe(input: {
       value: accepted.value,
       detail: accepted.detail,
     };
+  } else if (
+    accepted &&
+    accepted.status === "no-data" &&
+    layer === "temperature" &&
+    !accepted.value.toLowerCase().includes("could not be reached")
+  ) {
+    temperature = {
+      id: "temperature",
+      label: "TEMPERATURE",
+      swatch: "#3a3a3a",
+      state: "empty",
+      value: accepted.value,
+      detail: accepted.detail,
+    };
   } else if (source.kind === "map" && region) {
     const anomaly = scaleAnomaly(region.anomaly, year);
     const nino = region.id === "nino34";
@@ -370,15 +389,6 @@ export function readProbe(input: {
       state: "loading",
       value: "Processing satellite scene…",
       detail: "AZURE BACKGROUND JOB · MODIS",
-    };
-  } else if (accepted && accepted.status === "no-data" && layer === "temperature") {
-    temperature = {
-      id: "temperature",
-      label: "TEMPERATURE",
-      swatch: "#3a3a3a",
-      state: "empty",
-      value: accepted.value,
-      detail: accepted.detail,
     };
   } else if (accepted && layer === "temperature") {
     temperature = {

@@ -13,11 +13,15 @@ export function loadGlobeRenderer() {
 
 let warming: Promise<void> | undefined;
 
-/** Warm the next view's small assets, without creating a map, workers or audio graph. */
+/**
+ * Warm the small stills for a later Listen visit.
+ * The globe renderer stays on /listen/classic, which loads it when the map opens.
+ * Pulling maplibre in here parsed about a megabyte of script on the homepage.
+ */
 export function warmListenAssets() {
   if (warming) return warming;
   if (!canWarmAssets()) return Promise.resolve();
   const urls = new Set([...SEASONS.flatMap((season) => [season.still, ...(season.hero ? [season.hero] : [])]), ...WEATHER.map((weather) => weather.icon)]);
-  warming = Promise.all([warmImages([...urls]), loadGlobeRenderer()]).then(() => {}).catch(() => { warming = undefined; });
+  warming = warmImages([...urls]).catch(() => { warming = undefined; });
   return warming;
 }

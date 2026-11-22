@@ -33,6 +33,9 @@ const APP_ROUTE_PATHS = new Set([
   "/credits",
 ]);
 
+/** Warmed on intent, and left on the normal link click. Contact stays out of the tile transition. */
+const WARM_ONLY_PATHS = new Set(["/contact"]);
+
 type ActiveNavigation = {
   from: string;
   href: string;
@@ -70,10 +73,11 @@ export function PageTransitions() {
       const url = new URL(anchor.href, location.href);
       const pathname = normalizedPathname(url.pathname);
       if (url.origin !== location.origin || !/^https?:$/.test(url.protocol) || pathname === normalizedPathname(location.pathname)) return null;
-      if (!APP_ROUTE_PATHS.has(pathname)) return null;
+      if (!APP_ROUTE_PATHS.has(pathname) && !WARM_ONLY_PATHS.has(pathname)) return null;
       return url;
     };
     const warm = (url: URL) => {
+      if (document.documentElement.dataset.lite === "on") return;
       if (!canWarmAssets()) return;
       const href = url.pathname + url.search;
       if (Date.now() - (prefetched.get(href) ?? 0) > 30_000) {
@@ -185,6 +189,7 @@ export function PageTransitions() {
       const url = destination(event.target);
       if (!url) return;
       warm(url);
+      if (!APP_ROUTE_PATHS.has(normalizedPathname(url.pathname))) return;
       if (motion.matches) return;
       event.preventDefault();
       if (active) return;
@@ -222,6 +227,7 @@ export function PageTransitions() {
     document.addEventListener("pointerover", onIntent, { passive: true });
     document.addEventListener("focusin", onIntent);
     document.addEventListener("pointerdown", onIntent, { passive: true });
+    document.addEventListener("touchstart", onIntent, { passive: true });
     document.addEventListener("pointerout", cancelIntent, { passive: true });
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPopState);
@@ -233,6 +239,7 @@ export function PageTransitions() {
       document.removeEventListener("pointerover", onIntent);
       document.removeEventListener("focusin", onIntent);
       document.removeEventListener("pointerdown", onIntent);
+      document.removeEventListener("touchstart", onIntent);
       document.removeEventListener("pointerout", cancelIntent);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPopState);

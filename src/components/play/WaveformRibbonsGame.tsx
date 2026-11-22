@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChamferMark } from "@/components/listen/ChamferMark";
+import { loadTone } from "@/lib/toneLoader";
 import {
   HOW,
   PATTERNS,
@@ -427,7 +428,7 @@ export function WaveformRibbonsGame({
   };
 
   const armTone = async () => {
-    const Tone = toneRef.current ?? (await import("tone"));
+    const Tone = toneRef.current ?? (await loadTone());
     toneRef.current = Tone;
     await Tone.start();
     const state = Tone.getContext().state;
@@ -571,7 +572,7 @@ export function WaveformRibbonsGame({
   useEffect(() => {
     let cancelled = false;
     let detach = () => {};
-    void import("tone").then((Tone) => {
+    void loadTone().then((Tone) => {
       if (cancelled) return;
       toneRef.current = Tone;
       const transport = Tone.getTransport();

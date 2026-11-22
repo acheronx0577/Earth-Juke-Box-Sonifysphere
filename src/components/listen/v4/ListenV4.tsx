@@ -126,7 +126,7 @@ function Thumb({ source }: { readonly source: ListenSource }) {
   return (
     <span className="lv-thumb lv-cut" aria-hidden="true">
       <ChamferMark />
-      {source.kind === "map" || source.kind === "search" ? <MapThumb /> : source.preview ? <img src={source.preview} alt="" /> : <MapThumb />}
+      {source.kind === "map" || source.kind === "search" ? <MapThumb /> : source.thumb || source.preview ? <img src={source.thumb || source.preview} alt="" loading="lazy" decoding="async" /> : <MapThumb />}
       {source.kind === "video" ? (
         <>
           <span className="lv-play-badge">
@@ -1382,7 +1382,7 @@ export function ListenV4({
               {results.map((item) => (
                 <button type="button" key={item.id} className="lv-result lv-cut" onClick={() => void chooseHit(item)}>
                   <ChamferMark />
-                  <img src={item.preview} alt="" />
+                  <img src={item.preview} alt="" loading="lazy" decoding="async" />
                   <span>
                     <strong>{item.title}</strong>
                     <small>

@@ -18,6 +18,7 @@ import {
   type GuessRound,
 } from "@/lib/signalTheory";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
+import { loadTone as loadSharedTone } from "@/lib/toneLoader";
 import { encodeGuessResult, type SharedGuessResult } from "@/lib/challengeResults";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import { chamferClip } from "@/components/listen/chamfer";
@@ -42,11 +43,8 @@ const HOW =
 const SOUND_FAILED = "The sound did not start. Press Hear signal again.";
 const BAR_COUNT = 5;
 
-let tonePromise: Promise<typeof import("tone")> | null = null;
-
 function loadTone(): Promise<typeof import("tone")> {
-  tonePromise ??= import("tone");
-  return tonePromise;
+  return loadSharedTone();
 }
 
 if (typeof window !== "undefined") void loadTone();
@@ -413,7 +411,7 @@ export function GuessGame({
   const pendingFocus = useRef<"next" | "question" | "result" | "hear" | null>(null);
   const nextRef = useRef<HTMLButtonElement | null>(null);
   const hearRef = useRef<HTMLButtonElement | null>(null);
-  const hearGuard = useRef(0);
+  const hearGuard = useRef(-500);
   const questionRef = useRef<HTMLHeadingElement | null>(null);
   const resultRef = useRef<HTMLButtonElement | null>(null);
   const infoRef = useRef<HTMLButtonElement | null>(null);
@@ -801,6 +799,7 @@ export function GuessGame({
       hearRef.current?.focus();
       return;
     }
+    hearGuard.current = performance.now();
     if (phaseRef.current === "listening" && playingRef.current) {
       hearRef.current?.focus();
       return;
@@ -938,7 +937,7 @@ export function GuessGame({
     stopPhrase();
     writeGuessRun(null);
     const nextSeed = freshSeed();
-    hearGuard.current = performance.now();
+    hearGuard.current = -500;
     setVisitSeed(nextSeed);
     setSession(0);
     setIndex(0);

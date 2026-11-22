@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import * as Tone from "tone";
+import type * as Tone from "tone";
+import { loadTone, suspendToneIfLoaded, toneModule } from "@/lib/toneLoader";
 import type { InstrumentId, LayerId, PitchMode, SoundStyle, VariationId } from "@/components/listen/v4/model";
 import { frequencyForValue, layerTimbreFor } from "@/components/listen/v4/audioMapping";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
@@ -54,14 +55,15 @@ function texture(params: HearingParams) {
   });
 }
 
-function outputGain(params: HearingParams): number {
+function outputGain(tone: Awaited<ReturnType<typeof loadTone>>, params: HearingParams): number {
   if (activeFrequency(params) === null || params.volume <= 0) return 0;
   // A shared gain also silences the full reverberant tail when data disappears.
   const intensity = 0.7 + 0.3 * Math.max(0, Math.min(1, params.value ?? 0));
-  return Tone.dbToGain(-32 + params.volume * 0.26) * (params.proximity?.gain ?? 1) * intensity;
+  return tone.dbToGain(-32 + params.volume * 0.26) * (params.proximity?.gain ?? 1) * intensity;
 }
 
 async function buildVoice(params: HearingParams): Promise<AudioRig | null> {
+  const Tone = await loadTone();
   await Tone.start();
   await Tone.context.resume();
   if (!playbackAllowed()) return null;
@@ -139,10 +141,10 @@ function publish(params: HearingParams | null) {
   document.documentElement.dataset.listenTexture = "continuous";
 }
 
-function applyRigParams(target: AudioRig, params: HearingParams) {
+function applyRigParams(tone: Awaited<ReturnType<typeof loadTone>>, target: AudioRig, params: HearingParams) {
   const sound = texture(params);
   const glide = params.pitchMode === "continuous" ? 0.3 : 0.15;
-  target.gain.gain.rampTo(outputGain(params), 0.16);
+  target.gain.gain.rampTo(outputGain(tone, params), 0.16);
   target.panner.pan.rampTo(Math.max(-1, Math.min(1, params.pan)), 0.2);
   target.filter.frequency.rampTo(sound.cutoff, 0.35);
   target.reverb.wet.rampTo(sound.reverb, 0.35);
@@ -166,6 +168,7 @@ export function stopProbeAudio(): void {
   for (const previous of retiring) previous.dispose();
   retiring.clear();
   publish(null);
+  void suspendToneIfLoaded();
 }
 
 export async function startProbeAudio(params: HearingParams): Promise<boolean> {
@@ -181,7 +184,8 @@ export async function startProbeAudio(params: HearingParams): Promise<boolean> {
       return false;
     }
     rig = next;
-    applyRigParams(rig, latest ?? params);
+    const tone = toneModule();
+    if (tone) applyRigParams(tone, rig, latest ?? params);
     publish(latest);
     if (latest && !sameVoiceConfig(params, latest)) void rebuild(latest);
     return true;
@@ -195,7 +199,8 @@ export function updateProbeAudio(params: HearingParams): void {
   const previous = latest;
   latest = params;
   if (!playing) return;
-  if (rig) applyRigParams(rig, params);
+  const tone = toneModule();
+  if (rig && tone) applyRigParams(tone, rig, params);
   publish(params);
   if (previous && !sameVoiceConfig(previous, params)) void rebuild(params);
 }
@@ -211,7 +216,8 @@ async function rebuild(params: HearingParams) {
     }
     const previous = rig;
     rig = next;
-    applyRigParams(rig, latest);
+    const tone = toneModule();
+    if (tone) applyRigParams(tone, rig, latest);
     if (previous) {
       retiring.add(previous);
       previous.gain.gain.rampTo(0, 0.2);

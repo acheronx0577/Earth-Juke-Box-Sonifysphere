@@ -566,7 +566,7 @@ function MatchPlay() {
   const compareRef = useRef<HTMLButtonElement>(null);
   const freqRef = useRef<HTMLInputElement>(null);
   const qRef = useRef<HTMLInputElement>(null);
-  const guardRef = useRef(0);
+  const guardRef = useRef(-CLICK_GUARD_MS);
   const handoffRef = useRef<number | null>(null);
   const freqNow = useRef(state.freq);
   const qNow = useRef(state.q);

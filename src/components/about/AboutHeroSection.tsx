@@ -6,6 +6,7 @@ import { HeroCo2Line } from "@/components/about/HeroCo2Line";
 import { PrimaryPillAction } from "@/components/landing/Primitives";
 import { IconPause, IconPlay } from "@/components/shared/Icons";
 import { useSonifyPlayer } from "@/context/SonifyPlayerContext";
+import { loadTone } from "@/lib/toneLoader";
 
 const HeroLines = memo(function HeroLines() {
   return (
@@ -38,7 +39,7 @@ export function AboutHeroSection() {
   const startHearing = () => {
     setBusy(true);
     setBlocked(null);
-    void import("tone")
+    void loadTone()
       .then(async (Tone) => {
         try {
           await Tone.start();

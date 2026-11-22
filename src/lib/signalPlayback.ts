@@ -1,11 +1,12 @@
 import type { ExploreParams } from "@/lib/exploreAudio";
+import { loadTone } from "@/lib/toneLoader";
 import { hushExplore, triggerExploreNote } from "@/lib/exploreAudio";
 import { onPlaybackStopped, playbackAllowed } from "@/lib/playbackGate";
 import type { MixNote, MixPlan } from "@/lib/signalTheory";
 
 onPlaybackStopped(() => {
   hushExplore();
-  void import("tone").then((Tone) => {
+  void loadTone().then((Tone) => {
     const transport = Tone.getTransport();
     transport.stop();
     transport.cancel(0);
@@ -66,7 +67,7 @@ function scheduleNotes(
 
 export async function playMix(plan: MixPlan, onNote?: (slotIndex: number) => void): Promise<() => void> {
   try {
-    const Tone = await import("tone");
+    const Tone = await loadTone();
     await Tone.start();
     const transport = Tone.getTransport();
     transport.stop();
@@ -147,7 +148,7 @@ function audioBufferToWav(buffer: AudioBuffer): Blob {
 }
 
 export async function renderMixWav(plan: MixPlan): Promise<Blob> {
-  const Tone = await import("tone");
+  const Tone = await loadTone();
   const rendered = await Tone.Offline(({ transport }) => {
     const synth = new Tone.Synth({
       oscillator: { type: "sine" },

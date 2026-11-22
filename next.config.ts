@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { publicAssetHeaders } from "./src/lib/staticCache";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -12,6 +13,7 @@ const nextConfig: NextConfig = {
       },
     ];
     return [
+      ...publicAssetHeaders(),
       {
         source: "/:path*",
         headers: [
