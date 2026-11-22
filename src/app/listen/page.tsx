@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ListenV4 } from "@/components/listen/v4/ListenV4";
 import { layerFromParam } from "@/components/listen/v4/model";
 import { PageReadableSummary } from "@/components/shared/PageReadableSummary";
+import { BreadcrumbJsonLd } from "@/components/shared/BreadcrumbJsonLd";
 
 export const metadata: Metadata = {
   title: "Listen — SonifySphere",
@@ -14,6 +15,7 @@ export default async function ListenPage({ searchParams }: { searchParams: Promi
   const lng = Number(params.lng);
   return (
     <>
+      <BreadcrumbJsonLd name="Listen" path="/listen" />
       <PageReadableSummary pageKey="listen" />
       <ListenV4
         initialLayer={layerFromParam(params.data)}

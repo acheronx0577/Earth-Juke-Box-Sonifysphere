@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FooterSection } from "@/components/landing/FooterSection";
+import { BreadcrumbJsonLd } from "@/components/shared/BreadcrumbJsonLd";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — SonifySphere",
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main id="main-content" tabIndex={-1} className="min-h-screen w-full bg-[#141414] text-[#f2f2f0] pt-28 pb-16 px-6 sm:px-12 flex flex-col items-center">
+      <BreadcrumbJsonLd name="Privacy Policy" path="/privacy" />
       <article className="max-w-3xl w-full flex flex-col gap-8 font-mono">
         <header className="border-b border-[#333333] pb-6 flex flex-col gap-3">
           <p className="text-[11px] uppercase tracking-[0.2em] text-[#8a8a8a]">Legal & Data Governance</p>

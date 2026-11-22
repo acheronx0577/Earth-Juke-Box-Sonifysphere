@@ -6,8 +6,10 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_URL,
+  breadcrumbJsonLd,
   homepageJsonLd,
   organizationJsonLd,
+  siteNavigationJsonLd,
   llmsFullTxt,
   llmsTxt,
   markdownForPath,
@@ -127,6 +129,32 @@ test("organizationJsonLd returns valid standalone Organization schema with conta
   const address = org.address as { "@type": string; addressCountry: string };
   assert.equal(address["@type"], "PostalAddress");
   assert.equal(address.addressCountry, "US");
+});
+
+test("siteNavigationJsonLd returns valid SiteNavigationElement list", () => {
+  const nav = siteNavigationJsonLd();
+  assert.equal(nav["@context"], "https://schema.org");
+  const graph = nav["@graph"] as Array<{ "@type": string; name: string; url: string }>;
+  assert.ok(graph.length >= 6);
+  for (const item of graph) {
+    assert.equal(item["@type"], "SiteNavigationElement");
+    assert.match(item.url, /^https:\/\/www\.sonifysphere\.earth\//);
+    assert.ok(item.name.length > 0);
+  }
+});
+
+test("breadcrumbJsonLd produces valid BreadcrumbList schema", () => {
+  const bc = breadcrumbJsonLd("Listen", "/listen");
+  assert.equal(bc["@context"], "https://schema.org");
+  assert.equal(bc["@type"], "BreadcrumbList");
+  const items = bc.itemListElement as Array<{ position: number; name: string; item: string }>;
+  assert.equal(items.length, 2);
+  assert.equal(items[0].position, 1);
+  assert.equal(items[0].name, "Home");
+  assert.equal(items[0].item, SITE_URL);
+  assert.equal(items[1].position, 2);
+  assert.equal(items[1].name, "Listen");
+  assert.equal(items[1].item, `${SITE_URL}/listen`);
 });
 
 test("robots.txt points agents at llms.txt and the sitemap", () => {

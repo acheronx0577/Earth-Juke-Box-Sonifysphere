@@ -232,6 +232,71 @@ export function organizationJsonLd(): Record<string, unknown> {
   };
 }
 
+export function siteNavigationJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "SiteNavigationElement",
+        name: "Listen",
+        url: `${SITE_URL}/listen`,
+        description: "Move across the map or NASA media, pick a data layer, and hear the sonified Earth record.",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        name: "Challenges",
+        url: `${SITE_URL}/challenge`,
+        description: "Interactive climate ear-training games: Guess the Signal, Tune the Signal, and Waveform Ribbons.",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        name: "About",
+        url: `${SITE_URL}/about`,
+        description: "How the Mauna Loa CO₂ record is played as music, with provenance, data sources, and team credits.",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        name: "Contact",
+        url: `${SITE_URL}/contact`,
+        description: "The SonifySphere project crew and inquiries.",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        name: "Story",
+        url: `${SITE_URL}/story`,
+        description: "Three chapters of the Mauna Loa atmospheric carbon record.",
+      },
+      {
+        "@type": "SiteNavigationElement",
+        name: "Privacy Policy",
+        url: `${SITE_URL}/privacy`,
+        description: "Privacy policy and client-side data governance for SonifySphere.",
+      },
+    ],
+  };
+}
+
+export function breadcrumbJsonLd(name: string, path: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name,
+        item: `${SITE_URL}${path}`,
+      },
+    ],
+  };
+}
+
 export function llmsTxt(): string {
   return [
     `# ${SITE_NAME}`,
