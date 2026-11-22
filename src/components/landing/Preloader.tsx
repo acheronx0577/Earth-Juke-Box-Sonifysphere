@@ -5,7 +5,6 @@ import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { getGlobalLenis } from "@/lib/lenis";
 import { warmListenAssets } from "@/lib/listenAssets";
-import { useRouter } from "next/navigation";
 import { canWarmAssets } from "@/lib/assetCache";
 
 interface PreloaderProps {
@@ -245,7 +244,6 @@ export function Preloader({
   onComplete,
   logoSrc = "/assets/landing/sonifysphere-glyph-dark.svg",
 }: Readonly<PreloaderProps>) {
-  const router = useRouter();
   const [isComplete, setIsComplete] = useState(false);
   const preloaderRef = useRef<HTMLDivElement | null>(null);
   const preloaderBgRef = useRef<HTMLDivElement | null>(null);
@@ -261,7 +259,6 @@ export function Preloader({
       const prepare = () => {
         if (!canWarmAssets()) return;
         void warmListenAssets();
-        router.prefetch("/listen");
       };
       if (typeof window.requestIdleCallback === "function") idle = window.requestIdleCallback(prepare, { timeout: 2500 });
       else fallback = window.setTimeout(prepare, 0);
@@ -274,7 +271,7 @@ export function Preloader({
       if (idle !== undefined) window.cancelIdleCallback(idle);
       if (fallback !== undefined) window.clearTimeout(fallback);
     };
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

@@ -83,7 +83,7 @@ export function SiteNav() {
               <div key={link.href} className="nav-item">
                 <Link
                   href={link.href}
-                  prefetch={pathname === "/listen" ? false : undefined}
+                  prefetch={false}
                   onClick={handleLinkClick}
                   className={link.isActive ? "active" : ""}
                   aria-current={link.isActive ? "page" : undefined}

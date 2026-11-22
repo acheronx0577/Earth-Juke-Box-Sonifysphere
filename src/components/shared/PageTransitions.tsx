@@ -222,6 +222,7 @@ export function PageTransitions() {
     document.addEventListener("pointerover", onIntent, { passive: true });
     document.addEventListener("focusin", onIntent);
     document.addEventListener("pointerdown", onIntent, { passive: true });
+    document.addEventListener("touchstart", onIntent, { passive: true });
     document.addEventListener("pointerout", cancelIntent, { passive: true });
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", onPopState);
@@ -233,6 +234,7 @@ export function PageTransitions() {
       document.removeEventListener("pointerover", onIntent);
       document.removeEventListener("focusin", onIntent);
       document.removeEventListener("pointerdown", onIntent);
+      document.removeEventListener("touchstart", onIntent);
       document.removeEventListener("pointerout", cancelIntent);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPopState);
