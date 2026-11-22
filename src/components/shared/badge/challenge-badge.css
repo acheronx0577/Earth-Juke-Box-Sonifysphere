@@ -2,13 +2,14 @@
    --u is one continuous scale: the viewport width divided by 1440.
    It is 1px at 1440, so the 60px design is 60/1440 of the viewport
    at every width from 360 to 2560. The chip is the 44px design on
-   that same scale. Internal lengths stay multiples of --u. */
+   that same scale, and never smaller than 32px. Internal lengths
+   stay multiples of --u. */
 
 .ss-sa-badge {
   --u: clamp(calc(360px / 1440), calc(100vw / 1440), calc(2560px / 1440));
   --design-w: 60px;
   --design-h: 273px;
-  --sa-chip: calc(44px * var(--u) / 1px);
+  --sa-chip: max(32px, calc(44px * var(--u) / 1px));
   position: fixed;
   top: 50%;
   right: 0;
