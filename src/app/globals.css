@@ -1208,11 +1208,27 @@ nav .nav-mobile-header p,
 }
 
 /* Phones: the 0.75rem inset is a dark column of the page background
-   beside the photo. Drop it so the picture meets the screen on both
-   edges. Tablets keep the inset. */
+   beside the photo. The picture is wider than the phone, so the same
+   cover crop can run out to the screen edge. That extension sits on
+   the hero, behind the filtered frame, and the frame itself keeps the
+   old inset so the title and stacked CTAs do not move. */
 @media (max-width: 639px) {
   .hero {
     padding: 0;
+    background-image:
+      url("/assets/landing/foreground-moon-astronaut.webp"),
+      url("/assets/landing/earth-sky.webp");
+    background-repeat: no-repeat;
+    background-size: calc(1.6 * (100svh - 1.5rem)) calc(100svh - 1.5rem);
+    background-position: center 0.75rem;
+  }
+
+  .hero .hero-container {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: calc(100% - 1.5rem);
+    height: calc(100% - 1.5rem);
   }
 }
 
