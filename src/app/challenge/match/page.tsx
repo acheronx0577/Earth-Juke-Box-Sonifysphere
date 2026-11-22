@@ -3,8 +3,8 @@ import { SignalMatchGame } from "@/components/play/SignalMatchGame";
 import { parseMatchResult } from "@/lib/challengeResults";
 
 export const metadata: Metadata = {
-  title: "Wave Match · Tune the Signal — SonifySphere",
-  description: "Interactive audio frequency and resonance matching challenge to detect real climate anomaly spikes.",
+  title: "Challenge 02 · Tune the signal — SonifySphere",
+  description: "Overlap your tone with the Keeling record. Tune frequency and resonance until the two waves match.",
 };
 
 export default async function SignalMatchPage({ searchParams }: { searchParams: Promise<{ result?: string }> }) {

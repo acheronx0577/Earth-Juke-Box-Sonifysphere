@@ -439,8 +439,18 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         lastScope = scope;
       }
       const selector = scope ? '[data-target-cursor-scope]' : 'html';
+      // One rule: hide the system pointer only while the bracket is actually drawn.
+      // [data-hide-target-cursor] suppresses the bracket (including portaled share
+      // dialogs), and the bracket also fades in from opacity 0. Leaving cursor:none
+      // off in those cases keeps the authored pointer, grab, and crosshair styles.
+      const opacity = Number.parseFloat(root.style.opacity);
+      const bracketShown =
+        root.isConnected &&
+        root.getAttribute('data-suppressed') !== 'true' &&
+        Number.isFinite(opacity) &&
+        opacity > 0.35;
       const rule =
-        s.hideDefaultCursor && pointer.inside ? `${selector}, ${selector} * { cursor: none !important; }` : '';
+        s.hideDefaultCursor && pointer.inside && bracketShown ? `${selector}, ${selector} * { cursor: none !important; }` : '';
       if (style.textContent !== rule) style.textContent = rule;
     };
 
@@ -541,6 +551,7 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
       updateLabelStyle(labelRef.current, left, top, springs.lock.x, labelText, lastLabelRef);
 
       updateCursorColor(root, s, springs.lock.x, springs.presence.x, lastColorRef);
+      hideCursor();
 
       if (shouldKeepCursorAnimating(pointer, springs, goal.goalX, goal.goalY, locked, spinSpeed)) {
         raf = requestAnimationFrame(frame);
@@ -569,19 +580,22 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
 
     let releaseLock = false;
 
+    const markSuppressed = (x: number, y: number) => {
+      const hoverTarget = document.elementFromPoint(x, y);
+      const hideTargetCursor = hoverTarget instanceof Element && Boolean(hoverTarget.closest('[data-hide-target-cursor]'));
+      if (hideTargetCursor) root.setAttribute('data-suppressed', 'true');
+      else root.removeAttribute('data-suppressed');
+      return hoverTarget;
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType && event.pointerType !== 'mouse') return;
       pointer.x = event.clientX;
       pointer.y = event.clientY;
-      const hoverTarget = document.elementFromPoint(event.clientX, event.clientY);
-      const hideTargetCursor = hoverTarget instanceof Element && Boolean(hoverTarget.closest('[data-hide-target-cursor]'));
-      if (hideTargetCursor) root.setAttribute('data-suppressed', 'true');
-      else root.removeAttribute('data-suppressed');
+      markSuppressed(pointer.x, pointer.y);
       const inside = insideScope(pointer.x, pointer.y, event.target as Element | null);
-      if (inside !== pointer.inside) {
-        pointer.inside = inside;
-        hideCursor();
-      }
+      pointer.inside = inside;
+      hideCursor();
       if (releaseLock) {
         releaseLock = false;
         lockOn(null);
@@ -589,6 +603,14 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         return;
       }
       lockOn(inside ? findTarget(pointer.x, pointer.y, event.target as Element | null) : null);
+      wake();
+    };
+
+    const refreshHover = () => {
+      if (!pointer.inside) return;
+      const hoverTarget = markSuppressed(pointer.x, pointer.y);
+      hideCursor();
+      lockOn(findTarget(pointer.x, pointer.y, hoverTarget));
       wake();
     };
 
@@ -643,15 +665,29 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         raf = 0;
         last = 0;
       } else {
+        refreshHover();
         wake();
       }
     };
+
+    let refreshQueued = false;
+    const scheduleRefresh = () => {
+      if (refreshQueued || !pointer.inside) return;
+      refreshQueued = true;
+      requestAnimationFrame(() => {
+        refreshQueued = false;
+        refreshHover();
+      });
+    };
+    const domObserver = new MutationObserver(scheduleRefresh);
+    domObserver.observe(document.body, { childList: true, subtree: true });
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('pointerdown', onPointerDown, { passive: true });
     window.addEventListener('pointerup', onPointerUp, { passive: true });
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    document.documentElement.addEventListener('pointerenter', onPointerMove);
     document.documentElement.addEventListener('pointerleave', onLeave);
     window.addEventListener('blur', onLeave);
     window.addEventListener('resize', onResize, { passive: true });
@@ -670,6 +706,8 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('scroll', onScroll, { capture: true });
+      domObserver.disconnect();
+      document.documentElement.removeEventListener('pointerenter', onPointerMove);
       document.documentElement.removeEventListener('pointerleave', onLeave);
       window.removeEventListener('blur', onLeave);
       window.removeEventListener('resize', onResize);

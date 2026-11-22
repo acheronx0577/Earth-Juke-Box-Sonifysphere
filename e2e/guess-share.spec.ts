@@ -127,12 +127,9 @@ test("a shared guess result shares that same result", async ({ browser }) => {
       const node = document.querySelector(selector);
       return node ? getComputedStyle(node).cursor : "missing";
     };
-    const copy = [...document.querySelectorAll("button")].find(
-      (node) => node.textContent?.includes("Copy link") && node.getClientRects().length > 0,
-    );
     return {
       dialog: read("[data-testid='guess-share-popup']"),
-      copy: copy ? getComputedStyle(copy).cursor : "missing",
+      copy: read("[data-testid='guess-share-copy']"),
       share: read("[data-testid='guess-shared-result'] button"),
     };
   });
@@ -141,7 +138,7 @@ test("a shared guess result shares that same result", async ({ browser }) => {
   expect(cursors.share).not.toBe("none");
 
   const xHref = await page.getByRole("link", { name: "Share to X" }).getAttribute("href");
-  const shown = (await visible(page.getByTestId("guess-share-url")).innerText()).trim();
+  const shown = ((await page.getByTestId("guess-share-url").textContent()) ?? "").trim();
   expect(xHref).toBe(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${TITLE}. ${SCORE} ${shown}`)}`);
   expect(shown).toContain(`result=${TOKEN}`);
 
@@ -154,8 +151,8 @@ test("a shared guess result shares that same result", async ({ browser }) => {
   }
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  await clickMouse(page, visible(page.getByRole("button", { name: "Copy link" })));
-  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  await clickMouse(page, page.getByTestId("guess-share-copy"));
+  await expect(page.getByTestId("guess-share-copy")).toHaveAttribute("data-done", "true");
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toBe(shown);
   expect(copied).toContain(`result=${TOKEN}`);
@@ -176,7 +173,7 @@ test("a shared guess result shares that same result", async ({ browser }) => {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await openShared(page, { width: 390, height: 844 });
-  const phoneUrl = (await visible(page.getByTestId("guess-share-url")).innerText()).trim();
+  const phoneUrl = ((await page.getByTestId("guess-share-url").textContent()) ?? "").trim();
   const phoneX = await page.getByRole("link", { name: "Share to X" }).getAttribute("href");
   expect(phoneX).toBe(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${TITLE}. ${SCORE} ${phoneUrl}`)}`);
   await clickMouse(page, visible(page.getByRole("button", { name: "Copy link" })));
@@ -248,7 +245,7 @@ test("an owned guess run still shares its own result", async ({ browser }) => {
   await expect(marks.nth(3)).toHaveAttribute("data-correct", "true");
   await expect(marks.nth(4)).toHaveAttribute("data-correct", "false");
 
-  const shown = (await visible(page.getByTestId("guess-share-url")).innerText()).trim();
+  const shown = ((await page.getByTestId("guess-share-url").textContent()) ?? "").trim();
   expect(shown).toContain(`result=${OWN_TOKEN}`);
   expect(shown).not.toContain(`result=${TOKEN}`);
   const xHref = await page.getByRole("link", { name: "Share to X" }).getAttribute("href");

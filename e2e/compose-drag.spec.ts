@@ -237,34 +237,23 @@ test("the curve hits every filled bar and the share sheet keeps the mix", async 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByTestId("compose-share").click();
   await expect(page.getByTestId("share-dialog")).toBeVisible();
-  await expect(page.getByTestId("share-copy")).toBeFocused();
+  await expect(page.getByTestId("share-close")).toBeFocused();
   await page.screenshot({ path: "/opt/cursor/artifacts/compose-share-1440.png" });
 
   await page.getByTestId("share-copy").click();
-  await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
+  await expect(page.getByTestId("share-copy")).toContainText("Copied");
   const copied = await page.evaluate(() => navigator.clipboard.readText());
-  await expect(page.getByTestId("share-url")).toHaveValue(copied);
+  await expect(page.getByTestId("share-url")).toHaveText(copied);
   expect(copied).toContain("mix=");
   const xHref = await page.getByTestId("share-x").getAttribute("href");
   expect(xHref).toContain("https://x.com/intent/post");
   expect(xHref).toContain(encodeURIComponent(copied));
 
-  await page.evaluate(() => {
-    const target = window as Window & { __shared?: ShareData | null };
-    target.__shared = null;
-    navigator.share = async (data) => {
-      target.__shared = data;
-    };
-  });
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("share-dialog")).toHaveCount(0);
   await expect(page.getByTestId("compose-share")).toBeFocused();
 
   await page.getByTestId("compose-share").click();
-  await page.getByTestId("share-native").click();
-  const shared = await page.evaluate(() => (window as Window & { __shared?: ShareData | null }).__shared);
-  expect(shared?.url).toBe(copied);
-
   const downloadPromise = page.waitForEvent("download");
   await page.getByTestId("share-image").click();
   const download = await downloadPromise;
@@ -272,8 +261,7 @@ test("the curve hits every filled bar and the share sheet keeps the mix", async 
 
   await page.getByTestId("share-close").focus();
   await page.keyboard.press("Tab");
-  await expect(page.getByTestId("share-url")).toBeFocused();
-  await page.getByTestId("share-url").focus();
+  await expect(page.getByTestId("share-copy")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(page.getByTestId("share-close")).toBeFocused();
 

@@ -68,7 +68,6 @@ export function GuessSharePopup({
   const restoreRef = useRef<HTMLElement | null>(null);
   const [copied, setCopied] = useState(false);
   const [url, setUrl] = useState("");
-  const [nativeShare, setNativeShare] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -77,7 +76,6 @@ export function GuessSharePopup({
     setCopied(false);
     setNotice("");
     setUrl(absoluteUrl(request.path));
-    setNativeShare(typeof navigator.share === "function");
   }, [open, request.path]);
 
   useEffect(() => {
@@ -134,17 +132,6 @@ export function GuessSharePopup({
     }
   };
 
-  const native = async () => {
-    if (typeof navigator.share !== "function") return;
-    try {
-      await navigator.share({ title: request.title, text: `${request.title}. ${request.text}`, url: url || absoluteUrl(request.path) });
-      setNotice("Share sheet opened.");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setNotice(error instanceof Error ? error.message : "Sharing was blocked.");
-    }
-  };
-
   return createPortal(
     <div className={styles.backdrop} data-testid="guess-share-backdrop" data-hide-target-cursor="true" onMouseDown={onClose}>
       <div
@@ -180,9 +167,6 @@ export function GuessSharePopup({
             </ol>
           ) : null}
         </div>
-        <p className={`${styles.url} ${styles.wideOnly}`} data-testid="guess-share-url">
-          {url}
-        </p>
         <div className={`${styles.urlShell} ${styles.cutShell}`}>
           <div className={`${styles.urlFace} ${styles.cutFace}`}>
             <p className={styles.urlNarrow} data-testid="guess-share-url">
@@ -201,18 +185,6 @@ export function GuessSharePopup({
           </div>
         </div>
         <div className={styles.actions}>
-          <span className={`${styles.focusRing} ${styles.wideOnly}`}>
-            <button type="button" className={`${styles.action} ${styles.cutShell}`} data-done={copied ? "true" : "false"} onClick={() => void copy()}>
-              <span className={styles.cutFace}>{copied ? "Copied" : "Copy link"}</span>
-            </button>
-          </span>
-          {nativeShare ? (
-            <span className={`${styles.focusRing} ${styles.wideOnly}`}>
-              <button type="button" className={`${styles.action} ${styles.cutShell}`} data-testid="guess-share-native" onClick={() => void native()}>
-                <span className={styles.cutFace}>Share</span>
-              </button>
-            </span>
-          ) : null}
           <span className={styles.focusRing}>
             <button type="button" className={`${styles.action} ${styles.cutShell}`} onClick={() => void onSaveImage()}>
               <span className={styles.cutFace}>Save image</span>
