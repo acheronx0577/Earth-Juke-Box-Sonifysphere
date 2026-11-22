@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { ChamferMark } from "@/components/listen/ChamferMark";
 import {
@@ -172,6 +172,7 @@ export function RibbonsResults({
   const sourcesRef = useRef<HTMLDivElement | null>(null);
   const sourcesButtonRef = useRef<HTMLButtonElement | null>(null);
   const againRef = useRef<HTMLButtonElement | null>(null);
+  const linkRef = useRef<HTMLInputElement | null>(null);
   const readyAt = useRef(0);
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -179,9 +180,15 @@ export function RibbonsResults({
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [imageFont, setImageFont] = useState("");
 
-  useEffect(() => {
-    setUrl(new URL(sharePath, window.location.origin).toString());
+  useLayoutEffect(() => {
+    const absolute = new URL(sharePath, window.location.origin).href;
+    setUrl(absolute);
     readyAt.current = performance.now() + 400;
+    const field = linkRef.current;
+    if (!field) return;
+    field.value = absolute;
+    field.scrollLeft = 0;
+    field.setSelectionRange(0, 0);
   }, [sharePath]);
 
   useEffect(() => {
@@ -280,7 +287,18 @@ export function RibbonsResults({
                 <label className={styles.sr} htmlFor={linkId}>
                   Result link
                 </label>
-                <input id={linkId} className={styles.linkInput} readOnly value={shareUrl} data-testid="ribbons-link" />
+                <input
+                  ref={linkRef}
+                  id={linkId}
+                  className={styles.linkInput}
+                  readOnly
+                  value={shareUrl}
+                  data-testid="ribbons-link"
+                  onFocus={(event) => {
+                    event.currentTarget.scrollLeft = 0;
+                    event.currentTarget.setSelectionRange(0, 0);
+                  }}
+                />
                 <button
                   type="button"
                   className={`${styles.frame} ${styles.copyBtn} lv-cut`}
@@ -348,14 +366,16 @@ export function RibbonsResults({
             <Link href={againHref} className={`${styles.frame} ${styles.againBtn} lv-cut`} style={cutStyle(8)} data-testid="ribbons-again">
               <ChamferMark />
               <span className={styles.frameFace}>
-                <span aria-hidden="true">↻</span> Play again
+                <span className={styles.againIcon} aria-hidden="true">↻</span>
+                <span>Play again</span>
               </span>
             </Link>
           ) : (
             <button ref={againRef} type="button" className={`${styles.frame} ${styles.againBtn} lv-cut`} style={cutStyle(8)} data-testid="ribbons-again" onClick={again}>
               <ChamferMark />
               <span className={styles.frameFace}>
-                <span aria-hidden="true">↻</span> Play again
+                <span className={styles.againIcon} aria-hidden="true">↻</span>
+                <span>Play again</span>
               </span>
             </button>
           )}
