@@ -108,8 +108,32 @@ test("a pointer stays visible across pages, overlays, drag, and re-entry", async
   await expectBox(page, "a[href='/challenge/guess']");
 
   await page.goto("/challenge/match");
-  await expectBox(page, "input[type='range']");
-  await expectBox(page, "#main-content button");
+  await expect(page.getByTestId("match-game")).toBeVisible();
+  const scope = await expectBox(page, "svg[aria-label='Your wave against the target wave']");
+  expect(scope.cursor).not.toBe("none");
+  const dial = await expectBox(page, "#tune-freq");
+  expect(dial.cursor).not.toBe("none");
+  await page.getByRole("button", { name: "Show target zone" }).click();
+  await expect(page.getByTestId("tune-freq-zone")).toBeVisible();
+  await expectBox(page, "#tune-q");
+  await page.locator("#tune-freq").evaluate((el) => {
+    const input = el as HTMLInputElement;
+    input.value = "260";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("#tune-q").evaluate((el) => {
+    const input = el as HTMLInputElement;
+    input.value = "2.2";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect(page.getByTestId("match-word")).toHaveText("Locked", { timeout: 4000 });
+  const locked = await expectBox(page, "#tune-freq");
+  expect(locked.cursor).not.toBe("none");
+  await page.getByRole("button", { name: "Next anomaly →" }).click();
+  await page.getByRole("button", { name: "Skip round" }).click();
+  await expect(page.getByTestId("match-word")).toHaveText("Skipped");
+  const skipped = await expectBox(page, "#tune-freq");
+  expect(skipped.cursor).not.toBe("none");
   await page.goto("/challenge/match?result=v1.900.910.880");
   await expectBox(page, "[data-testid='match-result']");
   await expectBox(page, "[aria-label='Share your result'] button");
@@ -134,6 +158,17 @@ test("a pointer stays visible across pages, overlays, drag, and re-entry", async
   expect(dragging.ok, JSON.stringify(dragging)).toBe(true);
   await page.mouse.up();
   await expectBox(page, "input[type='range']");
+  await chip.click();
+  await slot.click();
+  const mixShare = page.getByTestId("compose-share").first();
+  await expect(mixShare).toBeEnabled();
+  await mixShare.click();
+  await expect(page.getByRole("dialog", { name: "Share this mix" })).toBeVisible();
+  const mixDialog = await expectBox(page, "[data-testid='share-dialog']");
+  expect(mixDialog.cursor).not.toBe("none");
+  const mixClose = await expectBox(page, "[data-testid='share-close']");
+  expect(mixClose.cursor).not.toBe("none");
+  await page.keyboard.press("Escape");
 
   await page.goto("/about");
   await expectBox(page, "#main-content");
