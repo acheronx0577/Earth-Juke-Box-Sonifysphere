@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SonifyPlayerProvider } from "@/context/SonifyPlayerContext";
 import { AudioLiveFlag } from "@/components/shared/AudioLiveFlag";
 import { MiniPlayerPill } from "@/components/shared/MiniPlayerPill";
+import { ChallengeBadge } from "@/components/shared/ChallengeBadge";
 import { SiteNav } from "@/components/shared/SiteNav";
 import { SmoothScroll } from "@/components/shared/SmoothScroll";
 import { PageReady } from "@/components/shared/PageReady";
@@ -136,6 +137,7 @@ export default function RootLayout({
             </defs>
           </svg>
           <SiteNav />
+          <ChallengeBadge />
           {children}
           <MiniPlayerPill />
         </SonifyPlayerProvider>

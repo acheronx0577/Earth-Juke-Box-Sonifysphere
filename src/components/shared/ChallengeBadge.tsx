@@ -1,0 +1,198 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import "./badge/challenge-badge.css";
+
+const SPACE_APPS_URL =
+  "https://www.spaceappschallenge.org/2026/find-a-team/sonifysphere/?tab=details";
+const GITHUB_URL = "https://github.com/acheronx0577/Earth-Juke-Box-Sonifysphere";
+const NASA_SRC = "/assets/badges/NASA_logo.svg";
+const PHONE_QUERY = "(max-width: 639px)";
+
+function usePreloaderGone() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setReady(!document.querySelector(".preloader"));
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  return ready;
+}
+
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(PHONE_QUERY);
+    const sync = () => setPhone(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  return phone;
+}
+
+function badgePage(pathname: string) {
+  if (pathname === "/") return "home";
+  if (pathname === "/about") return "about";
+  if (pathname === "/contact") return "contact";
+  if (pathname === "/challenge/compose") return "compose";
+  if (pathname === "/challenge/match") return "match";
+  if (pathname.startsWith("/challenge")) return "challenge";
+  if (pathname === "/story") return "story";
+  if (pathname === "/privacy") return "privacy";
+  return "page";
+}
+
+function GitHubMark() {
+  return (
+    <svg className="ss-sa-badge__gh" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+      />
+    </svg>
+  );
+}
+
+export function ChallengeBadge() {
+  const pathname = usePathname() ?? "/";
+  const ready = usePreloaderGone();
+  const phone = useIsPhone();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLButtonElement>(null);
+  const shown = phone && open;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname, phone]);
+
+  useEffect(() => {
+    if (!shown) return;
+
+    const panel = panelRef.current;
+    panel?.focus({ preventScroll: true });
+
+    let armed = false;
+    const armTimer = window.setTimeout(() => {
+      armed = true;
+    }, 150);
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      chipRef.current?.focus({ preventScroll: true });
+    };
+
+    const onPointer = (event: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root || root.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+
+    const onScroll = () => {
+      if (!armed) return;
+      const active = document.activeElement;
+      if (panel && active && (active === panel || panel.contains(active))) {
+        chipRef.current?.focus({ preventScroll: true });
+      }
+      setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("scroll", onScroll, true);
+
+    const lenis = (
+      window as unknown as {
+        __lenis?: {
+          on: (event: "scroll", callback: () => void) => void;
+          off: (event: "scroll", callback: () => void) => void;
+        };
+      }
+    ).__lenis;
+    lenis?.on("scroll", onScroll);
+
+    return () => {
+      window.clearTimeout(armTimer);
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("scroll", onScroll, true);
+      lenis?.off("scroll", onScroll);
+    };
+  }, [shown]);
+
+  if (pathname === "/listen" || pathname.startsWith("/listen/")) {
+    return null;
+  }
+
+  if (!ready) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={rootRef}
+      id="ss-sa-badge"
+      className={shown ? "ss-sa-badge is-open" : "ss-sa-badge"}
+      data-page={badgePage(pathname)}
+    >
+      <button
+        ref={chipRef}
+        type="button"
+        className="ss-sa-badge__chip"
+        aria-expanded={open}
+        aria-controls="ss-sa-badge-panel"
+        aria-label={open ? "Close NASA Space Apps badge" : "Open NASA Space Apps badge"}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <img src={NASA_SRC} alt="" width={110} height={92} draggable={false} />
+      </button>
+      <div
+        ref={panelRef}
+        id="ss-sa-badge-panel"
+        className="ss-sa-badge__panel"
+        role="region"
+        aria-label="NASA Space Apps"
+        tabIndex={-1}
+        inert={phone && !open ? true : undefined}
+        aria-hidden={phone && !open ? true : undefined}
+      >
+        <div className="ss-sa-badge__fit">
+          <a
+            className="ss-sa-badge__page"
+            href={SPACE_APPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SonifySphere on NASA Space Apps Challenge 2026"
+          >
+            <span className="ss-sa-badge__mark">
+              <img src={NASA_SRC} alt="" width={110} height={92} draggable={false} />
+            </span>
+            <span className="ss-sa-badge__labels">
+              <span className="ss-sa-badge__label ss-sa-badge__label--idle">NASA SPACE APPS</span>
+              <span className="ss-sa-badge__label ss-sa-badge__label--hover">SONIFYSPHERE</span>
+            </span>
+          </a>
+          <a
+            className="ss-sa-badge__gh-hit"
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SonifySphere on GitHub"
+          >
+            <GitHubMark />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

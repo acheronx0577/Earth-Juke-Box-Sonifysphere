@@ -1,0 +1,572 @@
+/* Fixed right-edge NASA Space Apps tab.
+   --u is one continuous scale: the viewport width divided by 1440.
+   It is 1px at 1440, so the 60px design is 60/1440 of the viewport
+   at every width from 360 to 2560. The chip is the 44px design on
+   that same scale, and never smaller than 32px. Internal lengths
+   stay multiples of --u. */
+
+.ss-sa-badge {
+  --u: clamp(calc(360px / 1440), calc(100vw / 1440), calc(2560px / 1440));
+  --design-w: 60px;
+  --design-h: 273px;
+  --sa-chip: max(32px, calc(44px * var(--u) / 1px));
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 44;
+  width: calc(var(--design-w) * var(--u) / 1px);
+  height: calc(var(--design-h) * var(--u) / 1px);
+  transform: translateY(-50%);
+  container-type: inline-size;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ss-sa-badge__fit {
+  --sa-ink: #060b0b;
+  --sa-cream: #fff3ea;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--design-w);
+  height: var(--design-h);
+  box-sizing: border-box;
+  color: var(--sa-ink);
+  background: var(--sa-cream);
+  transform: scale(calc(100cqw / var(--design-w)));
+  transform-origin: top right;
+  clip-path: polygon(
+    10px 0,
+    100% 0,
+    100% 100%,
+    10px 100%,
+    0 calc(100% - 10px),
+    0 10px
+  );
+}
+
+.ss-sa-badge__page {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ss-sa-badge__mark {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ss-sa-badge__mark img {
+  display: block;
+  width: auto;
+  height: 38px;
+  /* The swoosh pulls the meatball optically left. 2px at the 60px design. */
+  transform: translateX(2px);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.ss-sa-badge__gh-hit {
+  position: absolute;
+  z-index: 2;
+  /* 12px of cream between the meatball box and the icon. The 32px hit
+     is centered on the 23px mark, so the box starts 4.5px higher. */
+  top: 63.5px;
+  left: 50%;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--sa-ink);
+  text-decoration: none;
+  transform: translateX(-50%);
+}
+
+.ss-sa-badge__gh {
+  display: block;
+  width: 23px;
+  height: 23px;
+  color: var(--sa-ink);
+  transition: opacity 180ms ease;
+}
+
+.ss-sa-badge__gh-hit:hover .ss-sa-badge__gh,
+.ss-sa-badge__gh-hit:focus-visible .ss-sa-badge__gh {
+  opacity: 0.55;
+}
+
+.ss-sa-badge__labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ss-sa-badge__label {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: var(--sa-track);
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--sa-ink);
+  transform: translateY(50%) rotate(-90deg);
+  transform-origin: left center;
+}
+
+.ss-sa-badge__label--hover {
+  opacity: 0;
+}
+
+.ss-sa-badge__page:hover .ss-sa-badge__label--idle,
+.ss-sa-badge__page:focus-visible .ss-sa-badge__label--idle {
+  opacity: 0;
+}
+
+.ss-sa-badge__page:hover .ss-sa-badge__label--hover,
+.ss-sa-badge__page:focus-visible .ss-sa-badge__label--hover {
+  opacity: 1;
+}
+
+.ss-sa-badge__label--idle,
+.ss-sa-badge__label--hover {
+  transition: opacity 180ms ease;
+}
+
+.ss-sa-badge__page:focus-visible {
+  outline: 2px solid var(--sa-ink);
+  outline-offset: -6px;
+}
+
+.ss-sa-badge__gh-hit:focus-visible {
+  outline: 2px solid var(--sa-ink);
+  outline-offset: -2px;
+}
+
+.ss-sa-badge__chip {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-sa-badge__label--idle,
+  .ss-sa-badge__label--hover,
+  .ss-sa-badge__gh,
+  .ss-sa-badge__panel,
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
+    transition: none;
+  }
+}
+
+/* Home, 641–1023px: a centered tab covers the last letters of
+   "earth breathes". The wordmark reaches about 28px from the edge,
+   so park a chip under the nav, above the title. */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .ss-sa-badge[data-page="home"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    top: 96px;
+    bottom: auto;
+    transform: none;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+  }
+
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+/* Tall tab, nudged so it misses real UI. */
+
+@media (min-width: 1101px) and (max-height: 860px) {
+  .ss-sa-badge[data-page="about"] {
+    top: 72px;
+    transform: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="privacy"] {
+    top: 560px;
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="contact"] {
+    top: 80px;
+    transform: none;
+  }
+}
+
+/* Chip where a tall tab has no clear band. Meatball only, still linked.
+   The chip scales from about 40px to 52px. */
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="about"] { top: 340px; }
+  .ss-sa-badge[data-page="match"] { top: 280px; bottom: auto; }
+  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ss-sa-badge[data-page="about"] { top: 340px; }
+  .ss-sa-badge[data-page="contact"] { top: 252px; }
+  .ss-sa-badge[data-page="match"] { top: 640px; bottom: auto; }
+  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .ss-sa-badge[data-page="match"] {
+    top: 80px;
+    bottom: auto;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="contact"] {
+    top: 252px;
+  }
+}
+
+@media (min-width: 1101px) {
+  .ss-sa-badge[data-page="compose"] {
+    top: auto;
+    bottom: 136px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__fit,
+.ss-sa-badge[data-page="match"] .ss-sa-badge__fit,
+.ss-sa-badge[data-page="compose"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark img,
+.ss-sa-badge[data-page="match"] .ss-sa-badge__mark img,
+.ss-sa-badge[data-page="compose"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="contact"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__fit,
+.ss-sa-badge[data-page="contact"] .ss-sa-badge__fit,
+.ss-sa-badge[data-page="match"] .ss-sa-badge__fit,
+.ss-sa-badge[data-page="compose"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__mark img,
+.ss-sa-badge[data-page="contact"] .ss-sa-badge__mark img,
+.ss-sa-badge[data-page="match"] .ss-sa-badge__mark img,
+.ss-sa-badge[data-page="compose"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .ss-sa-badge[data-page="match"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="match"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="contact"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="contact"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+@media (min-width: 1101px) {
+  .ss-sa-badge[data-page="compose"] {
+    --design-w: 44px;
+    --design-h: 44px;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    transform: none;
+  }
+
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: 44px;
+  }
+
+  /* 44px chip design. The outer box scales this, so the ratios stay fixed. */
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__fit {
+    clip-path: polygon(7px 0, 100% 0, 100% 100%, 7px 100%, 0 calc(100% - 7px), 0 7px);
+  }
+
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark img {
+    height: 26px;
+    transform: translateX(1.5px);
+  }
+
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="compose"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
+/* Phones: a meatball chip. Tapping it slides the full tab in from the right.
+   The tab uses the same 60×273 design and the same --u, so its proportions
+   match the desktop tab. The chip stays under the nav (nav ends at 4rem). */
+@media (max-width: 639px) {
+  .ss-sa-badge,
+  .ss-sa-badge[data-page] {
+    top: 92px;
+    bottom: auto;
+    transform: none;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    overflow: visible;
+  }
+
+  .ss-sa-badge[data-page="privacy"] {
+    top: 264px;
+  }
+
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="compose"] {
+    top: 420px;
+  }
+
+  .ss-sa-badge[data-page="match"] {
+    top: 270px;
+  }
+
+  .ss-sa-badge__chip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #fff3ea;
+    color: #060b0b;
+    cursor: pointer;
+    /* 7px notch on the 44px chip design. */
+    clip-path: polygon(15.91% 0, 100% 0, 100% 100%, 15.91% 100%, 0 84.09%, 0 15.91%);
+  }
+
+  .ss-sa-badge__chip img {
+    display: block;
+    width: auto;
+    height: calc(26 / 44 * var(--sa-chip));
+    transform: translateX(calc(1.5 / 44 * var(--sa-chip)));
+    pointer-events: none;
+  }
+
+  .ss-sa-badge__chip:focus-visible {
+    outline: 2px solid #060b0b;
+    outline-offset: -3px;
+  }
+
+  .ss-sa-badge__panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 3;
+    width: calc(60px * var(--u) / 1px);
+    height: calc(273px * var(--u) / 1px);
+    container-type: inline-size;
+    overflow: hidden;
+    transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 250ms ease, visibility 0s linear 250ms;
+  }
+
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 250ms ease, visibility 0s linear 0s;
+  }
+
+  .ss-sa-badge__panel .ss-sa-badge__fit {
+    --design-w: 60px;
+    --design-h: 273px;
+    width: 60px;
+    height: 273px;
+    clip-path: polygon(
+      10px 0,
+      100% 0,
+      100% 100%,
+      10px 100%,
+      0 calc(100% - 10px),
+      0 10px
+    );
+  }
+
+  /* The open chip is a transparent hit target over the tab's meatball.
+     Tapping it again closes the tab; the rest of the tab stays a link. */
+  .ss-sa-badge.is-open .ss-sa-badge__chip {
+    width: calc(60px * var(--u) / 1px);
+    height: calc(56px * var(--u) / 1px);
+    background: transparent;
+    clip-path: none;
+  }
+
+  .ss-sa-badge.is-open .ss-sa-badge__chip img {
+    visibility: hidden;
+  }
+
+  .ss-sa-badge__panel:focus {
+    outline: none;
+  }
+
+  .ss-sa-badge__panel:focus-visible {
+    outline: 2px solid #060b0b;
+    outline-offset: -6px;
+  }
+}
+
+@media (max-width: 639px) and (prefers-reduced-motion: reduce) {
+  .ss-sa-badge__panel,
+  .ss-sa-badge.is-open .ss-sa-badge__panel {
+    transition: none;
+  }
+}
