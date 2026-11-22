@@ -45,10 +45,11 @@ function ChaptersHeaderSection() {
       aria-label={`${CHAPTERS_DISPLAY_HEADER.line1} ${CHAPTERS_DISPLAY_HEADER.line2}`}
     >
       <h2 className="sonify-chapters-display-title flex flex-col items-center justify-center gap-[1.5vh] sm:gap-[2.5vh] w-full max-w-[1440px] select-none">
+        <span className="sr-only">Story chapters</span>
         <span className="sonify-chapter-line-mask block overflow-hidden w-[min(565px,calc((100vw-3rem)*0.615))] aspect-[250/80]">
           <span className="sonify-chapter-line-inner block size-full">
             <img
-              alt={CHAPTERS_DISPLAY_HEADER.line1}
+              alt=""
               className="block size-full object-contain pointer-events-none"
               src={ASSETS.displayStory}
             />
@@ -57,7 +58,7 @@ function ChaptersHeaderSection() {
         <span className="sonify-chapter-line-mask block overflow-hidden w-[min(920px,calc(100vw-3rem))] aspect-[1912/376]">
           <span className="sonify-chapter-line-inner block size-full">
             <img
-              alt={CHAPTERS_DISPLAY_HEADER.line2}
+              alt=""
               className="block size-full object-contain pointer-events-none"
               src={ASSETS.displayChapters}
             />

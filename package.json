@@ -15,7 +15,7 @@
     "test:eic": "node scripts/test-eic-frame.mjs",
     "test:svs": "node scripts/test-svs-media.mjs",
     "test:e2e": "playwright test",
-    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts src/components/listen/epic/EpicSource.test.ts src/components/play/guessResultCurve.test.ts src/components/contact/deckSettle.test.ts src/lib/ribbonsResult.test.ts src/lib/listenAssets.test.ts src/lib/toneLoader.test.ts src/lib/framePace.test.ts src/lib/scrollRest.test.ts src/lib/staticCache.test.ts src/lib/liteMode.test.ts",
+    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts src/components/listen/epic/EpicSource.test.ts src/components/play/guessResultCurve.test.ts src/components/contact/deckSettle.test.ts src/lib/ribbonsResult.test.ts src/lib/listenAssets.test.ts src/lib/toneLoader.test.ts src/lib/framePace.test.ts src/lib/scrollRest.test.ts src/lib/staticCache.test.ts src/lib/liteMode.test.ts src/lib/contentNegotiation.test.ts src/lib/documentNegotiation.test.ts src/lib/agentCopy.test.ts src/lib/negotiatedPaths.test.ts",
     "test:planetary-computer": "node scripts/test-planetary-computer.mjs",
     "test:satellite-jobs": "node scripts/test-satellite-jobs.mjs"
   },
