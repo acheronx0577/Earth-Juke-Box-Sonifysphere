@@ -2,8 +2,11 @@ import { expect, test, type APIResponse } from "@playwright/test";
 
 const BROWSER = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8";
 
-function varyOf(response: APIResponse): string {
-  return response.headers()["vary"] ?? "";
+function varyTokens(response: APIResponse): string[] {
+  return (response.headers()["vary"] ?? "")
+    .split(",")
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function htmlTextRatio(html: string): { textChars: number; htmlBytes: number; ratio: number } {
@@ -28,7 +31,7 @@ test("homepage markdown negotiation honors q-values and Vary", async ({ request 
   const markdown = await request.get("/", { headers: { Accept: "text/markdown" } });
   expect(markdown.status()).toBe(200);
   expect(markdown.headers()["content-type"]).toBe("text/markdown; charset=utf-8");
-  expect(varyOf(markdown).toLowerCase()).toContain("accept");
+  expect(varyTokens(markdown)).toContain("accept");
   const body = await markdown.text();
   expect(body.length).toBeGreaterThan(20);
   expect(body).toContain("# SonifySphere");
@@ -37,8 +40,8 @@ test("homepage markdown negotiation honors q-values and Vary", async ({ request 
   const htmlPreferred = await request.get("/", { headers: { Accept: "text/html, text/markdown;q=0.1" } });
   expect(htmlPreferred.status()).toBe(200);
   expect(htmlPreferred.headers()["content-type"] ?? "").toContain("text/html");
-  expect(varyOf(htmlPreferred).toLowerCase()).toContain("accept");
-  expect(varyOf(htmlPreferred).toLowerCase()).toContain("rsc");
+  expect(varyTokens(htmlPreferred)).toContain("accept");
+  expect(varyTokens(htmlPreferred)).toContain("rsc");
 
   const markdownPreferred = await request.get("/", { headers: { Accept: "text/markdown, text/html;q=0.1" } });
   expect(markdownPreferred.headers()["content-type"]).toBe("text/markdown; charset=utf-8");
@@ -56,13 +59,13 @@ test("inner pages negotiate markdown the same way", async ({ request }) => {
     const markdown = await request.get(path, { headers: { Accept: "text/markdown" } });
     expect(markdown.status(), path).toBe(200);
     expect(markdown.headers()["content-type"], path).toBe("text/markdown; charset=utf-8");
-    expect(varyOf(markdown).toLowerCase(), path).toContain("accept");
+    expect(varyTokens(markdown), path).toContain("accept");
     expect((await markdown.text()).length, path).toBeGreaterThan(20);
 
     const html = await request.get(path, { headers: { Accept: "text/html" } });
     expect(html.headers()["content-type"] ?? "", path).toContain("text/html");
-    expect(varyOf(html).toLowerCase(), path).toContain("accept");
-    expect(varyOf(html).toLowerCase(), path).toContain("rsc");
+    expect(varyTokens(html), path).toContain("accept");
+    expect(varyTokens(html), path).toContain("rsc");
   }
 });
 
@@ -70,7 +73,7 @@ test("a missing path stays HTTP 404 and switches body with Accept", async ({ req
   const markdown = await request.get("/does-not-exist", { headers: { Accept: "text/markdown" } });
   expect(markdown.status()).toBe(404);
   expect(markdown.headers()["content-type"]).toBe("text/markdown; charset=utf-8");
-  expect(varyOf(markdown).toLowerCase()).toContain("accept");
+  expect(varyTokens(markdown)).toContain("accept");
   const body = await markdown.text();
   expect(body.length).toBeGreaterThanOrEqual(20);
   expect(body.toLowerCase()).toContain("not found");
@@ -81,7 +84,8 @@ test("a missing path stays HTTP 404 and switches body with Accept", async ({ req
   const html = await request.get("/does-not-exist", { headers: { Accept: "text/html" } });
   expect(html.status()).toBe(404);
   expect(html.headers()["content-type"] ?? "").toContain("text/html");
-  expect(varyOf(html).toLowerCase()).toContain("accept");
+  expect(varyTokens(html)).toContain("rsc");
+  expect(varyTokens(html)).not.toContain("accept");
   const htmlBody = await html.text();
   expect(htmlBody).toContain("Signal lost");
   expect(htmlBody).toContain("Return home");
