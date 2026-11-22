@@ -1093,8 +1093,15 @@ export function GuessGame({
 
   const closeShare = useCallback(() => setShareOpen(false), []);
 
+  const shareResult: SharedGuessResult = sharedResult ?? {
+    correct: correctCount,
+    total: deck.length,
+    score,
+    bestStreak: best,
+  };
+
   const saveImage = async (title: string, scoreLine: string) => {
-    const path = `/challenge/guess?result=${encodeGuessResult({ correct: correctCount, total: deck.length, score, bestStreak: best })}`;
+    const path = `/challenge/guess?result=${encodeGuessResult(shareResult)}`;
     await saveGuessResultImage({
       title,
       scoreLine,
@@ -1121,12 +1128,6 @@ export function GuessGame({
   const total = deck.length || rounds;
   const roundLabel = phase === "result" ? `${total} of ${total} complete` : `Round ${Math.min(index + 1, total)} of ${total}`;
   const filled = phase === "result" ? total : history.length;
-  const shareResult: SharedGuessResult = {
-    correct: correctCount,
-    total: deck.length,
-    score,
-    bestStreak: best,
-  };
   const seriesRecord = round ? recordForClip(round) : null;
   const geometry = round && seriesRecord ? heroGeometry(seriesContour(round), seriesRecord.years) : null;
   const axisLabels = geometry?.mapped.map((point) => point.label) ?? [];
