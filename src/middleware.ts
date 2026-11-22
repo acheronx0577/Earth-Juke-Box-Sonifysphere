@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { MARKDOWN_CONTENT_TYPE, notFoundMarkdown } from "@/lib/agentCopy";
-import { setDocumentVary } from "@/lib/contentNegotiation";
-import { negotiateDocument } from "@/lib/documentNegotiation";
+import { isMarkdownPath, MARKDOWN_CONTENT_TYPE, notFoundMarkdown } from "@/lib/agentCopy";
+import { negotiateDocument, normalizePathname } from "@/lib/documentNegotiation";
+
+const ACCEPT_VARY = "Accept";
 
 function isRscRequest(request: NextRequest): boolean {
   const accept = request.headers.get("accept") ?? "";
@@ -25,7 +26,7 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = decision.pathname === "/" ? "/api/markdown" : `/api/markdown${decision.pathname}`;
     const rewritten = NextResponse.rewrite(url);
-    setDocumentVary(rewritten.headers);
+    rewritten.headers.set("Vary", ACCEPT_VARY);
     return rewritten;
   }
 
@@ -34,7 +35,7 @@ export function middleware(request: NextRequest) {
       status: 406,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        Vary: "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept",
+        Vary: ACCEPT_VARY,
       },
     });
   }
@@ -44,14 +45,16 @@ export function middleware(request: NextRequest) {
       status: 404,
       headers: {
         "Content-Type": MARKDOWN_CONTENT_TYPE,
-        Vary: "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept",
+        Vary: ACCEPT_VARY,
         "Cache-Control": "public, max-age=0, must-revalidate",
       },
     });
   }
 
   const response = NextResponse.next();
-  setDocumentVary(response.headers);
+  if (isMarkdownPath(normalizePathname(request.nextUrl.pathname))) {
+    response.headers.set("Vary", ACCEPT_VARY);
+  }
   return response;
 }
 

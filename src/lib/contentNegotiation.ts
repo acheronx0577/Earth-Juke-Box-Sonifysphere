@@ -73,13 +73,6 @@ export function preferredType(header: string | null): ProducedType | null {
   return bestType;
 }
 
-/** Document responses must vary on Accept and on Next's flight headers. */
-export const DOCUMENT_VARY = "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept";
-
-export function setDocumentVary(headers: Headers): void {
-  headers.set("Vary", mergeVaryHeader(headers.get("Vary"), DOCUMENT_VARY));
-}
-
 export function appendVaryAccept(headers: Headers): void {
   const existing = headers.get("Vary");
   if (!existing) {

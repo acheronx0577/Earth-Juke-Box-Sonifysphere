@@ -3,7 +3,7 @@ import { MARKDOWN_CONTENT_TYPE, markdownForPath, notFoundMarkdown } from "@/lib/
 function markdownHeaders(status: number): HeadersInit {
   return {
     "Content-Type": MARKDOWN_CONTENT_TYPE,
-    Vary: "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept",
+    Vary: "Accept",
     "Cache-Control": status === 200
       ? "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400"
       : "public, max-age=0, must-revalidate",
