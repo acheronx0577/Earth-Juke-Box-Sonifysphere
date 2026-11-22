@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { FooterWordmark } from "@/components/landing/FooterWordmark";
+import { GITHUB_REPO } from "@/lib/agentCopy";
 
 function NavLinks({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
   return (
@@ -25,6 +26,14 @@ function NavLinks({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
           Challenge
         </Link>
       ) : null}
+      <a
+        href={GITHUB_REPO}
+        target="_blank"
+        rel="noreferrer"
+        className="sonify-text-link sonify-footer-link"
+      >
+        GitHub ↗
+      </a>
     </>
   );
 }
@@ -154,7 +163,17 @@ export function FooterSection({ showChallenge = false }: Readonly<{ showChalleng
           <FooterWordmark />
 
           <div className="sonify-footer-legal">
-            <p>Space Apps 2026 · The Earth Information Jukebox</p>
+            <p>
+              Space Apps 2026 · The Earth Information Jukebox ·{" "}
+              <a
+                href={GITHUB_REPO}
+                target="_blank"
+                rel="noreferrer"
+                className="sonify-footer-inline-link"
+              >
+                GitHub Repository
+              </a>
+            </p>
             <p>
               Hero image: AI-generated illustration (ChatGPT), not a real person or a real photo of Earth. SI tools: Grok Bot, ChatGPT, Claude, Antigravity, and Codex. NASA: Image and Video Library, GIBS, GISTEMP example figures, and EPIC as a separate credit. Meteomatics only when configured. CO₂: NOAA GML Mauna Loa, embedded, not a live feed.
             </p>
