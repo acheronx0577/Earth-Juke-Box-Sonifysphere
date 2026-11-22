@@ -15,7 +15,7 @@
     "test:eic": "node scripts/test-eic-frame.mjs",
     "test:svs": "node scripts/test-svs-media.mjs",
     "test:e2e": "playwright test",
-    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src/components/listen/v4/*.test.ts",
+    "test:unit": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test src",
     "test:planetary-computer": "node scripts/test-planetary-computer.mjs",
     "test:satellite-jobs": "node scripts/test-satellite-jobs.mjs"
   },
