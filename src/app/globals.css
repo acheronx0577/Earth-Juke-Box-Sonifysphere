@@ -3557,3 +3557,10 @@ footer a.sonify-text-link {
   right: 14px;
   z-index: 60;
 }
+
+@media (max-width: 1000px) {
+  .lite-toggle-dock {
+    top: 20px;
+    right: 80px;
+  }
+}
