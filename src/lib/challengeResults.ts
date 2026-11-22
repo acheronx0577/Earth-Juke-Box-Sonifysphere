@@ -42,21 +42,4 @@ export function parseMatchResult(value: string | undefined): SharedMatchResult |
   return { roundScores };
 }
 
-export type SharedRibbonsResult = Readonly<{
-  patternsSolved: number;
-  totalScore: number;
-}>;
-
-export function encodeRibbonsResult(result: SharedRibbonsResult): string {
-  return `v1.${result.patternsSolved}.${result.totalScore}`;
-}
-
-export function parseRibbonsResult(value: string | undefined): SharedRibbonsResult | null {
-  if (!value || value.length > 40) return null;
-  const match = /^v1\.(\d{1,2})\.(\d{1,6})$/.exec(value);
-  if (!match) return null;
-  return {
-    patternsSolved: Number(match[1]),
-    totalScore: Number(match[2]),
-  };
-}
+export { encodeRibbonsResult, parseRibbonsResult, type SharedRibbonsResult } from "./ribbonsResult";
