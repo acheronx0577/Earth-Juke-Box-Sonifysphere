@@ -151,6 +151,35 @@
   }
 }
 
+/* Home, 641–1023px: a centered tab covers the last letters of
+   "earth breathes". The wordmark reaches about 28px from the edge,
+   so park a chip under the nav, above the title. */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .ss-sa-badge[data-page="home"] {
+    --sa-chip: clamp(40px, 7.5vw, 48px);
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    top: 96px;
+    bottom: auto;
+    transform: none;
+    width: var(--sa-chip);
+    height: var(--sa-chip);
+  }
+
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__mark {
+    top: 0;
+    bottom: 0;
+    height: var(--sa-chip);
+  }
+
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__gh-hit,
+  .ss-sa-badge[data-page="home"] .ss-sa-badge__labels {
+    display: none;
+  }
+}
+
 /* Tall tab, nudged so it misses real UI. */
 
 @media (min-width: 1101px) and (max-height: 860px) {
