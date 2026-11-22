@@ -3,11 +3,13 @@ import { expect, test } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     sessionStorage.setItem("sonify-intro-seen", "1");
-    localStorage.removeItem("sonifysphere-lite");
   });
 });
 
 test("lite mode is off by default, persists, and keeps a chamfered 44px control", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.removeItem("sonifysphere-lite");
+  });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   const toggle = page.getByRole("button", { name: "Lite mode off" });
@@ -53,6 +55,7 @@ test("lite mode does not prefetch a route on touch", async ({ page }) => {
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/about");
+  await expect(page.getByRole("button", { name: "Lite mode on" })).toHaveAttribute("aria-pressed", "true");
   const link = page.locator("nav a[href='/listen']");
   await link.dispatchEvent("touchstart");
   await page.waitForTimeout(400);

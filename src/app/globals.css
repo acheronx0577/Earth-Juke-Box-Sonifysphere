@@ -3456,13 +3456,13 @@ footer a.sonify-text-link {
   .hero .hero-container .hero-content .container .hero-content-nav {
     height: 0;
     min-height: 0;
-    overflow: visible;
   }
 
   .hero-toggle-cluster {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: fixed;
+    top: 56px;
+    right: 12px;
+    z-index: 70;
   }
 }
 
@@ -3542,6 +3542,7 @@ footer a.sonify-text-link {
   outline: none;
 }
 
+.lite-toggle:focus,
 .lite-toggle:focus-visible {
   --lite-stroke: #f2f2f0;
 }
