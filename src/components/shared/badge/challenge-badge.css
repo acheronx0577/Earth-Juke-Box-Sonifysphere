@@ -1,15 +1,14 @@
 /* Fixed right-edge NASA Space Apps tab.
-   --u is the only scale. It is 1px at 1440, and every length in the
-   60×273 design is multiplied by it, so the internal ratios stay fixed.
-   Below 1440 the slope is unchanged (50px wide from 1200px down).
-   Above 1440 it follows the nav: the pill stays 2rem and the label only
-   climbs from 0.8rem to 0.85rem, so the tab goes 60 → 64 at 1920 and
-   caps at 72 at 2560. */
+   --u is one continuous scale: the viewport width divided by 1440.
+   It is 1px at 1440, so the 60px design is 60/1440 of the viewport
+   at every width from 360 to 2560. The chip is the 44px design on
+   that same scale. Internal lengths stay multiples of --u. */
 
 .ss-sa-badge {
-  --u: clamp(0.8333px, 0.069444vw, 1px);
+  --u: clamp(calc(360px / 1440), calc(100vw / 1440), calc(2560px / 1440));
   --design-w: 60px;
   --design-h: 273px;
+  --sa-chip: calc(44px * var(--u) / 1px);
   position: fixed;
   top: 50%;
   right: 0;
@@ -19,20 +18,6 @@
   transform: translateY(-50%);
   container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* 60px at 1440, 64px at 1920. u = 0.8px + 1vw/72. */
-@media (min-width: 1440px) {
-  .ss-sa-badge {
-    --u: calc(0.8px + 1vw / 72);
-  }
-}
-
-/* 64px at 1920, 72px at 2560, then hold. u = 2/3 px + 1vw/48. */
-@media (min-width: 1920px) {
-  .ss-sa-badge {
-    --u: clamp(1.066666px, calc(0.666666px + 1vw / 48), 1.2px);
-  }
 }
 
 .ss-sa-badge__fit {
@@ -187,7 +172,6 @@
    so park a chip under the nav, above the title. */
 @media (min-width: 641px) and (max-width: 1023px) {
   .ss-sa-badge[data-page="home"] {
-    --sa-chip: clamp(40px, 7.5vw, 48px);
     --design-w: 44px;
     --design-h: 44px;
     top: 96px;
@@ -272,41 +256,6 @@
   .ss-sa-badge[data-page="compose"] {
     top: auto;
     bottom: 136px;
-  }
-}
-
-@media (min-width: 640px) and (max-width: 900px) {
-  .ss-sa-badge[data-page="about"],
-  .ss-sa-badge[data-page="match"],
-  .ss-sa-badge[data-page="compose"] {
-    --sa-chip: clamp(40px, 3.056vw, 52px);
-  }
-}
-
-@media (min-width: 901px) and (max-width: 1100px) {
-  .ss-sa-badge[data-page="about"],
-  .ss-sa-badge[data-page="contact"],
-  .ss-sa-badge[data-page="match"],
-  .ss-sa-badge[data-page="compose"] {
-    --sa-chip: clamp(40px, 3.056vw, 52px);
-  }
-}
-
-@media (min-width: 1101px) and (max-width: 1400px) {
-  .ss-sa-badge[data-page="match"] {
-    --sa-chip: clamp(40px, 3.056vw, 52px);
-  }
-}
-
-@media (min-width: 1101px) and (max-width: 1200px) {
-  .ss-sa-badge[data-page="contact"] {
-    --sa-chip: clamp(40px, 3.056vw, 52px);
-  }
-}
-
-@media (min-width: 1101px) {
-  .ss-sa-badge[data-page="compose"] {
-    --sa-chip: clamp(40px, 3.056vw, 52px);
   }
 }
 
@@ -501,7 +450,6 @@
 @media (max-width: 639px) {
   .ss-sa-badge,
   .ss-sa-badge[data-page] {
-    --sa-chip: clamp(40px, 7.5vw, 48px);
     top: 92px;
     bottom: auto;
     transform: none;
