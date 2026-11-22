@@ -91,6 +91,7 @@ export default function RootLayout({
           type="font/ttf"
           crossOrigin="anonymous"
         />
+        <link rel="ard" href="/.well-known/ard.json" />
       </head>
       <body className="bg-[#141414] text-[#f2f2f0] antialiased selection:bg-[#f2f2f0] selection:text-[#141414]">
         <SmoothScroll />

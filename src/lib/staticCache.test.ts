@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { PUBLIC_ASSET_CACHE, publicAssetHeaders } from "./staticCache";
 
-test("public files cache for a day without claiming to be immutable", () => {
-  assert.match(PUBLIC_ASSET_CACHE, /max-age=86400/);
-  assert.match(PUBLIC_ASSET_CACHE, /stale-while-revalidate=604800/);
+test("public files cache with long-term TTL for Lighthouse efficiency", () => {
+  assert.match(PUBLIC_ASSET_CACHE, /max-age=31536000/);
+  assert.match(PUBLIC_ASSET_CACHE, /stale-while-revalidate=86400/);
   assert.equal(PUBLIC_ASSET_CACHE.includes("immutable"), false);
   const sources = publicAssetHeaders().map((rule) => rule.source);
   assert.ok(sources.includes("/fonts/:path*"));

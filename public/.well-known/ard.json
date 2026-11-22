@@ -1,0 +1,26 @@
+{
+  "$schema": "https://agenticresourcediscovery.org/schema/v1/ard.json",
+  "name": "SonifySphere",
+  "description": "Earth Information Jukebox: educational NASA and planetary climate data sonification synthesized in the browser.",
+  "url": "https://www.sonifysphere.earth",
+  "resources": [
+    {
+      "id": "urn:air:sonifysphere.earth:web-audio-listen",
+      "displayName": "SonifySphere Audio Sonification Player",
+      "mediaType": "text/html",
+      "url": "https://www.sonifysphere.earth/listen"
+    },
+    {
+      "id": "urn:air:sonifysphere.earth:llms-txt",
+      "displayName": "SonifySphere LLM Agent Guide",
+      "mediaType": "text/markdown",
+      "url": "https://www.sonifysphere.earth/llms.txt"
+    },
+    {
+      "id": "urn:air:sonifysphere.earth:waveform-ribbons",
+      "displayName": "Waveform Ribbons Seasonal Challenge",
+      "mediaType": "text/html",
+      "url": "https://www.sonifysphere.earth/challenge/ribbons"
+    }
+  ]
+}

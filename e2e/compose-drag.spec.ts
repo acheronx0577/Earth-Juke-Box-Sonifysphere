@@ -47,7 +47,9 @@ async function dragMouse(page: Page, from: { x: number; y: number }, to: { x: nu
 }
 
 async function center(page: Page, selector: string) {
-  const box = await page.locator(selector).boundingBox();
+  const loc = page.locator(selector);
+  await loc.waitFor({ state: "visible" });
+  const box = await loc.boundingBox();
   if (!box) throw new Error(`Missing ${selector}`);
   return { x: box.x + box.width / 2, y: box.y + box.height / 2, box };
 }

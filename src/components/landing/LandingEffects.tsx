@@ -84,8 +84,14 @@ function highlightNearestCell(cells: GridCell[], clientX: number, clientY: numbe
 }
 
 function setupInteractiveGrid(container: HTMLDivElement): () => void {
-  let cells = populateGridCells(container);
+  // Mobile / touch devices do not have cursor hover; skip creating hundreds of DOM cells
+  if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) {
+    return () => {};
+  }
+
+  let cells: GridCell[] = [];
   let rafId = 0;
+  let cancelled = false;
 
   const tick = () => {
     const now = Date.now();
@@ -108,31 +114,39 @@ function setupInteractiveGrid(container: HTMLDivElement): () => void {
   };
 
   const onResize = () => {
+    if (cancelled) return;
     cells = populateGridCells(container);
   };
+
   const onMouseMove = (e: MouseEvent) => {
+    if (cells.length === 0) return;
     highlightNearestCell(cells, e.clientX, e.clientY);
     if (!rafId) {
       rafId = requestAnimationFrame(tick);
     }
   };
-  const onTouchMove = (e: TouchEvent) => {
-    if (e.touches[0]) {
-      highlightNearestCell(cells, e.touches[0].clientX, e.touches[0].clientY);
-      if (!rafId) {
-        rafId = requestAnimationFrame(tick);
-      }
-    }
+
+  const init = () => {
+    if (cancelled) return;
+    cells = populateGridCells(container);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("mousemove", onMouseMove);
   };
 
-  window.addEventListener("resize", onResize);
-  window.addEventListener("mousemove", onMouseMove);
-  window.addEventListener("touchmove", onTouchMove, { passive: true });
+  // Defer DOM generation to idle time so initial hydration and LCP are unblocked
+  const idleId = typeof window !== "undefined" && "requestIdleCallback" in window
+    ? window.requestIdleCallback(init, { timeout: 1000 })
+    : setTimeout(init, 100);
 
   return () => {
+    cancelled = true;
+    if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof idleId === "number") {
+      window.cancelIdleCallback(idleId);
+    } else {
+      clearTimeout(idleId);
+    }
     window.removeEventListener("resize", onResize);
     window.removeEventListener("mousemove", onMouseMove);
-    window.removeEventListener("touchmove", onTouchMove);
     if (rafId) cancelAnimationFrame(rafId);
   };
 }

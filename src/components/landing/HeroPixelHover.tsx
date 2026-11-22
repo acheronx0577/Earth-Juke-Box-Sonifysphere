@@ -105,6 +105,7 @@ export function HeroPixelHover() {
     const start = () => {
       stop();
       if (preference.matches) return;
+      if (typeof window !== "undefined" && window.matchMedia("(hover: none)").matches) return;
       const gl = canvas.getContext("webgl2", { alpha: false, antialias: false });
       if (!gl) return;
       const quality = detectHeroQuality(gl);
@@ -340,9 +341,26 @@ export function HeroPixelHover() {
       }
     };
 
-    start();
+    let idleId: number | NodeJS.Timeout = 0;
+    const scheduleStart = () => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        idleId = window.requestIdleCallback(start, { timeout: 1000 });
+      } else {
+        idleId = setTimeout(start, 100);
+      }
+    };
+
+    scheduleStart();
     preference.addEventListener("change", start);
-    return () => { stop(); preference.removeEventListener("change", start); };
+    return () => {
+      if (typeof window !== "undefined" && "cancelIdleCallback" in window && typeof idleId === "number") {
+        window.cancelIdleCallback(idleId);
+      } else {
+        clearTimeout(idleId);
+      }
+      stop();
+      preference.removeEventListener("change", start);
+    };
   }, []);
 
   return <canvas ref={canvasRef} className="hero-pixel-hover" aria-hidden="true" />;

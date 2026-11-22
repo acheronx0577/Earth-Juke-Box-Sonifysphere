@@ -205,25 +205,30 @@ export function homepageJsonLd(): Record<string, unknown> {
         },
         sameAs: [GITHUB_REPO],
       },
-      {
-        "@type": "Organization",
-        name: SITE_NAME,
-        url: SITE_URL,
-        description: SITE_DESCRIPTION,
-        email: "richardhuynh0824@gmail.com",
-        sameAs: [GITHUB_REPO],
-        contactPoint: {
-          "@type": "ContactPoint",
-          contactType: "customer support",
-          email: "richardhuynh0824@gmail.com",
-          availableLanguage: ["English"],
-        },
-        address: {
-          "@type": "PostalAddress",
-          addressCountry: "US",
-        },
-      },
+      organizationJsonLd(),
     ],
+  };
+}
+
+export function organizationJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+    description: SITE_DESCRIPTION,
+    email: "richardhuynh0824@gmail.com",
+    sameAs: [GITHUB_REPO],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer support",
+      email: "richardhuynh0824@gmail.com",
+      availableLanguage: ["English"],
+    },
+    address: {
+      "@type": "PostalAddress",
+      addressCountry: "US",
+    },
   };
 }
 
