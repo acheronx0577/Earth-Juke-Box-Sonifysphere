@@ -439,8 +439,10 @@ const TargetCursor: React.FC<TargetCursorProps> = ({
         lastScope = scope;
       }
       const selector = scope ? '[data-target-cursor-scope]' : 'html';
-      // Keep the system pointer until the bracket is actually drawn. Hide zones
-      // set data-suppressed, and the bracket also fades in from opacity 0.
+      // One rule: hide the system pointer only while the bracket is actually drawn.
+      // [data-hide-target-cursor] suppresses the bracket (including portaled share
+      // dialogs), and the bracket also fades in from opacity 0. Leaving cursor:none
+      // off in those cases keeps the authored pointer, grab, and crosshair styles.
       const opacity = Number.parseFloat(root.style.opacity);
       const bracketShown =
         root.isConnected &&

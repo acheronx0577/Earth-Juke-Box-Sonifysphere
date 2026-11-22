@@ -197,9 +197,9 @@ test("keyboard operates Listen, Guess, Tune, and Ribbons", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(frequency).toHaveValue(nextFreq);
   await expect(page.getByText(`${nextFreq} Hz`)).toBeVisible();
-  await reach(page, page.getByRole("button", { name: /Listen to Target Sound/ }));
+  await reach(page, page.getByRole("button", { name: "Compare", exact: true }));
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: /Playing Target/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
 });
 
 test("EPIC, events, and the colour map render mocked data and pass axe", async ({ page }) => {
