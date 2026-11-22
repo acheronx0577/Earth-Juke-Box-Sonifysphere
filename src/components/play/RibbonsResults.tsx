@@ -112,14 +112,16 @@ function MiniCurve({
   return (
     <div className={styles.miniPlot}>
       <div className={styles.miniStage} role="img" aria-label={`${pattern.shortTitle} curve, turns in ${pattern.months[pattern.turnIndex]}`}>
-        <svg className={styles.miniSvg} viewBox={`0 0 ${viewWidth} ${viewHeight}`} preserveAspectRatio="none" aria-hidden="true">
-          <path d={line} fill="none" stroke="#f2f2f0" strokeWidth="2.25" vectorEffect="non-scaling-stroke" />
-        </svg>
-        <span className={styles.turnDot} style={{ left, top }} />
-        <span className={`${styles.frame} ${styles.turnMark} ${below ? styles.turnMarkBelow : ""} lv-cut`} style={{ ...cutStyle(4), left, top }}>
-          <ChamferMark />
-          <span className={styles.turnMarkFace}>{label.toUpperCase()}</span>
-        </span>
+        <div className={styles.miniInset}>
+          <svg className={styles.miniSvg} viewBox={`0 0 ${viewWidth} ${viewHeight}`} preserveAspectRatio="none" aria-hidden="true">
+            <path d={line} fill="none" stroke="#f2f2f0" strokeWidth="2.25" vectorEffect="non-scaling-stroke" />
+          </svg>
+          <span className={styles.turnDot} style={{ left, top }} />
+          <span className={`${styles.frame} ${styles.turnMark} ${below ? styles.turnMarkBelow : ""} lv-cut`} style={{ ...cutStyle(4), left, top }}>
+            <ChamferMark />
+            <span className={styles.turnMarkFace}>{label.toUpperCase()}</span>
+          </span>
+        </div>
       </div>
       <div className={styles.axis} aria-hidden="true">
         <span>{pattern.months[0]}</span>
