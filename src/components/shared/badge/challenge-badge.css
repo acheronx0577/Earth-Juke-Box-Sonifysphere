@@ -1,12 +1,14 @@
 /* Fixed right-edge NASA Space Apps tab.
-   --u is one continuous scale: the viewport width divided by 1440.
-   It is 1px at 1440, so the 60px design is 60/1440 of the viewport
-   at every width from 360 to 2560. The chip is the 44px design on
-   that same scale, and never smaller than 32px. Internal lengths
-   stay multiples of --u. */
+   --u is the viewport width divided by 1440, floored so the 60px
+   design never draws narrower than 48px (u = 0.8). That floor holds
+   through 1024px, where the pure ratio would be only ~43px, and
+   releases once the viewport passes 1152px. 1440 stays 60px and
+   2560 stays the same proportion. Internal lengths stay multiples
+   of --u, so the label stays at least 12.8px. The chip is the 44px
+   design on that same scale, and never smaller than 32px. */
 
 .ss-sa-badge {
-  --u: clamp(calc(360px / 1440), calc(100vw / 1440), calc(2560px / 1440));
+  --u: clamp(0.8px, calc(100vw / 1440), calc(2560px / 1440));
   --design-w: 60px;
   --design-h: 273px;
   --sa-chip: max(32px, calc(44px * var(--u) / 1px));
@@ -456,6 +458,14 @@
     transform: none;
     width: var(--sa-chip);
     height: var(--sa-chip);
+    /* The closed panel is translated past the viewport edge. Clip it so
+       that off-screen box cannot widen the page and leave a gap beside
+       the hero. Opening the chip shows the tab, which grows left and down. */
+    overflow: clip;
+  }
+
+  .ss-sa-badge.is-open,
+  .ss-sa-badge.is-open[data-page] {
     overflow: visible;
   }
 
