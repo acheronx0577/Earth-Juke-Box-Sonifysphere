@@ -57,7 +57,6 @@ export function initGlobalLenis(options?: { readonly syncTouch?: boolean }): Len
   window.addEventListener("touchstart", wakeScroll, { passive: true, capture: true });
   window.addEventListener("pointerdown", wakeScroll, { passive: true, capture: true });
   window.addEventListener("keydown", wakeScroll);
-  window.addEventListener("scroll", wakeScroll, { passive: true });
 
   return lenis;
 }
@@ -83,7 +82,6 @@ export function destroyGlobalLenis(): void {
     window.removeEventListener("touchstart", wakeScroll, { capture: true });
     window.removeEventListener("pointerdown", wakeScroll, { capture: true });
     window.removeEventListener("keydown", wakeScroll);
-    window.removeEventListener("scroll", wakeScroll);
     wakeScroll = null;
   }
   if (tickerFn) {
