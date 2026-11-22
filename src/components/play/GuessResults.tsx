@@ -99,6 +99,8 @@ export function GuessResults({
     if (!sourcesOpen) return;
     const dialog = sheetRef.current;
     if (!dialog) return;
+    const sourcesNarrow = sourcesNarrowRef.current;
+    const sourcesButton = sourcesButtonRef.current;
     const focusables = () =>
       Array.from(dialog.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])")).filter(
         (node) => !node.hasAttribute("disabled") && node.tabIndex !== -1,
@@ -132,9 +134,8 @@ export function GuessResults({
     return () => {
       window.clearTimeout(initial);
       document.removeEventListener("keydown", onKey, true);
-      const narrow = sourcesNarrowRef.current;
-      if (narrow && narrow.getClientRects().length > 0) narrow.focus();
-      else sourcesButtonRef.current?.focus();
+      if (sourcesNarrow && sourcesNarrow.getClientRects().length > 0) sourcesNarrow.focus();
+      else sourcesButton?.focus();
     };
   }, [sourcesOpen]);
 

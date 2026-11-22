@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { regionById, type LayerId } from "@/data/exploreMap";
+import { regionById } from "@/data/exploreMap";
 import { REGION_SHAPES } from "@/components/listen/regionGeometry";
 import { explainGuess, recordDisplayName } from "@/lib/guessWhy";
 import { isResumableGuessRun, readGuessRun, writeGuessRun, type GuessHistoryEntry, type StoredGuessRun } from "@/lib/guessSession";
@@ -1050,7 +1050,7 @@ export function GuessGame({
     });
   };
 
-  const replayElapsedHold = (entryIndex: number) => {
+  const replayElapsedHold = useCallback((entryIndex: number) => {
     const amount = replayAmountRef.current;
     replayOnRef.current = false;
     cancelAnimationFrame(replayFrameRef.current);
@@ -1062,7 +1062,7 @@ export function GuessGame({
     paintHeard(entryIndex, amount, "pause");
     requestSilence();
     setAnnouncement(`Paused round ${entryIndex + 1}`);
-  };
+  }, [paintHeard, stopPhrase]);
 
   useEffect(() => {
     if (phase !== "result") return;
@@ -1075,7 +1075,7 @@ export function GuessGame({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phase, shareOpen]);
+  }, [phase, replayElapsedHold, shareOpen]);
 
   useEffect(() => {
     if (phase !== "result") return;
