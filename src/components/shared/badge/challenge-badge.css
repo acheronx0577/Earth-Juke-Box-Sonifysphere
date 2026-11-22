@@ -1,17 +1,19 @@
 /* Fixed right-edge NASA Space Apps tab.
-   Cream fill, 10px inner-edge notches, meatball, GitHub mark, mono label. */
+   Sizes track the viewport. At 1440px the tab is 60×292, the meatball
+   38px, the GitHub mark 23px, the type 16px, and the notches 10px. */
 
 .ss-sa-badge {
-  --sa-w: 60px;
-  --sa-h: 292px;
-  --sa-cut: 10px;
-  --sa-logo-h: 38px;
-  --sa-gh: 23px;
-  --sa-gap: 6px;
-  --sa-type: 16px;
+  --sa-w: clamp(50px, 4.1667vw, 86px);
+  --sa-h: calc(var(--sa-w) * 4.8667);
+  --sa-cut: calc(var(--sa-w) * 0.1667);
+  --sa-logo-h: calc(var(--sa-w) * 0.6333);
+  --sa-gh: calc(var(--sa-w) * 0.3833);
+  --sa-stack: calc(var(--sa-w) * 0.0833);
+  --sa-label-pad: calc(var(--sa-w) * 0.1333);
   --sa-track: 0.1em;
   --sa-ink: #060b0b;
   --sa-cream: #fff3ea;
+  --sa-type: calc(var(--sa-w) * 0.2667);
   position: fixed;
   top: 50%;
   right: 0;
@@ -44,7 +46,7 @@
 
 .ss-sa-badge__mark {
   position: absolute;
-  top: calc(var(--sa-cut) + 5px);
+  top: calc(var(--sa-cut) + var(--sa-stack));
   left: 0;
   right: 0;
   display: flex;
@@ -66,11 +68,11 @@
 .ss-sa-badge__gh-hit {
   position: absolute;
   z-index: 2;
-  top: calc(var(--sa-cut) + 5px + var(--sa-logo-h));
+  top: calc(var(--sa-cut) + var(--sa-stack) + var(--sa-logo-h));
   left: 50%;
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: max(32px, calc(var(--sa-gh) + 8px));
+  height: max(32px, calc(var(--sa-gh) + 8px));
   place-items: center;
   color: var(--sa-ink);
   text-decoration: none;
@@ -99,7 +101,7 @@
 .ss-sa-badge__label {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--sa-cut) + 8px);
+  bottom: calc(var(--sa-cut) + var(--sa-label-pad));
   font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
   font-weight: 600;
   font-size: var(--sa-type);
@@ -133,7 +135,7 @@
 
 .ss-sa-badge__page:focus-visible {
   outline: 2px solid var(--sa-ink);
-  outline-offset: -6px;
+  outline-offset: calc(var(--sa-w) * -0.1);
 }
 
 .ss-sa-badge__gh-hit:focus-visible {
@@ -149,16 +151,7 @@
   }
 }
 
-/* Pages below keep the tall tab, nudged so it misses real UI. */
-
-/* Listen's sound column keeps its labels 48px off the right edge. */
-@media (min-width: 1024px) {
-  .ss-sa-badge[data-page="listen"] {
-    --sa-w: 42px;
-    --sa-logo-h: 30px;
-    --sa-cut: 8px;
-  }
-}
+/* Tall tab, nudged so it misses real UI. */
 
 @media (min-width: 1101px) and (max-height: 860px) {
   .ss-sa-badge[data-page="about"] {
@@ -177,57 +170,101 @@
     top: 80px;
     transform: none;
   }
-
-  .ss-sa-badge[data-page="epic"] {
-    top: 96px;
-    transform: none;
-  }
-
-  .ss-sa-badge[data-page="colormap"] {
-    top: 448px;
-    transform: none;
-  }
 }
 
-@media (min-width: 901px) and (max-width: 1200px) {
-  .ss-sa-badge[data-page="colormap"],
-  .ss-sa-badge[data-page="events"] {
-    top: 96px;
-    transform: none;
-  }
-}
-
-/* 44px chip where a 292px tab has no clear band. Meatball only, still linked. */
+/* Chip where a tall tab has no clear band. Meatball only, still linked.
+   The chip scales from about 40px to 52px. */
 @media (min-width: 640px) and (max-width: 900px) {
   .ss-sa-badge[data-page="about"] { top: 340px; }
-  .ss-sa-badge[data-page="events"] { top: 368px; }
   .ss-sa-badge[data-page="match"] { top: 280px; bottom: auto; }
   .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+}
 
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ss-sa-badge[data-page="about"] { top: 340px; }
+  .ss-sa-badge[data-page="contact"] { top: 252px; }
+  .ss-sa-badge[data-page="match"] { top: 640px; bottom: auto; }
+  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .ss-sa-badge[data-page="match"] {
+    top: 80px;
+    bottom: auto;
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="contact"] {
+    top: 252px;
+  }
+}
+
+@media (min-width: 1101px) {
+  .ss-sa-badge[data-page="compose"] {
+    top: auto;
+    bottom: 136px;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
   .ss-sa-badge[data-page="about"],
-  .ss-sa-badge[data-page="events"],
   .ss-sa-badge[data-page="match"],
   .ss-sa-badge[data-page="compose"] {
+    --sa-chip: clamp(40px, 3.056vw, 52px);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="contact"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    --sa-chip: clamp(40px, 3.056vw, 52px);
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1400px) {
+  .ss-sa-badge[data-page="match"] {
+    --sa-chip: clamp(40px, 3.056vw, 52px);
+  }
+}
+
+@media (min-width: 1101px) and (max-width: 1200px) {
+  .ss-sa-badge[data-page="contact"] {
+    --sa-chip: clamp(40px, 3.056vw, 52px);
+  }
+}
+
+@media (min-width: 1101px) {
+  .ss-sa-badge[data-page="compose"] {
+    --sa-chip: clamp(40px, 3.056vw, 52px);
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .ss-sa-badge[data-page="about"],
+  .ss-sa-badge[data-page="match"],
+  .ss-sa-badge[data-page="compose"] {
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    width: var(--sa-chip);
+    height: var(--sa-chip);
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
   }
 
   .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
-  .ss-sa-badge[data-page="events"] .ss-sa-badge__mark,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-chip);
   }
 
   .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
   .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
-  .ss-sa-badge[data-page="events"] .ss-sa-badge__gh-hit,
-  .ss-sa-badge[data-page="events"] .ss-sa-badge__labels,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
@@ -237,40 +274,32 @@
 }
 
 @media (min-width: 901px) and (max-width: 1100px) {
-  .ss-sa-badge[data-page="about"] { top: 340px; }
-  .ss-sa-badge[data-page="contact"] { top: 252px; }
-  .ss-sa-badge[data-page="classic"] { top: 96px; }
-  .ss-sa-badge[data-page="match"] { top: 640px; bottom: auto; }
-  .ss-sa-badge[data-page="compose"] { top: auto; bottom: 136px; }
-
   .ss-sa-badge[data-page="about"],
   .ss-sa-badge[data-page="contact"],
-  .ss-sa-badge[data-page="classic"],
   .ss-sa-badge[data-page="match"],
   .ss-sa-badge[data-page="compose"] {
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    width: var(--sa-chip);
+    height: var(--sa-chip);
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
   }
 
   .ss-sa-badge[data-page="about"] .ss-sa-badge__mark,
   .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark,
-  .ss-sa-badge[data-page="classic"] .ss-sa-badge__mark,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__mark,
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-chip);
   }
 
   .ss-sa-badge[data-page="about"] .ss-sa-badge__gh-hit,
   .ss-sa-badge[data-page="about"] .ss-sa-badge__labels,
   .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
   .ss-sa-badge[data-page="contact"] .ss-sa-badge__labels,
-  .ss-sa-badge[data-page="classic"] .ss-sa-badge__gh-hit,
-  .ss-sa-badge[data-page="classic"] .ss-sa-badge__labels,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
   .ss-sa-badge[data-page="match"] .ss-sa-badge__labels,
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
@@ -281,19 +310,19 @@
 
 @media (min-width: 1101px) and (max-width: 1400px) {
   .ss-sa-badge[data-page="match"] {
-    top: 80px;
-    bottom: auto;
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    width: var(--sa-chip);
+    height: var(--sa-chip);
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
   }
 
   .ss-sa-badge[data-page="match"] .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-chip);
   }
 
   .ss-sa-badge[data-page="match"] .ss-sa-badge__gh-hit,
@@ -304,18 +333,19 @@
 
 @media (min-width: 1101px) and (max-width: 1200px) {
   .ss-sa-badge[data-page="contact"] {
-    top: 252px;
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    width: var(--sa-chip);
+    height: var(--sa-chip);
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
   }
 
   .ss-sa-badge[data-page="contact"] .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-chip);
   }
 
   .ss-sa-badge[data-page="contact"] .ss-sa-badge__gh-hit,
@@ -326,19 +356,19 @@
 
 @media (min-width: 1101px) {
   .ss-sa-badge[data-page="compose"] {
-    top: auto;
-    bottom: 136px;
+    --sa-w: var(--sa-chip);
+    --sa-h: var(--sa-chip);
+    --sa-cut: calc(var(--sa-chip) * 0.16);
+    --sa-logo-h: calc(var(--sa-chip) * 0.6);
+    width: var(--sa-chip);
+    height: var(--sa-chip);
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
   }
 
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-chip);
   }
 
   .ss-sa-badge[data-page="compose"] .ss-sa-badge__gh-hit,
@@ -350,34 +380,22 @@
 @media (max-width: 639px) {
   .ss-sa-badge,
   .ss-sa-badge[data-page] {
+    --sa-w: clamp(40px, 7.5vw, 48px);
+    --sa-h: var(--sa-w);
+    --sa-cut: calc(var(--sa-w) * 0.16);
+    --sa-logo-h: calc(var(--sa-w) * 0.6);
     top: 92px;
     bottom: auto;
     transform: none;
-    width: 44px;
-    height: 44px;
-    --sa-cut: 7px;
-    --sa-logo-h: 26px;
+    width: var(--sa-w);
+    height: var(--sa-w);
   }
 
-  .ss-sa-badge[data-page="listen"],
-  .ss-sa-badge[data-page="classic"] {
-    top: 304px;
-  }
-
-  .ss-sa-badge[data-page="colormap"],
-  .ss-sa-badge[data-page="events"],
   .ss-sa-badge[data-page="privacy"] {
     top: 264px;
   }
 
-  .ss-sa-badge[data-page="epic"] {
-    top: 460px;
-  }
-
-  .ss-sa-badge[data-page="about"] {
-    top: 420px;
-  }
-
+  .ss-sa-badge[data-page="about"],
   .ss-sa-badge[data-page="compose"] {
     top: 420px;
   }
@@ -389,7 +407,7 @@
   .ss-sa-badge__mark {
     top: 0;
     bottom: 0;
-    height: 44px;
+    height: var(--sa-w);
   }
 
   .ss-sa-badge__gh-hit,

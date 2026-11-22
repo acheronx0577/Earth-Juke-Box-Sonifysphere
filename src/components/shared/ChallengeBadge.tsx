@@ -25,12 +25,6 @@ function usePreloaderGone() {
 
 function badgePage(pathname: string) {
   if (pathname === "/") return "home";
-  if (pathname === "/listen") return "listen";
-  if (pathname === "/listen/classic") return "classic";
-  if (pathname === "/listen/colormap") return "colormap";
-  if (pathname === "/listen/epic") return "epic";
-  if (pathname === "/listen/events") return "events";
-  if (pathname.startsWith("/listen/")) return "listen";
   if (pathname === "/about") return "about";
   if (pathname === "/contact") return "contact";
   if (pathname === "/challenge/compose") return "compose";
@@ -55,6 +49,10 @@ function GitHubMark() {
 export function ChallengeBadge() {
   const pathname = usePathname() ?? "/";
   const ready = usePreloaderGone();
+
+  if (pathname === "/listen" || pathname.startsWith("/listen/")) {
+    return null;
+  }
 
   if (!ready) {
     return null;
