@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ASSETS } from "@/data/landingData";
+import { frameWait } from "@/lib/framePace";
 
 // Past Drop V1's nearest-filtered displacement grid, applied to the hero artwork.
 const RELAXATION = 0.9;
@@ -114,6 +115,7 @@ export function HeroPixelHover() {
       let ready = false;
       let visible = true;
       let frame = 0;
+      let pace = 0;
       let previousTime = 0;
       let energy = 0;
       let width = 1;
@@ -179,8 +181,12 @@ export function HeroPixelHover() {
         // Keep pointer interaction fluid; the slow idle breath needs fewer GPU draws.
         const isInteracting = energy || mouse.vX || mouse.vY;
         const interval = 1000 / (isInteracting ? quality.activeFps : quality.idleFps);
-        if (previousTime && time - previousTime < interval - 1) {
-          frame = requestAnimationFrame(render);
+        const wait = frameWait(time, previousTime, interval);
+        if (wait > 0) {
+          pace = window.setTimeout(() => {
+            pace = 0;
+            if (!disposed && visible && !document.hidden && ready && !frame) frame = requestAnimationFrame(render);
+          }, wait);
           return;
         }
         const delta = previousTime ? Math.min((time - previousTime) / (1000 / 60), 4) : 1;
@@ -195,6 +201,10 @@ export function HeroPixelHover() {
 
       const wake = () => {
         previousTime = 0;
+        if (pace) {
+          window.clearTimeout(pace);
+          pace = 0;
+        }
         if (!frame && ready && visible && !document.hidden) frame = requestAnimationFrame(render);
       };
       const position = (event: PointerEvent) => {
@@ -235,6 +245,7 @@ export function HeroPixelHover() {
       stop = () => {
         disposed = true;
         cancelAnimationFrame(frame);
+        if (pace) window.clearTimeout(pace);
         resizeObserver.disconnect();
         observer.disconnect();
         hero.removeEventListener("pointerenter", enter);
