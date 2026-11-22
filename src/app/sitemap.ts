@@ -10,6 +10,7 @@ const PATHS = [
   "/challenge/match",
   "/challenge/ribbons",
   "/contact",
+  "/privacy",
   "/story",
   "/llms.txt",
   "/llms-full.txt",

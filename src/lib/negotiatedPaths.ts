@@ -1,4 +1,4 @@
-export const NEGOTIATED_PATHS = new Set(["/", "/about", "/listen", "/challenge", "/contact"]);
+export const NEGOTIATED_PATHS = new Set(["/", "/about", "/listen", "/challenge", "/contact", "/privacy"]);
 
 export function pathnameOf(url: string | undefined): string {
   if (!url) return "";

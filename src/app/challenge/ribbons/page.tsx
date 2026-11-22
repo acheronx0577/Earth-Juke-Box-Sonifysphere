@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { WaveformRibbonsGame } from "@/components/play/WaveformRibbonsGame";
 import { parseRibbonsResult } from "@/lib/challengeResults";
+import { PageReadableSummary } from "@/components/shared/PageReadableSummary";
 
 export const metadata: Metadata = {
   title: "Waveform Ribbons — SonifySphere",
@@ -13,5 +14,10 @@ export default async function WaveformRibbonsPage({
   searchParams: Promise<{ result?: string }>;
 }) {
   const params = await searchParams;
-  return <WaveformRibbonsGame sharedResult={parseRibbonsResult(params.result)} />;
+  return (
+    <>
+      <PageReadableSummary pageKey="ribbons" />
+      <WaveformRibbonsGame sharedResult={parseRibbonsResult(params.result)} />
+    </>
+  );
 }

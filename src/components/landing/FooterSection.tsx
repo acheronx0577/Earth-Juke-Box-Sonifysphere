@@ -14,6 +14,12 @@ function NavLinks({ showChallenge }: Readonly<{ showChallenge: boolean }>) {
       <Link href="/about" className="sonify-text-link sonify-footer-link">
         About
       </Link>
+      <Link href="/contact" className="sonify-text-link sonify-footer-link">
+        Contact
+      </Link>
+      <Link href="/privacy" className="sonify-text-link sonify-footer-link">
+        Privacy
+      </Link>
       {showChallenge ? (
         <Link href="/challenge" className="sonify-text-link sonify-footer-link">
           Challenge

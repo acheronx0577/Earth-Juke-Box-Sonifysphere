@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "lighthouse": "lighthouse",
     "test:eic": "node scripts/test-eic-frame.mjs",
     "test:svs": "node scripts/test-svs-media.mjs",
     "test:e2e": "playwright test",
@@ -47,6 +48,7 @@
     "@types/three": "^0.170.0",
     "eslint": "^10.15.0",
     "eslint-config-next": "^16.4.6",
+    "lighthouse": "^13.6.0",
     "tailwindcss": "^4.1.4",
     "typescript": "^5.8.3"
   }

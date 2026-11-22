@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ComposeBoard } from "@/components/play/ComposeBoard";
+import { PageReadableSummary } from "@/components/shared/PageReadableSummary";
 
 export const metadata: Metadata = {
   title: "Compose — SonifySphere",
@@ -12,5 +13,10 @@ export default async function ComposePage({
   searchParams: Promise<{ mix?: string }>;
 }) {
   const params = await searchParams;
-  return <ComposeBoard initialMix={params.mix ?? null} />;
+  return (
+    <>
+      <PageReadableSummary pageKey="compose" />
+      <ComposeBoard initialMix={params.mix ?? null} />
+    </>
+  );
 }

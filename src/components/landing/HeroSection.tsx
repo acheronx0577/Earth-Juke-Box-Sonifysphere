@@ -61,11 +61,15 @@ function HeroImages() {
           alt=""
           className="sonify-earth-breathe absolute inset-0 max-w-none object-cover object-top pointer-events-none size-full"
           src={ASSETS.heroEarthSky}
+          fetchPriority="high"
+          decoding="async"
         />
         <img
           alt=""
           className="absolute inset-0 max-w-none object-cover object-bottom pointer-events-none size-full"
           src={ASSETS.heroForegroundAstronaut}
+          fetchPriority="high"
+          decoding="async"
         />
         <HeroPixelHover />
       </div>
