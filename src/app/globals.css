@@ -3452,6 +3452,20 @@ footer a.sonify-text-link {
   z-index: 8;
 }
 
+@media (max-width: 1000px) {
+  .hero .hero-container .hero-content .container .hero-content-nav {
+    height: 0;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .hero-toggle-cluster {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+}
+
 .lite-toggle {
   --cut: 8px;
   --chamfer-stroke: 1.5px;
