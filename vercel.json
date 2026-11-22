@@ -3,5 +3,27 @@
   "framework": "nextjs",
   "installCommand": "env -u npm_config_cache_dir -u NPM_CONFIG_CACHE_DIR npm ci",
   "buildCommand": "env -u npm_config_cache_dir -u NPM_CONFIG_CACHE_DIR npm run build",
-  "git": { "deploymentEnabled": { "cursor/*": false } }
+  "git": { "deploymentEnabled": { "cursor/*": false } },
+  "headers": [
+    {
+      "source": "/",
+      "headers": [{ "key": "Vary", "value": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept" }]
+    },
+    {
+      "source": "/about",
+      "headers": [{ "key": "Vary", "value": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept" }]
+    },
+    {
+      "source": "/listen",
+      "headers": [{ "key": "Vary", "value": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept" }]
+    },
+    {
+      "source": "/challenge",
+      "headers": [{ "key": "Vary", "value": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept" }]
+    },
+    {
+      "source": "/contact",
+      "headers": [{ "key": "Vary", "value": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept" }]
+    }
+  ]
 }
