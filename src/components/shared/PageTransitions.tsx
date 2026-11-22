@@ -33,6 +33,9 @@ const APP_ROUTE_PATHS = new Set([
   "/credits",
 ]);
 
+/** Warmed on intent, and left on the normal link click. Contact stays out of the tile transition. */
+const WARM_ONLY_PATHS = new Set(["/contact"]);
+
 type ActiveNavigation = {
   from: string;
   href: string;
@@ -70,7 +73,7 @@ export function PageTransitions() {
       const url = new URL(anchor.href, location.href);
       const pathname = normalizedPathname(url.pathname);
       if (url.origin !== location.origin || !/^https?:$/.test(url.protocol) || pathname === normalizedPathname(location.pathname)) return null;
-      if (!APP_ROUTE_PATHS.has(pathname)) return null;
+      if (!APP_ROUTE_PATHS.has(pathname) && !WARM_ONLY_PATHS.has(pathname)) return null;
       return url;
     };
     const warm = (url: URL) => {
@@ -186,6 +189,7 @@ export function PageTransitions() {
       const url = destination(event.target);
       if (!url) return;
       warm(url);
+      if (!APP_ROUTE_PATHS.has(normalizedPathname(url.pathname))) return;
       if (motion.matches) return;
       event.preventDefault();
       if (active) return;

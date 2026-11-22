@@ -20,6 +20,12 @@ test("nav links do not prefetch their route bundles while idle", () => {
 
 test("the first touch warms the destination before the click", () => {
   assert.match(transitions, /addEventListener\("touchstart", onIntent/);
+  assert.match(transitions, /WARM_ONLY_PATHS = new Set\(\["\/contact"\]\)/);
+  const click = transitions.slice(transitions.indexOf("const onClick"));
+  const warmAt = click.indexOf("warm(url)");
+  const stayAt = click.indexOf("if (!APP_ROUTE_PATHS.has(normalizedPathname(url.pathname))) return;");
+  const coverAt = click.indexOf("event.preventDefault()");
+  assert.ok(warmAt > -1 && stayAt > warmAt && coverAt > stayAt);
 });
 
 test("a hidden tab suspends Tone only after it has been created", async () => {
