@@ -1,4 +1,6 @@
 import { HeroSection } from "@/components/landing/HeroSection";
+
+export const dynamic = "force-dynamic";
 import { HomepageJsonLd } from "@/components/landing/HomepageJsonLd";
 import { ThemePickerSection } from "@/components/landing/ThemePickerSection";
 import {
