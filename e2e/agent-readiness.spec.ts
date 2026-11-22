@@ -116,7 +116,7 @@ test("raw homepage HTML has one H1, sequential headings, JSON-LD, and a 5% text 
   const json = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
   expect(json).toBeTruthy();
   const data = JSON.parse(json ?? "{}") as { "@graph": Array<{ "@type": string }> };
-  expect(data["@graph"].map((node) => node["@type"])).toEqual(["WebSite", "WebApplication"]);
+  expect(data["@graph"].map((node) => node["@type"])).toEqual(["WebSite", "WebApplication", "Organization"]);
 
   await page.goto("/");
   const summary = page.locator("[data-agent-summary]");

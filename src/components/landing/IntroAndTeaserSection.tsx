@@ -100,6 +100,8 @@ function ChapterTeaserSection() {
                 alt={teaser.imageAlt}
                 className="block size-full object-cover"
                 src={teaser.image}
+                width={800}
+                height={480}
                 loading="lazy"
                 decoding="async"
               />

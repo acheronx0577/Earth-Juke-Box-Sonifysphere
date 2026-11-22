@@ -70,7 +70,7 @@ test("llms-full includes the guide and the negotiated pages", () => {
 
 test("negotiated pages and the markdown 404 are non-empty markdown", () => {
   assert.equal(MARKDOWN_CONTENT_TYPE, "text/markdown; charset=utf-8");
-  for (const path of ["/", "/about", "/listen", "/challenge", "/contact"]) {
+  for (const path of ["/", "/about", "/listen", "/challenge", "/contact", "/privacy"]) {
     const body = markdownForPath(path);
     assert.ok(body && body.length >= 20, path);
     assert.ok(body?.startsWith("# "), path);
@@ -83,19 +83,21 @@ test("negotiated pages and the markdown 404 are non-empty markdown", () => {
   assert.match(missing, /\/sitemap\.xml/);
 });
 
-test("homepage JSON-LD is WebSite plus a free educational WebApplication", () => {
+test("homepage JSON-LD is WebSite, WebApplication, and Organization", () => {
   const raw = JSON.stringify(homepageJsonLd());
   const parsed = JSON.parse(raw) as {
     "@context": string;
     "@graph": Array<Record<string, unknown>>;
   };
   assert.equal(parsed["@context"], "https://schema.org");
-  const [website, app] = parsed["@graph"];
+  const [website, app, org] = parsed["@graph"];
   assert.ok(website);
   assert.ok(app);
+  assert.ok(org);
   assert.equal(website["@type"], "WebSite");
   assert.equal(app["@type"], "WebApplication");
-  for (const node of [website, app]) {
+  assert.equal(org["@type"], "Organization");
+  for (const node of [website, app, org]) {
     assert.equal(node.name, SITE_NAME);
     assert.equal(node.description, SITE_DESCRIPTION);
     assert.equal(node.url, SITE_URL);

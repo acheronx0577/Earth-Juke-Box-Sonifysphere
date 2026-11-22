@@ -17,6 +17,7 @@ const PAGES = new Set<string>([
   "/challenge/ribbon",
   "/challenge/ribbons",
   "/contact",
+  "/privacy",
   "/story",
 ]);
 

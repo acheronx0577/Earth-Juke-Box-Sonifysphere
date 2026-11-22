@@ -8,7 +8,7 @@ export const GITHUB_REPO = "https://github.com/acheronx0577/Earth-Juke-Box-Sonif
 export const MARKDOWN_CONTENT_TYPE = "text/markdown; charset=utf-8";
 export const PLAIN_CONTENT_TYPE = "text/plain; charset=utf-8";
 
-const MARKDOWN_PATHS = ["/", "/about", "/listen", "/challenge", "/contact"] as const;
+const MARKDOWN_PATHS = ["/", "/about", "/listen", "/challenge", "/contact", "/privacy"] as const;
 export type MarkdownPath = (typeof MARKDOWN_PATHS)[number];
 
 export function isMarkdownPath(pathname: string): pathname is MarkdownPath {
@@ -133,12 +133,30 @@ const CONTACT_MARKDOWN = [
   "",
 ].join("\n");
 
+const PRIVACY_MARKDOWN = [
+  "# Privacy Policy",
+  "",
+  "> Privacy policy and data governance for SonifySphere.",
+  "",
+  "SonifySphere is an educational open-source interactive sound installation created for NASA Space Apps 2026. All audio sonification happens directly inside your web browser via the Web Audio API.",
+  "",
+  "We do not sell user data, track personal browsing habits, or construct advertising profiles. We use browser local storage strictly for functional preferences (performance mode, intro animation seen, sound on/off).",
+  "",
+  "For privacy questions or data governance inquiries, contact richardhuynh0824@gmail.com.",
+  "",
+  `- [Home](${page("/")})`,
+  `- [About](${page("/about")})`,
+  `- [Agent guide](${page("/llms.txt")})`,
+  "",
+].join("\n");
+
 const MARKDOWN_BY_PATH: Record<MarkdownPath, string> = {
   "/": HOME_MARKDOWN,
   "/about": ABOUT_MARKDOWN,
   "/listen": LISTEN_MARKDOWN,
   "/challenge": CHALLENGE_MARKDOWN,
   "/contact": CONTACT_MARKDOWN,
+  "/privacy": PRIVACY_MARKDOWN,
 };
 
 export function markdownForPath(pathname: string): string | null {
@@ -186,6 +204,24 @@ export function homepageJsonLd(): Record<string, unknown> {
           priceCurrency: "USD",
         },
         sameAs: [GITHUB_REPO],
+      },
+      {
+        "@type": "Organization",
+        name: SITE_NAME,
+        url: SITE_URL,
+        description: SITE_DESCRIPTION,
+        email: "richardhuynh0824@gmail.com",
+        sameAs: [GITHUB_REPO],
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          email: "richardhuynh0824@gmail.com",
+          availableLanguage: ["English"],
+        },
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "US",
+        },
       },
     ],
   };

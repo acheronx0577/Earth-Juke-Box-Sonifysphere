@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ContactStage } from "@/components/contact/ContactStage";
+import { PageReadableSummary } from "@/components/shared/PageReadableSummary";
 
 export const metadata: Metadata = {
   title: "Contact — SonifySphere",
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  return <ContactStage />;
+  return (
+    <>
+      <PageReadableSummary pageKey="contact" />
+      <ContactStage />
+    </>
+  );
 }

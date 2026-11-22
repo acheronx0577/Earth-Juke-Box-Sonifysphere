@@ -20,6 +20,7 @@ interface GridCell {
 
 function populateGridCells(container: HTMLDivElement): GridCell[] {
   container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   const cells: GridCell[] = [];
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -38,10 +39,11 @@ function populateGridCells(container: HTMLDivElement): GridCell[] {
       el.style.height = `${GRID_BLOCK_SIZE}px`;
       el.style.left = `${px}px`;
       el.style.top = `${py}px`;
-      container.appendChild(el);
+      fragment.appendChild(el);
       cells.push({ el, x: px + 30, y: py + 30, gridX: c, gridY: r, until: 0 });
     }
   }
+  container.appendChild(fragment);
   return cells;
 }
 

@@ -5,11 +5,11 @@ installErrorChecks();
 
 test("phone menu navigation clears the grid and skips the repeat Home intro", async ({ page }) => {
   await page.goto("/listen?sound=off");
-  await page.getByRole("button", { name: "Toggle mobile menu" }).click();
+  await page.getByRole("button", { name: "SonifySphere menu" }).click();
   await page.getByRole("navigation").getByRole("link", { name: "About", exact: true }).click();
   await expect(page).toHaveURL(/\/about$/);
   await expect(page.locator(".sonify-page-transition")).toBeHidden();
-  await page.getByRole("button", { name: "Toggle mobile menu" }).click();
+  await page.getByRole("button", { name: "SonifySphere menu" }).click();
   await page.getByRole("navigation").getByRole("link", { name: "Home", exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator(".sonify-page-transition")).toBeHidden();

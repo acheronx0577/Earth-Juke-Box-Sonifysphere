@@ -71,7 +71,7 @@ export function SiteNav() {
           className="nav-mobile-header"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-expanded={isOpen}
-          aria-label="Toggle mobile menu"
+          aria-label="SonifySphere menu"
         >
           <p className="nav-logo">SonifySphere</p>
           <p className="nav-menu-toggle">Menu</p>
