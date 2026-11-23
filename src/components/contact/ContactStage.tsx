@@ -93,14 +93,8 @@ export function ContactStage() {
   }, []);
 
   useEffect(() => {
-    const nav = document.querySelector<HTMLElement>(".sonify-nav");
     const player = document.querySelector<HTMLElement>("aside[aria-label='Persistent mini-player']");
-    const navVisibility = nav?.style.visibility ?? "";
     const playerVisibility = player?.style.visibility ?? "";
-    if (phone && nav) {
-      nav.setAttribute("inert", "");
-      nav.style.visibility = "hidden";
-    }
     if (player) {
       player.setAttribute("inert", "");
       player.style.visibility = "hidden";
@@ -108,13 +102,11 @@ export function ContactStage() {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      nav?.removeAttribute("inert");
-      if (nav) nav.style.visibility = navVisibility;
       player?.removeAttribute("inert");
       if (player) player.style.visibility = playerVisibility;
       document.body.style.overflow = previous;
     };
-  }, [phone]);
+  }, []);
 
   useEffect(() => {
     const stage = stageRef.current;
