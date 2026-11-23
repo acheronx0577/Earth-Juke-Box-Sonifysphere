@@ -571,6 +571,11 @@ a.placeholder {
   clip-path: none;
 }
 
+/* The stand-in bar only reserves the site nav's space. The shared nav is the control. */
+.stage[data-layout="phone"] .phoneNav {
+  visibility: hidden;
+}
+
 .stage[data-layout="phone"] .nav {
   position: relative;
   top: auto;
