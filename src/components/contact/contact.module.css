@@ -570,6 +570,9 @@ a.placeholder {
 
 .stage[data-layout="phone"] .phoneNav {
   display: block;
+  background: #fff3ea;
+  border-radius: 4px;
+  clip-path: none;
 }
 
 .stage[data-layout="phone"] .nav {

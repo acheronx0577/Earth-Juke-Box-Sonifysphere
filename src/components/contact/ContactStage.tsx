@@ -573,12 +573,12 @@ export function ContactStage() {
       data-active={String(CONTACT_REST_INDEX)}
       aria-label="Contact"
     >
-      <ContactFrame intro cut={10} fill="#fff3ea" stroke="none" className={`${styles.nav} ${styles.chrome} ${styles.phoneOnly} ${styles.phoneNav}`}>
+      <div data-intro className={`${styles.nav} ${styles.chrome} ${styles.phoneOnly} ${styles.phoneNav}`}>
         <div className={styles.navLinks}>
           <span>SONIFYSPHERE</span>
           <span>MENU</span>
         </div>
-      </ContactFrame>
+      </div>
       <ContactFrame intro cut={8} fill="none" stroke="rgba(255,243,234,0.72)" className={styles.sound}>
         <button
           type="button"
