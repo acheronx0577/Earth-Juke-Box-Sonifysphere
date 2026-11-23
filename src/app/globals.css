@@ -1023,21 +1023,6 @@ nav .nav-item a:hover,
   opacity: 0.75;
 }
 
-nav .nav-item a.nav-github-link,
-.sonify-nav .nav-item a.nav-github-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-nav .nav-item a.nav-github-link .nav-github-svg,
-.sonify-nav .nav-item a.nav-github-link .nav-github-svg {
-  display: block;
-  flex-shrink: 0;
-  width: 13px;
-  height: 13px;
-}
-
 nav .nav-item a .active-underline,
 .sonify-nav .nav-item a .active-underline {
   position: absolute;
