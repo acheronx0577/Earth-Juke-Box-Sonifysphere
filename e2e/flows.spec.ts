@@ -25,7 +25,7 @@ async function chooseRegion(page: Page, name: string): Promise<void> {
   await expect(region).toHaveAttribute("aria-pressed", "true");
 }
 
-test("home skip link focuses the page and the nav stays four links", async ({ page }) => {
+test("home skip link focuses the page and the nav stays five links", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => document.documentElement.dataset.sonifyReady === "1");
   const main = liveMain(page);
@@ -36,13 +36,13 @@ test("home skip link focuses the page and the nav stays four links", async ({ pa
   await expect(main).toBeFocused();
 
   const nav = page.getByRole("navigation", { name: "Primary navigation" });
-  await expect(nav.getByRole("link")).toHaveCount(6);
+  await expect(nav.getByRole("link")).toHaveCount(5);
   await expect(nav.getByRole("link", { name: "Home" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Listen" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Challenges" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "About" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Contact" })).toBeVisible();
-  await expect(nav.getByRole("link", { name: "GitHub" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "GitHub" })).toHaveCount(0);
   await expectNoOverflow(page);
 });
 
