@@ -397,7 +397,7 @@ export function ContactStage() {
       y: 0,
       at: 0,
       origin: CONTACT_REST_INDEX,
-      lock: "" as "" | "deck" | "scroll",
+      lock: "" as "" | "deck",
       velocity: 0,
       lastX: 0,
       lastY: 0,
@@ -432,13 +432,6 @@ export function ContactStage() {
       const travelY = event.clientY - pointer.y;
       if (!pointer.lock) {
         if (Math.hypot(travelX, travelY) < 6) return;
-        if (phone && Math.abs(travelY) > Math.abs(travelX)) {
-          pointer.lock = "scroll";
-          pointer.id = -1;
-          delete deckEl.dataset.grab;
-          if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-          return;
-        }
         pointer.lock = "deck";
         motion.drag = true;
         motion.spring = false;
@@ -450,14 +443,11 @@ export function ContactStage() {
       const step = deck.step();
       const dx = event.clientX - pointer.lastX;
       const dy = event.clientY - pointer.lastY;
-      let members = 0;
-      if (phone) {
-        const span = Math.abs(step.x) > 24 ? step.x : (Math.sign(step.y) || 1) * -180;
-        members = dx / span;
-      } else {
-        const length = step.x * step.x + step.y * step.y || 1;
-        members = (dx * step.x + dy * step.y) / length;
-      }
+      const alongX = Math.abs(step.x) > 1 ? dx / step.x : 0;
+      const alongY = Math.abs(step.y) > 1 ? dy / step.y : 0;
+      const members = phone
+        ? (Math.abs(alongY) >= Math.abs(alongX) ? alongY : alongX)
+        : (dx * step.x + dy * step.y) / (step.x * step.x + step.y * step.y || 1);
       motion.t += members;
       const perSecond = members / (Math.max(8, now - pointer.lastAt) / 1000);
       pointer.velocity = pointer.velocity * 0.55 + perSecond * 0.45;
