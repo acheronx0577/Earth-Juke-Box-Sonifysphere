@@ -65,9 +65,17 @@
 }
 
 .wrap {
-  width: min(1240px, 100%);
+  width: 100%;
   margin: 0 auto;
   min-width: 0;
+}
+
+/* The tall badge sits on the right edge above 1400px. Clear it without
+   pulling the board back into a centered column. */
+@media (min-width: 1401px) {
+  .page {
+    padding-right: max(var(--gutter), calc(var(--sa-badge-w, 55px) + 16px));
+  }
 }
 
 .head {

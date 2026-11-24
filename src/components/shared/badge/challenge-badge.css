@@ -1,14 +1,23 @@
 /* Fixed right-edge NASA Space Apps tab.
-   --u is the viewport width divided by 1440, floored so the 60px
-   design never draws narrower than 48px (u = 0.8). That floor holds
-   through 1024px, where the pure ratio would be only ~43px, and
-   releases once the viewport passes 1152px. 1440 stays 60px and
-   2560 stays the same proportion. Internal lengths stay multiples
-   of --u, so the label stays at least 12.8px. The chip is the 44px
-   design on that same scale, and never smaller than 32px. */
+   --sa-badge-w is 55px at 2560 and keeps growing past 2K, reaching
+   60px at 3840. Below 2560 it is the same fraction of the viewport
+   (55 / 2560). The 60×273 artboard scales with --u = width / 60, so
+   the logo, icon, and label stay in proportion. Phones floor --u at
+   0.8 (a 48px tab, 12.8px label). The chip is the 44px design on
+   that same scale, and never smaller than 32px. */
+
+:root {
+  --sa-badge-w: calc(100vw * 55 / 2560);
+}
+
+@media (min-width: 2560px) {
+  :root {
+    --sa-badge-w: calc(55px + (100vw - 2560px) * 5 / 1280);
+  }
+}
 
 .ss-sa-badge {
-  --u: clamp(0.8px, calc(100vw / 1440), calc(2560px / 1440));
+  --u: calc(var(--sa-badge-w) / 60);
   --design-w: 60px;
   --design-h: 273px;
   --sa-chip: max(32px, calc(44px * var(--u) / 1px));
@@ -16,8 +25,8 @@
   top: 50%;
   right: 0;
   z-index: 44;
-  width: calc(var(--design-w) * var(--u) / 1px);
-  height: calc(var(--design-h) * var(--u) / 1px);
+  width: var(--sa-badge-w);
+  height: calc(var(--sa-badge-w) * 273 / 60);
   transform: translateY(-50%);
   container-type: inline-size;
   -webkit-tap-highlight-color: transparent;
@@ -453,6 +462,9 @@
 @media (max-width: 639px) {
   .ss-sa-badge,
   .ss-sa-badge[data-page] {
+    /* Proportional width at 390px is ~8px. Keep the opened tab at the
+       48px floor (u = 0.8) so the label stays 12.8px. */
+    --u: max(0.8px, calc(var(--sa-badge-w) / 60));
     top: 92px;
     bottom: auto;
     transform: none;
