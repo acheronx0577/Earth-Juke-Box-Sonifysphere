@@ -692,6 +692,17 @@ export function ListenV4({
   const [readingError, setReadingError] = useState("");
   const [pixelColor, setPixelColor] = useState<string | null>(null);
   const [listeningFocus, setListeningFocus] = useState<ListeningFocus | null>(null);
+  const publishFocus = useCallback((focus: ListeningFocus) => {
+    setListeningFocus((current) =>
+      current &&
+      current.sourceId === focus.sourceId &&
+      current.zoom === focus.zoom &&
+      current.x === focus.x &&
+      current.y === focus.y
+        ? current
+        : focus,
+    );
+  }, []);
   const soundToggleRef = useRef<HTMLButtonElement>(null);
   const mapScanTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nasaSearchRequests = useRef(createLatestRequest());
@@ -1452,7 +1463,7 @@ export function ListenV4({
             tip={reading.tip}
             coord={coord}
             onPixel={setPixelColor}
-            onFocus={setListeningFocus}
+            onFocus={publishFocus}
             onProbe={(nextLat, nextLng) => {
               if (scanning) stopMapScan("Map scan stopped at the selected point.");
               setLat(Math.max(-85, Math.min(85, nextLat)));
