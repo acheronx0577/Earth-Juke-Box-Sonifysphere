@@ -110,6 +110,19 @@ async function sampleImage(img: CanvasImageSource, width: number, height: number
   return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
+/** Ignore sub-pixel layout noise. A 0.4% move is about 3px on the listen stage. */
+const FOCUS_EPSILON = 0.004;
+
+function sameFocus(current: ListeningFocus | null, next: ListeningFocus): boolean {
+  return Boolean(
+    current &&
+    current.sourceId === next.sourceId &&
+    current.zoom === next.zoom &&
+    Math.abs(current.x - next.x) < FOCUS_EPSILON &&
+    Math.abs(current.y - next.y) < FOCUS_EPSILON,
+  );
+}
+
 export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, tip, coord, onPixel, onFocus }: ListenMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -129,31 +142,40 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
   const [mapProbePosition, setMapProbePosition] = useState<{ x: number; y: number } | null>(null);
   const [pixel, setPixel] = useState({ x: 0.5, y: 0.5 });
   const tipRef = useRef<HTMLDivElement>(null);
+  const focusRef = useRef<ListeningFocus | null>(null);
   const [tipShift, setTipShift] = useState({ x: 26, y: -18 });
   const tipAnchor = mapMode ? tipPos : ring;
   const mapWidth = MAP_VIEW.width / mapZoom;
   const mapHeight = MAP_VIEW.height / mapZoom;
   const mapViewBox = `${mapCenter.x - mapWidth / 2} ${mapCenter.y - mapHeight / 2} ${mapWidth} ${mapHeight}`;
+  const anchor = mapMode ? mapProbePosition : ring;
+  const anchorX = anchor ? Math.round(anchor.x) : null;
+  const anchorY = anchor ? Math.round(anchor.y) : null;
 
   useEffect(() => {
     const stage = stageRef.current;
-    const position = mapMode ? mapProbePosition : ring;
     if (!stage) return;
     const publish = () => {
       const rect = stage.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      onFocus({
+      const next = {
         sourceId: source.id,
         zoom: mapZoom,
-        x: position ? position.x / rect.width : 0.5,
-        y: position ? position.y / rect.height : 0.5,
-      });
+        x: anchorX === null ? 0.5 : anchorX / rect.width,
+        y: anchorY === null ? 0.5 : anchorY / rect.height,
+      };
+      // A fresh object on every resize re-renders Listen and retargets Tone.
+      // Media swaps change the stage size, which observed again, until React
+      // aborted with minified error #185.
+      if (sameFocus(focusRef.current, next)) return;
+      focusRef.current = next;
+      onFocus(next);
     };
     publish();
     const observer = new ResizeObserver(publish);
     observer.observe(stage);
     return () => observer.disconnect();
-  }, [mapMode, mapProbePosition, ring, mapZoom, source.id, onFocus]);
+  }, [anchorX, anchorY, mapZoom, source.id, onFocus]);
 
   const resizeProbe = (amount: number) => {
     setProbeRadius((size) => Math.min(30, Math.max(6, size + amount)));
@@ -221,7 +243,9 @@ export function ListenMap({ source, layer, lat, lng, onProbe, legend, onLegend, 
       point.y = py;
       const screenPoint = point.matrixTransform(ctm);
       const stageRect = stage.getBoundingClientRect();
-      setMapProbePosition({ x: screenPoint.x - stageRect.left, y: screenPoint.y - stageRect.top });
+      const x = Math.round(screenPoint.x - stageRect.left);
+      const y = Math.round(screenPoint.y - stageRect.top);
+      setMapProbePosition((current) => (current && current.x === x && current.y === y ? current : { x, y }));
     };
     updateProbePosition();
     const observer = new ResizeObserver(updateProbePosition);
