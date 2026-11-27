@@ -157,7 +157,7 @@ What the code does for that result:
 Indexing, verified in `src/app/layout.tsx`, `src/app/sitemap.ts`, `src/app/robots.txt/route.ts`, and `src/lib/agentCopy.ts`:
 
 - `metadataBase` is `NEXT_PUBLIC_SITE_URL` or `https://www.sonifysphere.earth`. Each page sets `alternates.canonical` to `./`.
-- Open Graph and Twitter use a 1200×630 share image at `/og-image.png`.
+- Open Graph and Twitter use a 1600×1200 progressive JPEG at `/og-image-v2.jpg` (`https://www.sonifysphere.earth/og-image-v2.jpg`).
 - Homepage JSON-LD is `WebSite`, `WebApplication` (free educational app), and `Organization`. `SiteNavigationElement` lists the main pages. About, Listen, Challenge, Story, Contact, and Privacy add `BreadcrumbList`.
 - The first icon is `/favicon-48x48.png`, with `/favicon.ico` as the shortcut icon.
 - Google Search Console is verified with a meta tag and `public/googled20aa7835b26dc03.html`.
