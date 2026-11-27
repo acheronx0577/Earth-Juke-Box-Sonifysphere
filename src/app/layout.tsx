@@ -27,14 +27,14 @@ export const viewport: Viewport = {
 };
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.sonifysphere.earth";
-const shareImagePath = "/og-image.png?v=2";
+const shareImageUrl = new URL("/og-image-v2.jpg", "https://www.sonifysphere.earth").href;
 const shareImage = {
-  url: shareImagePath,
-  secureUrl: new URL(shareImagePath, siteUrl).href,
-  width: 1200,
-  height: 630,
-  alt: "AI-generated SonifySphere hero illustration — Earth breathes, the Earth information jukebox. Not a photograph.",
-  type: "image/png",
+  url: shareImageUrl,
+  secureUrl: shareImageUrl,
+  width: 1600,
+  height: 1200,
+  alt: "SonifySphere collage of the Earth information jukebox — homepage, climate records, how it sounds, and the listen map.",
+  type: "image/jpeg",
 } as const;
 
 export const metadata: Metadata = {
